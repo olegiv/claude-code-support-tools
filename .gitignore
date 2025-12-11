@@ -1,0 +1,21 @@
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.settings/
+*.iml
+*.ipr
+*.iws
+
+# Operating Systems
+# macOS
+.DS_Store
+
+# Claude Code
+.claude
