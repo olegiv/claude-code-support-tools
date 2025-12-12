@@ -13,9 +13,21 @@ This repository contains Claude Code support tools including autonomous agents, 
 - **`agents/`** - Custom autonomous agents for specialized tasks
   - `security-auditor.md` - Elite security auditing agent for comprehensive vulnerability analysis
   - `project-architect.md` - Project analysis agent that generates tailored Claude Code extensions
+- **`.claude/agents/`** - Repository-specific agents for maintaining this project
+  - `markdown-linter.md` - Validates agent and command files for proper structure and syntax
+  - `doc-sync-manager.md` - Synchronizes documentation across README.md and CLAUDE.md
+  - `template-validator.md` - Ensures templates follow Claude Code best practices
+  - `release-manager.md` - Manages versioning, changelog generation, and releases
 - **`.claude/commands/`** - Project-specific slash commands for Claude Code
   - `commit-prepare.md` - Reviews changes and drafts commit messages
   - `commit-do.md` - Creates commits using prepared messages
+  - `security-audit.md` - Performs comprehensive security audit of the project
+  - `validate-agents.md` - Validates all agent files for proper structure
+  - `validate-commands.md` - Validates all command files for proper structure
+  - `sync-docs.md` - Synchronizes documentation after adding/modifying tools
+  - `test-workflows.md` - Validates GitHub Actions workflow syntax
+  - `new-agent.md` - Scaffolds new agent files with proper template
+  - `new-command.md` - Scaffolds new command files with proper template
 - **`commands/`** - Template commands for copying to projects
   - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
   - `no-ticket/` - Alternative command structures for workflows without ticket references
@@ -79,6 +91,71 @@ The project architect is an elite Software Architect agent that analyzes project
 - **Updates existing documentation** (CLAUDE.md, README.md, etc.) to document new tools
 - Quick start guide for using the generated extensions
 
+### Repository Maintenance Agents
+
+These agents help maintain this Claude Code support tools repository:
+
+#### markdown-linter Agent
+
+Validates agent and command markdown files for proper YAML frontmatter and structure. Use it for:
+- Validating agent files after creation or modification
+- Checking command files for proper formatting
+- Troubleshooting why agents/commands aren't recognized
+- Pre-commit validation of markdown files
+
+**Key capabilities:**
+- YAML frontmatter syntax validation
+- Required field verification (name, description, model)
+- Kebab-case naming convention checks
+- Content structure validation
+- Automated fix suggestions
+
+#### doc-sync-manager Agent
+
+Synchronizes documentation across README.md and CLAUDE.md when tools are added or modified. Use it for:
+- Updating documentation after adding new agents
+- Updating documentation after adding new commands
+- Ensuring consistency across documentation files
+- Preparing documentation for releases
+
+**Key capabilities:**
+- Detects new/modified agents and commands
+- Analyzes documentation impact
+- Generates consistent documentation updates
+- Validates cross-references
+- Maintains documentation standards
+
+#### template-validator Agent
+
+Validates that agent and command templates follow Claude Code best practices. Use it for:
+- Reviewing contributions before merging
+- Quality assurance before releases
+- Ensuring templates meet standards
+- Identifying common anti-patterns
+
+**Key capabilities:**
+- Structure and content quality validation
+- Best practice compliance checking
+- Security and safety review
+- Consistency verification across files
+- Quality scoring and recommendations
+
+#### release-manager Agent
+
+Manages versioning, changelog generation, and release preparation. Use it for:
+- Preparing new releases
+- Generating changelogs from git history
+- Creating release notes
+- Managing git tags and versions
+- Post-release verification
+
+**Key capabilities:**
+- Semantic versioning analysis
+- CHANGELOG.md generation
+- Documentation update verification
+- Pre-release quality checks
+- GitHub release creation guidance
+
 ## Slash Commands
 
 ### Project Setup Command
@@ -88,6 +165,57 @@ The project architect is an elite Software Architect agent that analyzes project
 - Analyzes the current project's tech stack
 - Generates custom agents, skills, and commands
 - Creates documentation for the generated tools
+
+### Security Audit Command
+
+**`/security-audit`** - Perform comprehensive security audit of the project
+- Invokes the security-auditor agent
+- Analyzes application code for OWASP Top 10 vulnerabilities
+- Audits dependencies for known CVEs
+- Reviews configurations, authentication, APIs, and secrets
+- Generates detailed reports in .audit/ directory (never committed)
+
+### Repository Maintenance Commands
+
+Commands for maintaining this Claude Code support tools repository:
+
+**`/validate-agents`** - Validate all agent files
+- Scans agents/ and .claude/agents/ directories
+- Checks YAML frontmatter syntax and required fields
+- Verifies kebab-case naming conventions
+- Reports errors and suggests fixes
+
+**`/validate-commands`** - Validate all command files
+- Scans .claude/commands/ and commands/ directories
+- Checks optional YAML frontmatter if present
+- Verifies file naming and structure
+- Reports errors and suggests fixes
+
+**`/sync-docs`** - Synchronize documentation
+- Detects new/modified agents and commands
+- Updates README.md and CLAUDE.md
+- Ensures consistency across documentation
+- Validates cross-references
+
+**`/test-workflows`** - Validate GitHub Actions workflows
+- Checks YAML syntax in .github/workflows/
+- Validates workflow structure and fields
+- Verifies Claude Code Action usage
+- Reviews security and best practices
+
+**`/new-agent`** - Create new agent file
+- Interactive scaffolding for new agents
+- Generates proper YAML frontmatter
+- Creates comprehensive agent prompt
+- Validates created file
+- Reminds to update documentation
+
+**`/new-command`** - Create new command file
+- Interactive scaffolding for new commands
+- Generates clear step-by-step instructions
+- Follows proper markdown structure
+- Validates created file
+- Reminds to update documentation
 
 ### Commit Workflow Commands
 

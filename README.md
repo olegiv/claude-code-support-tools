@@ -21,10 +21,27 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 - **Updates existing documentation** (CLAUDE.md, README.md) to document new tools
 - Use when setting up Claude Code for a new project or after major tech stack changes
 
+**Repository Maintenance Agents** (`.claude/agents/`)
+- **markdown-linter** - Validates agent and command files for proper YAML frontmatter and structure
+- **doc-sync-manager** - Synchronizes documentation across README.md and CLAUDE.md
+- **template-validator** - Ensures templates follow Claude Code best practices
+- **release-manager** - Manages versioning, changelog generation, and releases
+
 ### ⚡ Slash Commands
 
 **Project Setup Command**
 - `/setup-project-tools` - Automatically analyze project and generate tailored agents, skills, and commands
+
+**Security Audit Command**
+- `/security-audit` - Perform comprehensive security audit of the project (invokes security-auditor agent)
+
+**Repository Maintenance Commands**
+- `/validate-agents` - Validate all agent files for proper structure and syntax
+- `/validate-commands` - Validate all command files for proper structure and syntax
+- `/sync-docs` - Synchronize documentation after adding/modifying agents or commands
+- `/test-workflows` - Validate GitHub Actions workflow syntax and best practices
+- `/new-agent` - Scaffold a new agent file with proper template
+- `/new-command` - Scaffold a new command file with proper template
 
 **Commit Workflow Commands**
 - `/commit-prepare` - Review changes and draft commit messages following best practices
@@ -202,21 +219,33 @@ Claude will respond and complete the task with full repository access.
 
 ```
 .
-├── agents/                    # Autonomous agent definitions
-│   ├── security-auditor.md   # Security vulnerability scanning
-│   └── project-architect.md  # Project analysis & tool generation
+├── agents/                        # Autonomous agent definitions
+│   ├── security-auditor.md       # Security vulnerability scanning
+│   └── project-architect.md      # Project analysis & tool generation
 ├── .claude/
-│   └── commands/              # Project-specific slash commands
-│       ├── commit-prepare.md
-│       └── commit-do.md
-├── commands/                  # Template commands for copying to projects
+│   ├── agents/                    # Repository-specific agents
+│   │   ├── markdown-linter.md    # Validate agent/command files
+│   │   ├── doc-sync-manager.md   # Synchronize documentation
+│   │   ├── template-validator.md # Validate template quality
+│   │   └── release-manager.md    # Manage releases and versioning
+│   └── commands/                  # Repository-specific slash commands
+│       ├── commit-prepare.md     # Review changes
+│       ├── commit-do.md          # Create commits
+│       ├── security-audit.md     # Security audit command
+│       ├── validate-agents.md    # Validate agent files
+│       ├── validate-commands.md  # Validate command files
+│       ├── sync-docs.md          # Update documentation
+│       ├── test-workflows.md     # Validate workflows
+│       ├── new-agent.md          # Scaffold new agent
+│       └── new-command.md        # Scaffold new command
+├── commands/                      # Template commands for copying to projects
 │   ├── setup-project-tools.md
-│   └── no-ticket/             # Alternative command structures
-├── global/                    # User-level configuration templates
+│   └── no-ticket/                 # Alternative command structures
+├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   └── settings.json
 └── .github/
-    └── workflows/             # GitHub Actions workflows
+    └── workflows/                 # GitHub Actions workflows
         ├── claude.yml
         └── claude-code-review.yml
 ```
