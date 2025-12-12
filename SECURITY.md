@@ -61,6 +61,48 @@ The OAuth token should have **minimal required scopes** only:
 - Monitor Claude API usage for unexpected patterns
 - Set up alerts for failed authentication attempts
 
+### Workflow Log Protection (SEC-002 Mitigation)
+
+GitHub Actions workflows can accidentally expose secrets in logs. We implement the following protections:
+
+#### Debug Mode Prevention
+
+- Workflows abort if `RUNNER_DEBUG=1` is detected
+- This prevents verbose logging that could expose secrets
+- Debug mode should only be enabled for non-sensitive workflows
+
+#### Secret Masking
+
+GitHub automatically masks secrets in logs, but this can be bypassed. Our protections:
+
+- **No direct shell interpolation**: Secrets passed via `with:` parameters, not `${{ }}` in shell commands
+- **Environment variable isolation**: Secrets not exported to shell environment where possible
+- **Tool restrictions**: AI agent cannot execute arbitrary commands that might dump env vars
+
+#### What NOT to Do
+
+If you fork or modify these workflows, avoid:
+
+```yaml
+# DANGEROUS - Secret may appear in logs
+- run: echo "Token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}"
+
+# DANGEROUS - Base64 encoding bypasses masking
+- run: echo "${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" | base64
+
+# DANGEROUS - Error messages may contain secrets
+- run: curl -H "Authorization: Bearer ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}" https://invalid-url
+```
+
+#### Safe Practices
+
+```yaml
+# SAFE - Secret passed via action input, not shell
+- uses: anthropics/claude-code-action@sha
+  with:
+    claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+```
+
 ### Secret Management
 
 - **Never commit secrets**: All secrets stored in GitHub Secrets

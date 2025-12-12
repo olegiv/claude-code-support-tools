@@ -38,6 +38,14 @@ jobs:
       id-token: write
 
     steps:
+      # Security: Prevent secret exposure in debug mode (SEC-002)
+      - name: Verify security conditions
+        run: |
+          if [[ "${RUNNER_DEBUG:-0}" == "1" ]]; then
+            echo "::error::Debug mode is enabled. Workflow aborted to prevent secret exposure."
+            exit 1
+          fi
+
       - name: Checkout repository
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
