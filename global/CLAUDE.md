@@ -89,6 +89,15 @@ Keep pull request messages clean and professional without AI attribution footers
    - For personal testing → add to `.claude/settings.local.json`
    - For team use → add to `.claude/settings.json` and commit
 
+## Security Audit Files
+
+**IMPORTANT:** Security audit results and status files are stored in the `.audit` directory in the project root.
+
+### Rules
+1. **Always gitignored**: The `.audit` directory must always be in `.gitignore`
+2. **Never commit**: Do NOT commit security audit results or status files
+3. **Local only**: These files are for local security testing and analysis only
+
 ## Code Compilation Rules
 
 **Always fix SASS and TS compilation deprecation warnings.** When compiling SCSS/SASS or TypeScript and deprecation warnings appear, address them immediately rather than ignoring them.
