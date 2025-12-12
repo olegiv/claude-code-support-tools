@@ -109,6 +109,30 @@ If you fork or modify these workflows, avoid:
 - **Local settings gitignored**: `.claude/settings.local.json` is never committed
 - **Audit reports gitignored**: `.audit/` directory excluded from version control
 
+## Incident Response
+
+### If Token is Compromised
+
+1. **Immediately revoke** the token at [Claude Code Settings](https://console.anthropic.com/)
+2. Generate and configure a new token (see rotation steps above)
+3. Review workflow runs for suspicious activity: Actions tab > Filter by date
+4. Check repository commits for unauthorized changes
+5. Report via [Security Advisories](https://github.com/olegiv/claude-code-support-tools/security/advisories) if external
+
+### If Secrets Are Accidentally Committed
+
+1. **Rotate the secret immediately** - assume it's compromised
+2. Remove from git history using `git filter-repo` or BFG Repo-Cleaner
+3. Force push cleaned history (coordinate with collaborators)
+4. Invalidate any exposed credentials at their source
+
+### If Suspicious Workflow Activity Detected
+
+1. Disable the workflow: Actions > Workflow > Disable workflow
+2. Review recent runs and their triggers
+3. Check for unauthorized workflow file changes
+4. Re-enable only after investigation complete
+
 ## Security Audit
 
 This repository undergoes regular security audits. See `.audit/README.md` for:
