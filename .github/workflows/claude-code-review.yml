@@ -10,18 +10,30 @@ on:
     #   - "src/**/*.js"
     #   - "src/**/*.jsx"
 
+# Prevent concurrent runs on same PR to avoid race conditions
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # Security: Only review PRs from trusted contributors
+    # This prevents prompt injection attacks via malicious PR content
+    # See: https://www.aikido.dev/blog/promptpwnd-github-actions-ai-agents
+    if: |
+      github.event.pull_request.user.type == 'User' &&
+      (
+        github.event.pull_request.author_association == 'OWNER' ||
+        github.event.pull_request.author_association == 'MEMBER' ||
+        github.event.pull_request.author_association == 'COLLABORATOR'
+      )
 
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+
     permissions:
       contents: read
-      pull-requests: read
+      pull-requests: write  # Required for PR comments
       issues: read
       id-token: write
 
@@ -34,13 +46,17 @@ jobs:
       - name: Run Claude Code Review
         id: claude-review
         uses: anthropics/claude-code-action@v1
+        env:
+          # Security: Use environment variables instead of direct expression interpolation
+          # This prevents potential expression injection attacks
+          REVIEW_REPO: ${{ github.repository }}
+          REVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
-            REPO: ${{ github.repository }}
-            PR NUMBER: ${{ github.event.pull_request.number }}
+            Please review pull request #${{ env.REVIEW_PR_NUMBER }} in repository ${{ env.REVIEW_REPO }}.
 
-            Please review this pull request and provide feedback on:
+            Provide feedback on:
             - Code quality and best practices
             - Potential bugs or issues
             - Performance considerations
@@ -51,7 +67,7 @@ jobs:
 
             Use `gh pr comment` with your Bash tool to leave your review as a comment on the PR.
 
+          # Security: Restrict Claude's tools to read-only operations plus PR comments
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
-          # or https://code.claude.com/docs/en/cli-reference for available options
-          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*)"'
+          claude_args: '--allowed-tools "Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Read(*),Glob(*),Grep(*)"'
 
