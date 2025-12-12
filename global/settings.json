@@ -3,5 +3,6 @@
     "type": "command",
     "command": "input=$(cat); cwd=$(echo \"$input\" | jq -r '.workspace.current_dir'); project_name=$(basename \"$cwd\"); model_name=$(echo \"$input\" | jq -r '.model.display_name'); cd \"$cwd\" 2>/dev/null; git_branch=\"\"; git_status=\"\"; git_color=\"\"; if git rev-parse --git-dir > /dev/null 2>&1; then git_branch=$(git --no-optional-locks symbolic-ref --short HEAD 2>/dev/null || echo \"detached\"); if [ -n \"$(git --no-optional-locks status --porcelain 2>/dev/null)\" ]; then git_color=\"\\\\033[33m\"; git_status=\"✗\"; else local_commit=$(git --no-optional-locks rev-parse @ 2>/dev/null); remote_commit=$(git --no-optional-locks rev-parse @{u} 2>/dev/null); if [ \"$local_commit\" != \"$remote_commit\" ] && [ -n \"$remote_commit\" ]; then git_color=\"\\\\033[36m\"; git_status=\"↕\"; else git_color=\"\\\\033[32m\"; git_status=\"✓\"; fi; fi; fi; printf \"\\\\033[35m📁 %s\\\\033[0m  \\\\033[34m📂 %s\\\\033[0m\" \"$project_name\" \"$cwd\"; if [ -n \"$git_branch\" ]; then printf \"  %b🌿 %s %s\\\\033[0m\" \"$git_color\" \"$git_branch\" \"$git_status\"; fi; printf \"  \\\\033[90m🤖 %s\\\\033[0m\" \"$model_name\""
   },
-  "alwaysThinkingEnabled": true
+  "alwaysThinkingEnabled": true,
+  "model": "opus"
 }

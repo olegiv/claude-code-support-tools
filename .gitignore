@@ -19,3 +19,6 @@
 
 # Claude Code
 .claude/settings.local.json
+
+# Security Audit Reports (never commit)
+.audit/
