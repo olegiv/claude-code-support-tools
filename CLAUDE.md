@@ -12,10 +12,13 @@ This repository contains Claude Code support tools including autonomous agents, 
 
 - **`agents/`** - Custom autonomous agents for specialized tasks
   - `security-auditor.md` - Elite security auditing agent for comprehensive vulnerability analysis
+  - `project-architect.md` - Project analysis agent that generates tailored Claude Code extensions
 - **`.claude/commands/`** - Project-specific slash commands for Claude Code
   - `commit-prepare.md` - Reviews changes and drafts commit messages
   - `commit-do.md` - Creates commits using prepared messages
-- **`commands/`** - Alternative command structures (e.g., `no-ticket/` for workflows without ticket references)
+- **`commands/`** - Template commands for copying to projects
+  - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
+  - `no-ticket/` - Alternative command structures for workflows without ticket references
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode
@@ -52,7 +55,39 @@ The security auditor is an elite Application Security Engineer agent that perfor
 - `security-audit-secrets.md`
 - `security-audit-summary.md`
 
+### project-architect Agent
+
+The project architect is an elite Software Architect agent that analyzes projects and generates tailored Claude Code extensions. Use it for:
+
+- Setting up Claude Code for a new project
+- Understanding project architecture and tooling
+- Creating project-specific development workflows
+- After major tech stack changes to update Claude Code extensions
+
+**Key capabilities:**
+- Detects programming languages, frameworks, and libraries
+- Identifies build tools, test frameworks, and linters
+- Analyzes CI/CD configuration and workflows
+- Generates custom agents for project-specific tasks
+- Creates slash commands for common development workflows
+- Produces skills for reusable capabilities
+
+**Generated extensions:** Creates files in `.claude/` directory:
+- Custom agents in `.claude/agents/` (test-runner, build-manager, linter-helper, deploy-assistant, etc.)
+- Slash commands in `.claude/commands/` (/test, /build, /lint, /deploy, etc.)
+- Skills in `.claude/skills/` if applicable
+- **Updates existing documentation** (CLAUDE.md, README.md, etc.) to document new tools
+- Quick start guide for using the generated extensions
+
 ## Slash Commands
+
+### Project Setup Command
+
+**`/setup-project-tools`** - Automatically analyze project and generate tailored extensions
+- Invokes the project-architect agent
+- Analyzes the current project's tech stack
+- Generates custom agents, skills, and commands
+- Creates documentation for the generated tools
 
 ### Commit Workflow Commands
 

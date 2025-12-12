@@ -13,13 +13,24 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 - Generates structured security audit reports with remediation guidance
 - Use for pre-release audits, dependency checks, and security reviews
 
+**Project Architect** (`agents/project-architect.md`)
+- Elite Software Architect that analyzes any project's tech stack
+- Automatically detects languages, frameworks, build tools, testing infrastructure
+- Generates custom Claude Code agents, skills, and commands tailored to the project
+- Creates workflow-specific extensions (test-runner, build-manager, linter-helper, etc.)
+- **Updates existing documentation** (CLAUDE.md, README.md) to document new tools
+- Use when setting up Claude Code for a new project or after major tech stack changes
+
 ### ⚡ Slash Commands
+
+**Project Setup Command**
+- `/setup-project-tools` - Automatically analyze project and generate tailored agents, skills, and commands
 
 **Commit Workflow Commands**
 - `/commit-prepare` - Review changes and draft commit messages following best practices
 - `/commit-do` - Create commits with proper formatting and HEREDOC syntax
 
-Both commands enforce strict commit message standards:
+Both commit commands enforce strict commit message standards:
 - Subject line: max 50 chars, imperative mood
 - Body: wrapped at 72 chars, explains what and why
 - Clean messages without AI attribution footers
@@ -72,12 +83,17 @@ Please use the security-auditor agent to audit this codebase
 Copy command files to your project's `.claude/commands/` directory:
 
 ```bash
+# Project setup command
+cp commands/setup-project-tools.md /path/to/your/project/.claude/commands/
+
+# Commit workflow commands
 cp .claude/commands/commit-prepare.md /path/to/your/project/.claude/commands/
 cp .claude/commands/commit-do.md /path/to/your/project/.claude/commands/
 ```
 
 Then use in Claude Code:
 ```bash
+/setup-project-tools
 /commit-prepare
 /commit-do
 ```
@@ -121,6 +137,25 @@ These will apply to all your Claude Code sessions across all projects.
    - Adjust review prompts and criteria
 
 ## Usage Examples
+
+### Project Setup
+
+```bash
+# In Claude Code - Option 1: Use slash command
+/setup-project-tools
+
+# Option 2: Invoke agent directly
+Use the project-architect agent to analyze this project and generate
+tailored Claude Code extensions for my tech stack.
+```
+
+The agent will:
+1. Analyze your project (languages, frameworks, build tools, testing, etc.)
+2. Generate custom agents in `.claude/agents/` (e.g., test-runner, build-manager)
+3. Generate slash commands in `.claude/commands/` (e.g., /test, /build, /lint)
+4. Create skills in `.claude/skills/` if needed
+5. **Update existing documentation** (CLAUDE.md, README.md, etc.) with new tools
+6. Provide quick start guide for using the generated extensions
 
 ### Security Audit
 
@@ -168,12 +203,14 @@ Claude will respond and complete the task with full repository access.
 ```
 .
 ├── agents/                    # Autonomous agent definitions
-│   └── security-auditor.md
+│   ├── security-auditor.md   # Security vulnerability scanning
+│   └── project-architect.md  # Project analysis & tool generation
 ├── .claude/
 │   └── commands/              # Project-specific slash commands
 │       ├── commit-prepare.md
 │       └── commit-do.md
-├── commands/
+├── commands/                  # Template commands for copying to projects
+│   ├── setup-project-tools.md
 │   └── no-ticket/             # Alternative command structures
 ├── global/                    # User-level configuration templates
 │   ├── CLAUDE.md
