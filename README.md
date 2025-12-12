@@ -153,6 +153,10 @@ These will apply to all your Claude Code sessions across all projects.
    - Modify triggers and filters for your workflow
    - Adjust review prompts and criteria
 
+> **Security Note**: These workflows include security hardening (pinned actions,
+> tool restrictions, trusted user checks). Before deploying, review
+> [SECURITY.md](SECURITY.md) for token rotation requirements and best practices.
+
 ## Usage Examples
 
 ### Project Setup
