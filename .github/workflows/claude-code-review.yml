@@ -46,6 +46,18 @@ jobs:
             exit 1
           fi
 
+      # Security: Audit logging for secret access (SEC-004)
+      - name: Log secret access
+        run: |
+          echo "::notice::Claude Code OAuth token accessed at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "::notice::Workflow: ${{ github.workflow }}"
+          echo "::notice::Actor: ${{ github.actor }}"
+          echo "::notice::Event: ${{ github.event_name }}"
+          echo "::notice::Ref: ${{ github.ref }}"
+          echo "::notice::Run ID: ${{ github.run_id }}"
+        env:
+          TOKEN_PRESENT: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN != '' }}
+
       - name: Checkout repository
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
