@@ -250,6 +250,19 @@ Claude will respond and complete the task with full repository access.
         └── claude-code-review.yml
 ```
 
+## Dependencies
+
+This repository has no runtime dependencies. It consists entirely of:
+- Markdown documentation and agent definition files
+- YAML configuration files for GitHub Actions
+- JSON configuration files
+
+If dependencies are added in the future, they must:
+- Use lockfiles (package-lock.json, go.sum, etc.)
+- Be scanned for vulnerabilities with Dependabot
+- Follow semantic versioning
+- Have versions pinned in production
+
 ## Contributing
 
 Feel free to add your own:

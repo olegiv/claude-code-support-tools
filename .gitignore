@@ -22,3 +22,29 @@
 
 # Security Audit Reports (never commit)
 .audit/
+
+# Environment variables and secrets
+.env
+.env.local
+.env.*.local
+!.env.example
+secrets.json
+credentials.json
+config/secrets.yml
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+
+# API keys and tokens
+*.token
+.tokens/
+api-keys.txt
+oauth-token.txt
+
+# Cloud provider credentials
+.aws/credentials
+.aws/config
+.gcp/
+.azure/
