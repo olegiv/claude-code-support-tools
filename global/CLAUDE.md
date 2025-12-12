@@ -97,6 +97,7 @@ Keep pull request messages clean and professional without AI attribution footers
 1. **Always gitignored**: The `.audit` directory must always be in `.gitignore`
 2. **Never commit**: Do NOT commit security audit results or status files
 3. **Local only**: These files are for local security testing and analysis only
+4. **Update after fixes**: After fixing security issues mentioned in `.audit` files, ALWAYS update the relevant audit documentation to reflect the fix status and changes made
 
 ## Code Compilation Rules
 
