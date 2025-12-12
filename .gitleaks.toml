@@ -1,0 +1,39 @@
+title = "Claude Code Support Tools Secret Detection"
+
+[[rules]]
+id = "claude-oauth-token"
+description = "Claude Code OAuth Token"
+regex = '''claude_[a-zA-Z0-9]{32,}'''
+keywords = ["claude_"]
+
+[[rules]]
+id = "github-token"
+description = "GitHub Personal Access Token"
+regex = '''ghp_[a-zA-Z0-9]{36,}'''
+keywords = ["ghp_"]
+
+[[rules]]
+id = "github-fine-grained-token"
+description = "GitHub Fine-grained Personal Access Token"
+regex = '''github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59}'''
+keywords = ["github_pat_"]
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)api[_-]?key[_-]?[:=]\s*['"][a-zA-Z0-9]{20,}['"]'''
+keywords = ["api_key", "apikey", "api-key"]
+
+[[rules]]
+id = "generic-secret"
+description = "Generic Secret"
+regex = '''(?i)secret[_-]?[:=]\s*['"][a-zA-Z0-9]{20,}['"]'''
+keywords = ["secret"]
+
+[allowlist]
+description = "Global allowlist"
+paths = [
+  '''^\.gitleaks\.toml$''',
+  '''^\.secrets\.baseline$''',
+  '''\.audit/.*'''
+]
