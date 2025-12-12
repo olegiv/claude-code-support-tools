@@ -79,6 +79,25 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Responds to requests with full repository access
 - Supports issue comments, PR reviews, and new issues
 
+### 🔒 Security Documentation
+
+**Security Policy** ([SECURITY.md](SECURITY.md))
+- Vulnerability disclosure via GitHub Security Advisories
+- 48-hour response SLA for security reports
+- Token rotation policy (90 days for OAuth tokens)
+- Incident response procedures
+
+**Threat Model** ([.github/THREAT_MODEL.md](.github/THREAT_MODEL.md))
+- Attack scenarios (expression injection, prompt injection, supply chain)
+- Trust boundaries and security assumptions
+- Implemented controls (preventive, detective, corrective)
+- Residual risks and user recommendations
+
+**Supply Chain Security** ([.github/SUPPLY_CHAIN_SECURITY.md](.github/SUPPLY_CHAIN_SECURITY.md))
+- GitHub Actions dependency inventory with pinned SHAs
+- Verification process for adding new dependencies
+- Incident response for supply chain compromises
+
 ## Installation
 
 ### Using Agents
@@ -248,10 +267,13 @@ Claude will respond and complete the task with full repository access.
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   └── settings.json
-└── .github/
-    └── workflows/                 # GitHub Actions workflows
-        ├── claude.yml
-        └── claude-code-review.yml
+├── .github/
+│   ├── workflows/                 # GitHub Actions workflows
+│   │   ├── claude.yml
+│   │   └── claude-code-review.yml
+│   ├── THREAT_MODEL.md            # Security threat model
+│   └── SUPPLY_CHAIN_SECURITY.md   # Supply chain security policy
+└── SECURITY.md                    # Vulnerability disclosure policy
 ```
 
 ## Dependencies

@@ -37,6 +37,10 @@ This repository contains Claude Code support tools including autonomous agents, 
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
   - `claude.yml` - Responds to @claude mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code
+- **`.github/`** - Security documentation
+  - `THREAT_MODEL.md` - Security threat model with attack scenarios and mitigations
+  - `SUPPLY_CHAIN_SECURITY.md` - Supply chain security policy and dependency inventory
+- **`SECURITY.md`** - Vulnerability disclosure policy and incident response procedures
 
 ## Agent System
 
@@ -260,6 +264,37 @@ Triggers when `@claude` is mentioned in:
 - New issues (title or body)
 
 Claude responds with full repository access and can perform requested tasks.
+
+## Security Documentation
+
+The repository includes comprehensive security documentation:
+
+### SECURITY.md
+
+Root-level security policy including:
+- Vulnerability disclosure process via GitHub Security Advisories
+- 48-hour response SLA for security reports
+- Token rotation policy (90 days for OAuth tokens)
+- Incident response procedures with escalation paths
+
+### .github/THREAT_MODEL.md
+
+Comprehensive threat model documenting:
+- **Assets**: Primary (tokens, repo contents) and secondary assets
+- **Threat Actors**: External attackers, malicious contributors, compromised dependencies
+- **Attack Scenarios**: Expression injection, prompt injection, supply chain, log exposure
+- **Trust Boundaries**: Visual diagram of nested trust levels
+- **Implemented Controls**: Preventive, detective, and corrective controls
+- **Residual Risks**: Accepted risks with rationale
+
+### .github/SUPPLY_CHAIN_SECURITY.md
+
+Supply chain security policy covering:
+- GitHub Actions dependency inventory with pinned commit SHAs
+- Verification process for adding new dependencies
+- Pre-merge checklist for workflow changes
+- Incident response for supply chain compromises
+- Compliance alignment (NIST SSDF, SLSA Level 1)
 
 ## Global Configuration Files
 
