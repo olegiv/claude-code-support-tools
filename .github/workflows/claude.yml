@@ -61,6 +61,7 @@ jobs:
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
         uses: anthropics/claude-code-action@f0c8eb29807907de7f5412d04afceb5e24817127  # v1
         with:
+          # Security: Long-lived token - rotate every 90 days (see SECURITY.md for policy)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
           # This is an optional setting that allows Claude to read CI results on PRs

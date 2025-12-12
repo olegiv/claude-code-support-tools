@@ -54,6 +54,7 @@ jobs:
           REVIEW_REPO: ${{ github.repository }}
           REVIEW_PR_NUMBER: ${{ github.event.pull_request.number }}
         with:
+          # Security: Long-lived token - rotate every 90 days (see SECURITY.md for policy)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           prompt: |
             Please review pull request #${{ env.REVIEW_PR_NUMBER }} in repository ${{ env.REVIEW_REPO }}.
