@@ -99,6 +99,71 @@ Keep pull request messages clean and professional without AI attribution footers
 3. **Local only**: These files are for local security testing and analysis only
 4. **Update after fixes**: After fixing security issues mentioned in `.audit` files, ALWAYS update the relevant audit documentation to reflect the fix status and changes made
 
+## Quality Assurance Rules
+
+**CRITICAL:** Always test what you do before giving the result to the user.
+
+### Rules
+1. **Test before presenting**: After making changes, verify they work by running appropriate commands (build, compile, lint, curl, etc.)
+2. **Verify package installations**: After `npm install` or `composer require`, confirm the installation succeeded without errors
+3. **Check generated files**: After generating files, verify they exist and contain expected content
+4. **Validate configurations**: After modifying config files, test that the application still works
+5. **Test endpoints**: After configuring URLs or APIs, use `curl` to verify they respond correctly
+6. **Never assume success**: Always verify commands completed successfully before reporting completion
+
+## Package Installation Rules
+
+**CRITICAL:** When installing new packages, always verify version and security status.
+
+### Golden Rules
+1. **NEVER trust your memory for versions**: Always check the latest stable version online using `npm view`, `composer show`, or web search - NEVER guess or assume versions from memory
+2. **NEVER trust your memory for dates**: When you need current date, year, or time - ALWAYS get it from the system using `date` command, NEVER use dates from memory
+3. **Use latest stable**: Always install the latest stable version, not alpha/beta/rc versions unless explicitly requested
+4. **Check for vulnerabilities**: Run security audit after installation
+5. **ASK if no safe version**: If no safe version is available, ASK the user what to do before proceeding
+
+### npm Packages
+```bash
+# Check versions first - ALWAYS do this
+npm view <package> versions --json | tail -10
+
+# Install specific version
+npm install <package>@<version>
+
+# Verify no vulnerabilities
+npm audit
+```
+
+### Composer (PHP) Packages
+```bash
+# Check available versions - ALWAYS do this
+composer show <package> --available
+
+# Install
+composer require <package>:<version>
+
+# Security audit
+composer audit
+```
+
+### Go Packages
+
+**CRITICAL:** NEVER downgrade the Go version in `go.mod`. If a package requires a newer Go version, inform the user.
+
+```bash
+# Check latest version - ALWAYS do this
+go list -m -versions <module>
+
+# Check for vulnerabilities before adding
+govulncheck -mode=module <module>
+
+# Add the package
+go get <module>@<version>
+
+# Run vulnerability check on project
+govulncheck ./...
+```
+
 ## Code Compilation Rules
 
 **Always fix SASS and TS compilation deprecation warnings.** When compiling SCSS/SASS or TypeScript and deprecation warnings appear, address them immediately rather than ignoring them.
