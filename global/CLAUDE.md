@@ -168,6 +168,12 @@ govulncheck ./...
 
 **Always fix SASS and TS compilation deprecation warnings.** When compiling SCSS/SASS or TypeScript and deprecation warnings appear, address them immediately rather than ignoring them.
 
+## File Permissions
+
+When creating files or directories, always set appropriate permissions:
+- **Files**: `644` (rw-r--r--)
+- **Directories**: `755` (rwxr-xr-x)
+
 ## Command Compatibility
 
 **⚠️ IMPORTANT: This section applies ONLY when running on macOS systems. ⚠️**
