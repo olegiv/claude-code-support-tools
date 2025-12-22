@@ -1,16 +1,27 @@
-Review changes and prepare a commit message:
+---
+allowed-tools: ""
+description: "Review changes and prepare a commit message"
+---
 
-## Step 1: Code Quality Checks
+Review changes and prepare a commit message.
+
+**Parameter:** `$ARGUMENTS` - Set to `quality` or `q` to run code quality checks first (default: skip quality checks)
+
+## Step 1: Code Quality Checks (Optional)
+
+**If `$ARGUMENTS` contains "quality" or "q":**
 
 Run `/code-quality` command first.
 
-**If any warnings or errors are found:**
-1. List all warnings/errors clearly
-2. Ask the user: "Code quality issues found. Do you want to proceed with commit anyway?"
-3. Wait for user confirmation before continuing
-4. If user declines, stop and suggest fixes
+- **If any warnings or errors are found:**
+  1. List all warnings/errors clearly
+  2. Ask the user: "Code quality issues found. Do you want to proceed with commit anyway?"
+  3. Wait for user confirmation before continuing
+  4. If user declines, stop and suggest fixes
 
-**If no warnings:** Continue to Step 2.
+- **If no warnings:** Continue to Step 2.
+
+**If `$ARGUMENTS` is empty or doesn't contain "quality"/"q":** Skip to Step 2.
 
 ## Step 2: Review Changes
 
