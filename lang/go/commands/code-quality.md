@@ -11,7 +11,12 @@ Scan the project for code quality issues and warnings.
    - Run `staticcheck ./...` for extended analysis
    - Run `errcheck ./...` for unhandled errors
 
-3. **Semantic Analysis** (manual checks)
+3. **Nil Safety Analysis**
+   - Run `nilaway ./...` for potential nil pointer dereferences
+   - Detects nil flows from source to dereference points
+   - Install if missing: `go install go.uber.org/nilaway/cmd/nilaway@latest`
+
+4. **Semantic Analysis** (manual checks)
    - Condition is always false/true (constant comparisons)
    - Empty slice declaration using literal
    - Variable collides with imported package name
@@ -33,23 +38,32 @@ Scan the project for code quality issues and warnings.
    errcheck ./...
    ```
 
-3. **Check for constant comparisons (condition always false):**
+3. **Run nil safety analysis:**
+   ```bash
+   nilaway ./...
+   ```
+   If nilaway is not installed, install it first:
+   ```bash
+   go install go.uber.org/nilaway/cmd/nilaway@latest
+   ```
+
+4. **Check for constant comparisons (condition always false):**
    - Find constant definitions and their values
    - Find tests comparing constants to literal values
    - Report any useless comparisons
 
-4. **Check for empty slice literals:**
+5. **Check for empty slice literals:**
    ```bash
    grep -rn ":= \[\][a-zA-Z.]*{}" --include="*.go" .
    ```
    Report any `x := []Type{}` that should be `var x []Type`
 
-5. **Check for package name collisions:**
+6. **Check for package name collisions:**
    - Find files importing common packages (url, http, json, errors, etc.)
    - Check if those package names are used as variables
    - Report collisions
 
-6. **Report results:**
+7. **Report results:**
    - List all issues found with file:line references
    - Provide fix suggestions for each issue
    - Summary of total issues by category
@@ -71,6 +85,9 @@ Static Analysis:
   staticcheck: 0 issues
   errcheck:    0 issues
 
+Nil Safety:
+  nilaway:     0 issues
+
 Semantic Analysis:
   Constant comparisons:     0 issues
   Empty slice literals:     0 issues (excluding generated files)
@@ -86,5 +103,42 @@ For each issue, provide:
 2. Description of the issue
 3. How to fix it
 4. Code example (before/after)
+
+### Common nilaway Fixes
+
+**Potential nil dereference after error check:**
+```go
+// Before (nilaway warning)
+resp, err := client.Do(req)
+if err != nil {
+    return err
+}
+defer resp.Body.Close()  // nilaway: resp could be nil
+
+// After (fixed)
+resp, err := client.Do(req)
+if err != nil {
+    return err
+}
+if resp == nil {
+    return fmt.Errorf("nil response")
+}
+defer resp.Body.Close()
+```
+
+**Slice access after length check with t.Errorf:**
+```go
+// Before (nilaway warning)
+if len(items) != 1 {
+    t.Errorf("expected 1, got %d", len(items))
+}
+if items[0].Name != "test" {  // nilaway: items could be nil
+
+// After (fixed - use t.Fatalf to stop execution)
+if len(items) != 1 {
+    t.Fatalf("expected 1, got %d", len(items))
+}
+if items[0].Name != "test" {  // now safe
+```
 
 Note: Generated files (*.sql.go, etc.) are excluded from empty slice literal checks.
