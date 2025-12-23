@@ -66,7 +66,30 @@ Scan the project for code quality issues and warnings.
    - Find tests comparing constants to literal values
    - Report any useless comparisons
 
-5. **Check for empty slice literals:**
+6. **Check for duplicate string literals:**
+   ```bash
+   grep -oE '"/[^"]*"' --include="*.go" -r . | sort | uniq -c | sort -rn | awk '$1 >= 2'
+   ```
+   Report string literals (especially route patterns) appearing 2+ times that should be extracted to constants.
+
+   **Example fix:**
+   ```go
+   // BAD: Duplicated route patterns
+   r.Get("/users", usersHandler.List)
+   r.Get("/users/{id}", usersHandler.Edit)
+   r.Post("/users", usersHandler.Create)
+
+   // GOOD: Extract to constants
+   const (
+       routeUsers   = "/users"
+       routeUsersID = "/users/{id}"
+   )
+   r.Get(routeUsers, usersHandler.List)
+   r.Get(routeUsersID, usersHandler.Edit)
+   r.Post(routeUsers, usersHandler.Create)
+   ```
+
+7. **Check for empty slice literals:**
    ```bash
    grep -rn ":= \[\][a-zA-Z.]*{}" --include="*.go" .
    ```

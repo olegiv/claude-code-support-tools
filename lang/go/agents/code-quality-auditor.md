@@ -156,7 +156,31 @@ func testLoginProtectionConfig(maxAttempts int, lockout, window time.Duration) L
 }
 ```
 
-### 8. Useless Struct Field Tests
+### 8. Duplicate String Literals
+
+**Detection:**
+```bash
+grep -oE '"/[^"]*"' --include="*.go" -r . | sort | uniq -c | sort -rn | awk '$1 >= 2'
+```
+
+**Fix:** Extract string literals appearing 2+ times to constants:
+```go
+// BAD: Duplicated route patterns
+r.Get("/users", usersHandler.List)
+r.Get("/users/{id}", usersHandler.Edit)
+r.Post("/users", usersHandler.Create)
+
+// GOOD: Extract to constants
+const (
+    routeUsers   = "/users"
+    routeUsersID = "/users/{id}"
+)
+r.Get(routeUsers, usersHandler.List)
+r.Get(routeUsersID, usersHandler.Edit)
+r.Post(routeUsers, usersHandler.Create)
+```
+
+### 9. Useless Struct Field Tests
 
 **Detection:** Tests that just verify struct fields after assignment:
 
@@ -186,8 +210,9 @@ if widget.Name != "Test" { t.Error(...) }
 3. Check for empty slice literals
 4. Check for package name collisions
 5. Look for duplicate code patterns
-6. Look for useless struct tests
-7. Report all issues with fixes
+6. Find duplicate string literals
+7. Look for useless struct tests
+8. Report all issues with fixes
 
 ### Fix Mode
 
@@ -246,6 +271,7 @@ Scope: [full/package/file]
 - Empty slice literals: X issues
 - Package collisions: X issues
 - Duplicate code: X issues
+- Duplicate string literals: X issues
 
 ## Issues Found
 
@@ -274,6 +300,7 @@ Scope: [full/package/file]
 - "Fix all code quality warnings"
 - "Scan for empty slice literals"
 - "Check if there are any constant comparison issues"
+- "Find duplicate string literals"
 
 ## Important Notes
 
