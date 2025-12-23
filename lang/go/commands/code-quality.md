@@ -16,11 +16,15 @@ Scan the project for code quality issues and warnings.
    - Detects nil flows from source to dereference points
    - Install if missing: `go install go.uber.org/nilaway/cmd/nilaway@latest`
 
-4. **Semantic Analysis** (manual checks)
+4. **Duplicate Code Detection**
+   - Run `dupl -t 50 .` to find code clones
+   - Threshold of 50 tokens catches significant duplicates
+   - Install if missing: `go install github.com/mibk/dupl@latest`
+
+5. **Semantic Analysis** (manual checks)
    - Condition is always false/true (constant comparisons)
    - Empty slice declaration using literal
    - Variable collides with imported package name
-   - Duplicate code patterns
 
 ## Steps
 
@@ -47,7 +51,17 @@ Scan the project for code quality issues and warnings.
    go install go.uber.org/nilaway/cmd/nilaway@latest
    ```
 
-4. **Check for constant comparisons (condition always false):**
+4. **Run duplicate code detection:**
+   ```bash
+   dupl -t 50 .
+   ```
+   If dupl is not installed, install it first:
+   ```bash
+   go install github.com/mibk/dupl@latest
+   ```
+   Report clone groups found. Duplicates in test files are lower priority.
+
+5. **Check for constant comparisons (condition always false):**
    - Find constant definitions and their values
    - Find tests comparing constants to literal values
    - Report any useless comparisons
@@ -87,6 +101,9 @@ Static Analysis:
 
 Nil Safety:
   nilaway:     0 issues
+
+Duplicate Code:
+  dupl:        0 clone groups (or N clone groups in test files)
 
 Semantic Analysis:
   Constant comparisons:     0 issues
