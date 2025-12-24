@@ -180,7 +180,33 @@ r.Get(routeUsersID, usersHandler.Edit)
 r.Post(routeUsers, usersHandler.Create)
 ```
 
-### 9. Useless Struct Field Tests
+### 9. Redundant COALESCE in SQL Queries
+
+**Detection:**
+```bash
+grep -rn "COALESCE(" --include="*.go" . | grep -v "_test.go"
+```
+
+**Analysis:**
+1. For each COALESCE found, identify the column being wrapped
+2. Check the database schema in `internal/store/migrations/`
+3. If column is defined as `NOT NULL DEFAULT ''` or similar, COALESCE is redundant
+
+**Fix:**
+```sql
+-- BAD: meta_title is NOT NULL DEFAULT ''
+SELECT COALESCE(meta_title, '') FROM pages
+
+-- GOOD: Column can never be NULL
+SELECT meta_title FROM pages
+```
+
+**When COALESCE is needed:**
+- Column is nullable (no NOT NULL constraint)
+- Joining tables where the column might not exist
+- Aggregations that can produce NULL
+
+### 10. Useless Struct Field Tests
 
 **Detection:** Tests that just verify struct fields after assignment:
 
@@ -211,8 +237,9 @@ if widget.Name != "Test" { t.Error(...) }
 4. Check for package name collisions
 5. Look for duplicate code patterns
 6. Find duplicate string literals
-7. Look for useless struct tests
-8. Report all issues with fixes
+7. Check for redundant COALESCE in SQL
+8. Look for useless struct tests
+9. Report all issues with fixes
 
 ### Fix Mode
 
@@ -272,6 +299,7 @@ Scope: [full/package/file]
 - Package collisions: X issues
 - Duplicate code: X issues
 - Duplicate string literals: X issues
+- Redundant COALESCE: X issues
 
 ## Issues Found
 
@@ -301,6 +329,7 @@ Scope: [full/package/file]
 - "Scan for empty slice literals"
 - "Check if there are any constant comparison issues"
 - "Find duplicate string literals"
+- "Check for redundant COALESCE in SQL queries"
 
 ## Important Notes
 

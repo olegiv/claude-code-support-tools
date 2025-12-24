@@ -25,6 +25,7 @@ Scan the project for code quality issues and warnings.
    - Condition is always false/true (constant comparisons)
    - Empty slice declaration using literal
    - Variable collides with imported package name
+   - Redundant COALESCE in SQL queries
 
 ## Steps
 
@@ -95,15 +96,33 @@ Scan the project for code quality issues and warnings.
    ```
    Report any `x := []Type{}` that should be `var x []Type`
 
-6. **Check for package name collisions:**
+8. **Check for package name collisions:**
    - Find files importing common packages (url, http, json, errors, etc.)
    - Check if those package names are used as variables
    - Report collisions
 
-7. **Report results:**
-   - List all issues found with file:line references
-   - Provide fix suggestions for each issue
-   - Summary of total issues by category
+9. **Check for redundant COALESCE in SQL:**
+   ```bash
+   grep -rn "COALESCE(" --include="*.go" . | grep -v "_test.go"
+   ```
+   Review each COALESCE usage:
+   - If the column is `NOT NULL` with a default value, COALESCE is redundant
+   - Cross-reference with migration files in `internal/store/migrations/`
+   - Check column definitions: `NOT NULL DEFAULT ''` means COALESCE is unnecessary
+
+   **Example fix:**
+   ```sql
+   -- BAD: meta_title is NOT NULL DEFAULT ''
+   SELECT COALESCE(meta_title, '') FROM pages
+
+   -- GOOD: Column can never be NULL
+   SELECT meta_title FROM pages
+   ```
+
+10. **Report results:**
+    - List all issues found with file:line references
+    - Provide fix suggestions for each issue
+    - Summary of total issues by category
 
 ## Package Names to Check for Collisions
 
@@ -132,6 +151,7 @@ Semantic Analysis:
   Constant comparisons:     0 issues
   Empty slice literals:     0 issues (excluding generated files)
   Package name collisions:  0 issues
+  Redundant COALESCE:       0 issues
 
 Total: 0 issues found
 ```
