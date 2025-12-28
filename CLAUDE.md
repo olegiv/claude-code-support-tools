@@ -31,6 +31,10 @@ This repository contains Claude Code support tools including autonomous agents, 
 - **`commands/`** - Template commands for copying to projects
   - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
   - `no-ticket/` - Alternative command structures for workflows without ticket references
+- **`lang/`** - Language-specific configurations and hooks
+  - `swift/` - Swift/Xcode project tools
+    - `settings.json` - Hook configuration for xcodebuild validation
+    - `hooks/validate-xcodebuild.sh` - Ensures correct simulator target (iPhone 17 Pro)
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode

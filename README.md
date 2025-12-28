@@ -79,6 +79,15 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Responds to requests with full repository access
 - Supports issue comments, PR reviews, and new issues
 
+### 🛠️ Language-Specific Configurations
+
+Located in `lang/` directory - copy these to your project's `.claude/` directory:
+
+**Swift/Xcode** (`lang/swift/`)
+- Pre-configured hooks for Xcode project development
+- `validate-xcodebuild.sh` - Ensures xcodebuild commands use correct simulator (iPhone 17 Pro)
+- Prevents build failures from incorrect simulator targets
+
 ### 🔒 Security Documentation
 
 **Security Policy** ([SECURITY.md](SECURITY.md))
@@ -148,6 +157,18 @@ cp global/settings.json ~/.claude/
 ```
 
 These will apply to all your Claude Code sessions across all projects.
+
+### Using Language-Specific Configurations
+
+Copy language-specific tools to your project:
+
+```bash
+# For Swift/Xcode projects
+cp lang/swift/settings.json /path/to/your/project/.claude/
+mkdir -p /path/to/your/project/.claude/hooks
+cp lang/swift/hooks/validate-xcodebuild.sh /path/to/your/project/.claude/hooks/
+chmod +x /path/to/your/project/.claude/hooks/validate-xcodebuild.sh
+```
 
 ### Setting Up GitHub Actions
 
@@ -264,6 +285,11 @@ Claude will respond and complete the task with full repository access.
 ├── commands/                      # Template commands for copying to projects
 │   ├── setup-project-tools.md
 │   └── no-ticket/                 # Alternative command structures
+├── lang/                          # Language-specific configurations
+│   └── swift/                     # Swift/Xcode project tools
+│       ├── settings.json          # Hook configuration for xcodebuild
+│       └── hooks/
+│           └── validate-xcodebuild.sh  # Simulator validation hook
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   └── settings.json
