@@ -32,6 +32,13 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
   - `no-ticket/` - Alternative command structures for workflows without ticket references
 - **`lang/`** - Language-specific configurations and hooks
+  - `go/` - Go project tools
+    - `settings.json` - Hook configuration for Go command validation
+    - `hooks/validate-go-toolchain.sh` - Blocks builds on version mismatch
+    - `hooks/validate-go-test.sh` - Recommends race detection for tests
+    - `agents/code-quality-auditor.md` - Comprehensive code quality scanning
+    - `commands/code-quality.md` - Run quality checks command
+    - `commands/commit-prepare.md` - Commit with quality integration
   - `swift/` - Swift/Xcode project tools
     - `settings.json` - Hook configuration for xcodebuild validation
     - `hooks/validate-xcodebuild.sh` - Ensures correct simulator target (iPhone 17 Pro)

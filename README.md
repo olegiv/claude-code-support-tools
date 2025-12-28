@@ -83,6 +83,13 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 
 Located in `lang/` directory - copy these to your project's `.claude/` directory:
 
+**Go** (`lang/go/`)
+- Pre-configured hooks, agents, and commands for Go development
+- `validate-go-toolchain.sh` - Blocks builds when Go version mismatches compiler
+- `validate-go-test.sh` - Recommends race detection for test commands
+- `code-quality-auditor` agent - Comprehensive code quality scanning
+- `/code-quality` and `/commit-prepare` commands with quality integration
+
 **Swift/Xcode** (`lang/swift/`)
 - Pre-configured hooks for Xcode project development
 - `validate-xcodebuild.sh` - Ensures xcodebuild commands use correct simulator (iPhone 17 Pro)
@@ -163,6 +170,15 @@ These will apply to all your Claude Code sessions across all projects.
 Copy language-specific tools to your project:
 
 ```bash
+# For Go projects
+cp lang/go/settings.json /path/to/your/project/.claude/
+mkdir -p /path/to/your/project/.claude/hooks
+cp lang/go/hooks/*.sh /path/to/your/project/.claude/hooks/
+chmod +x /path/to/your/project/.claude/hooks/*.sh
+# Optional: Copy agents and commands
+cp -r lang/go/agents /path/to/your/project/.claude/
+cp -r lang/go/commands /path/to/your/project/.claude/
+
 # For Swift/Xcode projects
 cp lang/swift/settings.json /path/to/your/project/.claude/
 mkdir -p /path/to/your/project/.claude/hooks
@@ -286,6 +302,16 @@ Claude will respond and complete the task with full repository access.
 │   ├── setup-project-tools.md
 │   └── no-ticket/                 # Alternative command structures
 ├── lang/                          # Language-specific configurations
+│   ├── go/                        # Go project tools
+│   │   ├── settings.json          # Hook configuration for Go commands
+│   │   ├── hooks/
+│   │   │   ├── validate-go-toolchain.sh  # Toolchain version validation
+│   │   │   └── validate-go-test.sh       # Test command recommendations
+│   │   ├── agents/
+│   │   │   └── code-quality-auditor.md   # Code quality scanning agent
+│   │   └── commands/
+│   │       ├── code-quality.md    # Run quality checks
+│   │       └── commit-prepare.md  # Commit with quality integration
 │   └── swift/                     # Swift/Xcode project tools
 │       ├── settings.json          # Hook configuration for xcodebuild
 │       └── hooks/
