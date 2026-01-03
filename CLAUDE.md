@@ -42,6 +42,14 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `swift/` - Swift/Xcode project tools
     - `settings.json` - Hook configuration for xcodebuild validation
     - `hooks/validate-xcodebuild.sh` - Ensures correct simulator target (iPhone 17 Pro)
+  - `kotlin/` - Kotlin/Android project tools
+    - `agents/android-quality-auditor.md` - Comprehensive Android code quality scanning
+    - `agents/kotlin-refactorer.md` - Kotlin refactoring and best practices
+    - `agents/compose-developer.md` - Jetpack Compose UI development
+    - `commands/code-quality.md` - Run quality checks command
+    - `commands/lint.md` - Run Android Lint command
+    - `commands/clean.md` - Clean build artifacts command
+    - `commands/test-instrumented.md` - Run instrumented tests command
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode

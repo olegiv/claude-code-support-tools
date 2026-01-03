@@ -95,6 +95,13 @@ Located in `lang/` directory - copy these to your project's `.claude/` directory
 - `validate-xcodebuild.sh` - Ensures xcodebuild commands use correct simulator (iPhone 17 Pro)
 - Prevents build failures from incorrect simulator targets
 
+**Kotlin/Android** (`lang/kotlin/`)
+- Pre-configured agents and commands for Android/Kotlin development
+- `android-quality-auditor` agent - Comprehensive Android code quality scanning (SDK, Gradle, dependencies, lint, Compose)
+- `kotlin-refactorer` agent - Kotlin refactoring and best practices
+- `compose-developer` agent - Jetpack Compose UI development
+- `/code-quality`, `/lint`, `/clean`, `/test-instrumented` commands
+
 ### 🔒 Security Documentation
 
 **Security Policy** ([SECURITY.md](SECURITY.md))
@@ -184,6 +191,10 @@ cp lang/swift/settings.json /path/to/your/project/.claude/
 mkdir -p /path/to/your/project/.claude/hooks
 cp lang/swift/hooks/validate-xcodebuild.sh /path/to/your/project/.claude/hooks/
 chmod +x /path/to/your/project/.claude/hooks/validate-xcodebuild.sh
+
+# For Kotlin/Android projects
+cp -r lang/kotlin/agents /path/to/your/project/.claude/
+cp -r lang/kotlin/commands /path/to/your/project/.claude/
 ```
 
 ### Setting Up GitHub Actions
@@ -312,10 +323,20 @@ Claude will respond and complete the task with full repository access.
 │   │   └── commands/
 │   │       ├── code-quality.md    # Run quality checks
 │   │       └── commit-prepare.md  # Commit with quality integration
-│   └── swift/                     # Swift/Xcode project tools
-│       ├── settings.json          # Hook configuration for xcodebuild
-│       └── hooks/
-│           └── validate-xcodebuild.sh  # Simulator validation hook
+│   ├── swift/                     # Swift/Xcode project tools
+│   │   ├── settings.json          # Hook configuration for xcodebuild
+│   │   └── hooks/
+│   │       └── validate-xcodebuild.sh  # Simulator validation hook
+│   └── kotlin/                    # Kotlin/Android project tools
+│       ├── agents/
+│       │   ├── android-quality-auditor.md  # Android code quality auditor
+│       │   ├── kotlin-refactorer.md        # Kotlin refactoring agent
+│       │   └── compose-developer.md        # Jetpack Compose development
+│       └── commands/
+│           ├── code-quality.md    # Run quality checks
+│           ├── lint.md            # Run Android Lint
+│           ├── clean.md           # Clean build artifacts
+│           └── test-instrumented.md  # Run instrumented tests
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   └── settings.json
