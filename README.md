@@ -79,23 +79,23 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Responds to requests with full repository access
 - Supports issue comments, PR reviews, and new issues
 
-### 🛠️ Language-Specific Configurations
+### 🛠️ Stack-Specific Configurations
 
-Located in `lang/` directory - copy these to your project's `.claude/` directory:
+Located in `stacks/` directory - copy these to your project's `.claude/` directory:
 
-**Go** (`lang/go/`)
+**Go** (`stacks/go/`)
 - Pre-configured hooks, agents, and commands for Go development
 - `validate-go-toolchain.sh` - Blocks builds when Go version mismatches compiler
 - `validate-go-test.sh` - Recommends race detection for test commands
 - `code-quality-auditor` agent - Comprehensive code quality scanning
 - `/code-quality` and `/commit-prepare` commands with quality integration
 
-**Swift/Xcode** (`lang/swift/`)
+**Swift/Xcode** (`stacks/swift/`)
 - Pre-configured hooks for Xcode project development
 - `validate-xcodebuild.sh` - Ensures xcodebuild commands use correct simulator (iPhone 17 Pro)
 - Prevents build failures from incorrect simulator targets
 
-**Kotlin/Android** (`lang/kotlin/`)
+**Kotlin/Android** (`stacks/kotlin/`)
 - Pre-configured agents and commands for Android/Kotlin development
 - `android-quality-auditor` agent - Comprehensive Android code quality scanning (SDK, Gradle, dependencies, lint, Compose)
 - `kotlin-refactorer` agent - Kotlin refactoring and best practices
@@ -172,29 +172,29 @@ cp global/settings.json ~/.claude/
 
 These will apply to all your Claude Code sessions across all projects.
 
-### Using Language-Specific Configurations
+### Using Stack-Specific Configurations
 
-Copy language-specific tools to your project:
+Copy stack-specific tools to your project:
 
 ```bash
 # For Go projects
-cp lang/go/settings.json /path/to/your/project/.claude/
+cp stacks/go/settings.json /path/to/your/project/.claude/
 mkdir -p /path/to/your/project/.claude/hooks
-cp lang/go/hooks/*.sh /path/to/your/project/.claude/hooks/
+cp stacks/go/hooks/*.sh /path/to/your/project/.claude/hooks/
 chmod +x /path/to/your/project/.claude/hooks/*.sh
 # Optional: Copy agents and commands
-cp -r lang/go/agents /path/to/your/project/.claude/
-cp -r lang/go/commands /path/to/your/project/.claude/
+cp -r stacks/go/agents /path/to/your/project/.claude/
+cp -r stacks/go/commands /path/to/your/project/.claude/
 
 # For Swift/Xcode projects
-cp lang/swift/settings.json /path/to/your/project/.claude/
+cp stacks/swift/settings.json /path/to/your/project/.claude/
 mkdir -p /path/to/your/project/.claude/hooks
-cp lang/swift/hooks/validate-xcodebuild.sh /path/to/your/project/.claude/hooks/
+cp stacks/swift/hooks/validate-xcodebuild.sh /path/to/your/project/.claude/hooks/
 chmod +x /path/to/your/project/.claude/hooks/validate-xcodebuild.sh
 
 # For Kotlin/Android projects
-cp -r lang/kotlin/agents /path/to/your/project/.claude/
-cp -r lang/kotlin/commands /path/to/your/project/.claude/
+cp -r stacks/kotlin/agents /path/to/your/project/.claude/
+cp -r stacks/kotlin/commands /path/to/your/project/.claude/
 ```
 
 ### Setting Up GitHub Actions
@@ -312,7 +312,7 @@ Claude will respond and complete the task with full repository access.
 ├── commands/                      # Template commands for copying to projects
 │   ├── setup-project-tools.md
 │   └── no-ticket/                 # Alternative command structures
-├── lang/                          # Language-specific configurations
+├── stacks/                        # Stack-specific configurations
 │   ├── go/                        # Go project tools
 │   │   ├── settings.json          # Hook configuration for Go commands
 │   │   ├── hooks/

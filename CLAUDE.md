@@ -31,7 +31,7 @@ This repository contains Claude Code support tools including autonomous agents, 
 - **`commands/`** - Template commands for copying to projects
   - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
   - `no-ticket/` - Alternative command structures for workflows without ticket references
-- **`lang/`** - Language-specific configurations and hooks
+- **`stacks/`** - Stack-specific configurations and hooks
   - `go/` - Go project tools
     - `settings.json` - Hook configuration for Go command validation
     - `hooks/validate-go-toolchain.sh` - Blocks builds on version mismatch
