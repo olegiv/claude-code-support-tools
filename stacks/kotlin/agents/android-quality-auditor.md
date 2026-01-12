@@ -126,6 +126,16 @@ npm view <package> versions --json 2>/dev/null | tail -5
 - Flag tests that duplicate integration test coverage
 - **Detect assertions comparing incompatible types** (e.g., `assertNotEquals(SealedType.A, SealedType.B)` where A and B are different subtypes - this tests language guarantees, not application logic)
 - **Detect always-true singleton identity checks** (e.g., `assertTrue(obj1 === obj2)` where both are the same `data object` singleton - Kotlin guarantees referential equality for objects)
+- **Detect assertions duplicating while loop exit conditions** - When a while loop exits only when a condition is met, any assertion checking that same condition immediately after the loop is always true and redundant:
+  ```kotlin
+  // BAD - assertion is always true (guaranteed by loop exit)
+  while (!settings.enabled) { settings = awaitItem() }
+  assertEquals(true, settings.enabled)  // Always true!
+
+  // GOOD - let the loop condition serve as the verification
+  while (!settings.enabled) { settings = awaitItem() }
+  // No redundant assertion needed - loop verifies the condition
+  ```
 
 **Check for Invalid Test Syntax:**
 - **Backtick-quoted function names** - Detect test functions using backticks (e.g., `` fun `test name`() ``). These are NOT allowed in Android projects and cause "Identifier not allowed in Android projects" build errors. Use camelCase naming instead (e.g., `fun testName()`).
