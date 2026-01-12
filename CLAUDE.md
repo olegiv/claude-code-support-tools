@@ -48,8 +48,10 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `agents/compose-developer.md` - Jetpack Compose UI development
     - `commands/code-quality.md` - Run quality checks command
     - `commands/lint.md` - Run Android Lint command
+    - `commands/detekt.md` - Run Detekt static analysis command
     - `commands/clean.md` - Clean build artifacts command
     - `commands/test-instrumented.md` - Run instrumented tests command
+    - `templates/detekt.yml` - Detekt configuration template for Android/Compose projects
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode

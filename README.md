@@ -100,7 +100,8 @@ Located in `stacks/` directory - copy these to your project's `.claude/` directo
 - `android-quality-auditor` agent - Comprehensive Android code quality scanning (SDK, Gradle, dependencies, lint, Compose)
 - `kotlin-refactorer` agent - Kotlin refactoring and best practices
 - `compose-developer` agent - Jetpack Compose UI development
-- `/code-quality`, `/lint`, `/clean`, `/test-instrumented` commands
+- `/code-quality`, `/lint`, `/detekt`, `/clean`, `/test-instrumented` commands
+- `templates/detekt.yml` - Ready-to-use Detekt configuration for Android/Compose projects
 
 ### 🔒 Security Documentation
 
@@ -332,11 +333,14 @@ Claude will respond and complete the task with full repository access.
 │       │   ├── android-quality-auditor.md  # Android code quality auditor
 │       │   ├── kotlin-refactorer.md        # Kotlin refactoring agent
 │       │   └── compose-developer.md        # Jetpack Compose development
-│       └── commands/
-│           ├── code-quality.md    # Run quality checks
-│           ├── lint.md            # Run Android Lint
-│           ├── clean.md           # Clean build artifacts
-│           └── test-instrumented.md  # Run instrumented tests
+│       ├── commands/
+│       │   ├── code-quality.md    # Run quality checks
+│       │   ├── lint.md            # Run Android Lint
+│       │   ├── detekt.md          # Run Detekt static analysis
+│       │   ├── clean.md           # Clean build artifacts
+│       │   └── test-instrumented.md  # Run instrumented tests
+│       └── templates/
+│           └── detekt.yml         # Detekt config for Android/Compose
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   └── settings.json

@@ -1,0 +1,136 @@
+# Detekt configuration for Android/Kotlin projects with Jetpack Compose
+# https://detekt.dev/docs/rules/
+#
+# Copy this file to: app/detekt.yml
+# Then configure in app/build.gradle.kts:
+#   detekt {
+#       buildUponDefaultConfig = true
+#       config.setFrom(files("$projectDir/detekt.yml"))
+#       parallel = true
+#   }
+
+build:
+  maxIssues: 0
+  excludeCorrectable: false
+
+config:
+  validation: true
+  warningsAsErrors: false
+
+processors:
+  active: true
+
+console-reports:
+  active: true
+
+output-reports:
+  active: true
+
+style:
+  active: true
+  # Disable line length - handled by IDE
+  MaxLineLength:
+    active: false
+  # Disable loop jump statement check - valid in complex iteration
+  LoopWithTooManyJumpStatements:
+    active: false
+  # Catch "Assigned value is never read" patterns
+  UnusedPrivateMember:
+    active: true
+    allowedNames: '_.*'
+  # Catch unused parameters
+  UnusedParameter:
+    active: true
+    allowedNames: '_.*'
+  # Catch variables that are immediately overwritten
+  VarCouldBeVal:
+    active: true
+  # Catch redundant explicit types
+  RedundantExplicitType:
+    active: true
+  # Catch unnecessary let calls
+  UnnecessaryLet:
+    active: true
+  # Catch unnecessary apply calls
+  UnnecessaryApply:
+    active: true
+  # Allow multiple returns for validation/utility functions
+  ReturnCount:
+    active: true
+    max: 5
+    excludeReturnFromLambda: true
+  # Disable magic number check - too noisy for Android color values
+  MagicNumber:
+    active: false
+
+potential-bugs:
+  active: true
+  # Catch unused values from expressions
+  IgnoredReturnValue:
+    active: true
+  # Catch useless postfix expressions
+  UselessPostfixExpression:
+    active: true
+
+exceptions:
+  active: true
+  # Disable generic exception check - necessary for Android MediaStore/IO operations
+  TooGenericExceptionCaught:
+    active: false
+
+performance:
+  active: true
+  # Catch inefficient spread operator usage
+  SpreadOperator:
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**']
+
+complexity:
+  active: true
+  # Compose UI functions are naturally longer - increase threshold
+  LongMethod:
+    active: true
+    threshold: 160
+  # Compose functions often need many state/callback parameters
+  LongParameterList:
+    active: true
+    functionThreshold: 18
+    constructorThreshold: 10
+  ComplexCondition:
+    active: true
+    threshold: 4
+  # Complex business logic may have higher cyclomatic complexity
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 25
+
+empty-blocks:
+  active: true
+  EmptyCatchBlock:
+    active: true
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
+  EmptyFunctionBlock:
+    active: true
+    ignoreOverridden: true
+
+naming:
+  active: true
+  # Allow Compose function names (PascalCase) and standard functions (camelCase)
+  FunctionNaming:
+    active: true
+    excludes: ['**/test/**', '**/androidTest/**']
+    functionPattern: '([a-z][a-zA-Z0-9]*)|([A-Z][a-zA-Z0-9]*)'
+  VariableNaming:
+    active: true
+    variablePattern: '[a-z][A-Za-z0-9]*'
+    excludeClassPattern: '$^'
+  # Disable file/declaration name matching - common in Android Utils files
+  MatchingDeclarationName:
+    active: false
+
+comments:
+  active: true
+  UndocumentedPublicClass:
+    active: false  # Too noisy for app code
+  UndocumentedPublicFunction:
+    active: false  # Too noisy for app code
