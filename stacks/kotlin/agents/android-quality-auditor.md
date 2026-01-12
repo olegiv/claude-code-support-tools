@@ -127,6 +127,13 @@ npm view <package> versions --json 2>/dev/null | tail -5
 - **Detect assertions comparing incompatible types** (e.g., `assertNotEquals(SealedType.A, SealedType.B)` where A and B are different subtypes - this tests language guarantees, not application logic)
 - **Detect always-true singleton identity checks** (e.g., `assertTrue(obj1 === obj2)` where both are the same `data object` singleton - Kotlin guarantees referential equality for objects)
 
+**Check for Invalid Test Syntax:**
+- **Backtick-quoted function names** - Detect test functions using backticks (e.g., `` fun `test name`() ``). These are NOT allowed in Android projects and cause "Identifier not allowed in Android projects" build errors. Use camelCase naming instead (e.g., `fun testName()`).
+  ```bash
+  # Find backtick-quoted test functions
+  grep -r "fun \`" app/src/test/ app/src/androidTest/ 2>/dev/null
+  ```
+
 **Test Quality Checks:**
 ```bash
 # Run all tests

@@ -28,6 +28,7 @@ The android-quality-auditor agent will:
     - Always-true singleton identity checks (`assertTrue(x === y)` on `data object` singletons)
     - Always-passing tests (tautologies)
     - Duplicate test coverage
+    - **Backtick-quoted function names** - Test functions using backticks (e.g., `` fun `test name`() ``) are not allowed in Android projects and cause build errors
 
 ## Workflow
 
