@@ -28,6 +28,9 @@ output-reports:
 
 style:
   active: true
+  # Catch unused imports
+  UnusedImports:
+    active: true
   # Disable line length - handled by IDE
   MaxLineLength:
     active: false
