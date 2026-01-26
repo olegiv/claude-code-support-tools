@@ -31,8 +31,8 @@ Create a new slash command with proper template and structure.
    ```
 
 4. Choose the appropriate location:
-   - For commands specific to this repo: `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/commands/`
-   - For template commands (to be copied to other projects): `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/commands/`
+   - For commands specific to this repo: `.claude/commands/`
+   - For template commands (to be copied to other projects): `commands/`
 
 5. Create the command file with the generated content
 

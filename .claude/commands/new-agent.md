@@ -26,8 +26,8 @@ Create a new Claude Code agent with proper template and structure.
    - Example scenarios
 
 4. Choose the appropriate location:
-   - For meta-tools (agents that work on this repo): `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/agents/`
-   - For template agents (to be copied to other projects): `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/agents/`
+   - For meta-tools (agents that work on this repo): `.claude/agents/`
+   - For template agents (to be copied to other projects): `agents/`
 
 5. Create the agent file with the generated content
 

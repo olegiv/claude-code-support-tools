@@ -3,8 +3,8 @@ Validate GitHub Actions workflow files for syntax errors and best practices.
 ## Process
 
 1. Locate workflow files:
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.github/workflows/claude.yml`
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.github/workflows/claude-code-review.yml`
+   - `.github/workflows/claude.yml`
+   - `.github/workflows/claude-code-review.yml`
 
 2. Check for YAML syntax errors:
    - Use a YAML validator or parser

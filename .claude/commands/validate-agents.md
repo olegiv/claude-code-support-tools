@@ -3,8 +3,8 @@ Use the markdown-linter agent to validate all agent files in the repository.
 ## Process
 
 1. Scan for agent files in:
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/agents/`
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/agents/`
+   - `agents/`
+   - `.claude/agents/`
 
 2. Validate each agent file for:
    - Valid YAML frontmatter

@@ -336,22 +336,22 @@ Use the release-manager agent to prepare a new release.
 
 ## File Locations
 
-All commands and agents use absolute paths:
+All commands and agents use relative paths from the repository root:
 
 **Agent directories:**
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/agents/`
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/agents/`
+- `agents/`
+- `.claude/agents/`
 
 **Command directories:**
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/commands/`
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/commands/`
+- `.claude/commands/`
+- `commands/`
 
 **Workflow directory:**
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.github/workflows/`
+- `.github/workflows/`
 
 **Documentation files:**
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/README.md`
-- `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/CLAUDE.md`
+- `README.md`
+- `CLAUDE.md`
 
 ## Troubleshooting
 
@@ -378,5 +378,5 @@ Run `/test-workflows` to validate workflow syntax locally.
 ---
 
 For more detailed information, see:
-- [README.md](/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/README.md) - User-facing documentation
-- [CLAUDE.md](/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/CLAUDE.md) - Repository guidance for Claude Code
+- [README.md](README.md) - User-facing documentation
+- [CLAUDE.md](CLAUDE.md) - Repository guidance for Claude Code

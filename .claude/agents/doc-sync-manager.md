@@ -93,7 +93,7 @@ Update the following sections:
 - Command names must match file names (without .md extension)
 - Descriptions should be consistent across all references
 - Usage examples must be accurate and tested
-- File paths in examples must use absolute paths
+- File paths in examples should use relative paths from repository root
 
 ### Formatting Standards
 

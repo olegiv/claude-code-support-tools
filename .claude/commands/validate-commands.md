@@ -3,8 +3,8 @@ Use the markdown-linter agent to validate all slash command files in the reposit
 ## Process
 
 1. Scan for command files in:
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/.claude/commands/`
-   - `/Users/olegiv/Desktop/Projects/AI/claude-code-support-tools/commands/`
+   - `.claude/commands/`
+   - `commands/`
 
 2. Validate each command file for:
    - Valid YAML frontmatter (if present)
