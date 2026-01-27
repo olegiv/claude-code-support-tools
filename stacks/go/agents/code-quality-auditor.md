@@ -126,10 +126,21 @@ gotURL := p.PageURL(2)
 result := p.PageURL(2)
 ```
 
-### 7. Duplicate Code
+### 7. Duplicate Code (MANDATORY - Always Run)
 
-**Detection:** Look for repeated patterns:
+**Detection:** You MUST run `dupl` for every code quality scan:
 
+```bash
+# Install if needed
+go install github.com/mibk/dupl@latest
+
+# ALWAYS run this - threshold of 50 tokens catches significant duplicates
+dupl -t 50 .
+```
+
+**CRITICAL:** Do NOT skip this step. Report ALL clone groups found by `dupl`.
+
+**Additional manual checks:**
 1. Similar struct initializations
 2. Repeated test setup code
 3. Copy-pasted logic blocks
@@ -227,15 +238,16 @@ if widget.Name != "Test" { t.Error(...) }
 2. Run `go vet ./...`
 3. Run `staticcheck ./...`
 4. Run `errcheck ./...`
-5. Report results
+5. **Run `dupl -t 50 .`** (MANDATORY - never skip)
+6. Report results
 
 ### Deep Scan
 
-1. All quick scan checks
+1. All quick scan checks (including dupl)
 2. Semantic analysis for constant comparisons
 3. Check for empty slice literals
 4. Check for package name collisions
-5. Look for duplicate code patterns
+5. **Analyze dupl output** - report all clone groups with file:line references
 6. Find duplicate string literals
 7. Check for redundant COALESCE in SQL
 8. Look for useless struct tests
@@ -254,13 +266,17 @@ if widget.Name != "Test" { t.Error(...) }
 
 **Run tools:**
 ```bash
-# All static checks
-go vet ./... && staticcheck ./... && errcheck ./...
+# All static checks (ALWAYS run all of these)
+go vet ./...
+staticcheck ./...
+errcheck ./...
+dupl -t 50 .
 
 # Specific package
 go vet ./internal/handler/...
 staticcheck ./internal/handler/...
 errcheck ./internal/handler/...
+dupl -t 50 ./internal/handler/
 ```
 
 **Install tools:**
@@ -268,6 +284,7 @@ errcheck ./internal/handler/...
 go install github.com/kisielk/errcheck@latest
 go install honnef.co/go/tools/cmd/staticcheck@latest
 go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+go install github.com/mibk/dupl@latest
 ```
 
 **Run tests after fixes:**
@@ -293,11 +310,15 @@ Scope: [full/package/file]
 - staticcheck: X issues
 - errcheck: X issues
 
+## Duplicate Code Detection (dupl)
+- Clone groups found: X
+- Files affected: Y
+[List each clone group with file:line references]
+
 ## Semantic Analysis
 - Constant comparisons: X issues
 - Empty slice literals: X issues
 - Package collisions: X issues
-- Duplicate code: X issues
 - Duplicate string literals: X issues
 - Redundant COALESCE: X issues
 
@@ -333,9 +354,11 @@ Scope: [full/package/file]
 
 ## Important Notes
 
-1. **Generated Files** - Skip `*.sql.go` for empty slice checks
-2. **Test Files** - Focus on `*_test.go` for semantic analysis
-3. **Always Test** - Run tests after making fixes
-4. **Never Downgrade Go** - Fix toolchain issues by upgrading, not downgrading
-5. **Helper Functions** - Create helpers to reduce duplicate code
-6. **Variable Naming** - Use `got`, `want`, `result` in tests to avoid collisions
+1. **ALWAYS Run dupl** - Never skip `dupl -t 50 .` - this is MANDATORY for every scan
+2. **Generated Files** - Skip `*.sql.go` for empty slice checks (but still run dupl on them)
+3. **Test Files** - Focus on `*_test.go` for semantic analysis
+4. **Always Test** - Run tests after making fixes
+5. **Never Downgrade Go** - Fix toolchain issues by upgrading, not downgrading
+6. **Helper Functions** - Create helpers to reduce duplicate code
+7. **Variable Naming** - Use `got`, `want`, `result` in tests to avoid collisions
+8. **Report dupl Output** - Always include the full dupl output in your report with file:line references
