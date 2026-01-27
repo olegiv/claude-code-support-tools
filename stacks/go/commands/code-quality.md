@@ -6,25 +6,16 @@ Scan the project for code quality issues and warnings.
    - Check if `go version` matches the compiler version
    - If mismatch found, STOP and report the issue
 
-2. **Static Analysis**
-   - Run `go vet ./...` for common issues
-   - Run `staticcheck ./...` for extended analysis
-   - Run `errcheck ./...` for unhandled errors
+2. **Comprehensive Static Analysis (golangci-lint)**
+   - Runs multiple linters in a single pass
+   - Catches: unhandled errors, unused parameters, redundant type conversions,
+     constant comparisons, duplicate code, and more
+   - Configuration in `.golangci.yml`
 
 3. **Nil Safety Analysis**
    - Run `nilaway ./...` for potential nil pointer dereferences
-   - Detects nil flows from source to dereference points
-   - Install if missing: `go install go.uber.org/nilaway/cmd/nilaway@latest`
 
-4. **Duplicate Code Detection**
-   - Run `dupl -t 50 .` to find code clones
-   - Threshold of 50 tokens catches significant duplicates
-   - Install if missing: `go install github.com/mibk/dupl@latest`
-
-5. **Semantic Analysis** (manual checks)
-   - Condition is always false/true (constant comparisons)
-   - Empty slice declaration using literal
-   - Variable collides with imported package name
+4. **Semantic Analysis** (manual checks if golangci-lint misses them)
    - Redundant COALESCE in SQL queries
    - Potential resource leaks (sql.Rows not closed in caller)
 
@@ -37,128 +28,54 @@ Scan the project for code quality issues and warnings.
    ```
    If versions don't match, report error and provide fix instructions.
 
-2. **Run static analysis tools:**
+2. **Run golangci-lint (primary tool):**
    ```bash
-   go vet ./...
-   staticcheck ./...
-   errcheck ./...
+   golangci-lint run ./...
    ```
+
+   If golangci-lint is not installed:
+   ```bash
+   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+   ```
+
+   **Linters enabled:**
+   - `errcheck` - unchecked errors
+   - `govet` - suspicious constructs
+   - `staticcheck` - comprehensive static analysis
+   - `unconvert` - unnecessary type conversions
+   - `unparam` - unused function parameters
+   - `gocritic` - bugs, performance, style (including constant comparisons)
+   - `dupl` - code clone detection
+   - `gocyclo` - cyclomatic complexity
+   - `misspell` - spelling mistakes
 
 3. **Run nil safety analysis:**
    ```bash
    nilaway ./...
    ```
-   If nilaway is not installed, install it first:
+   If nilaway is not installed:
    ```bash
    go install go.uber.org/nilaway/cmd/nilaway@latest
    ```
 
-4. **Run duplicate code detection:**
-   ```bash
-   dupl -t 50 .
-   ```
-   If dupl is not installed, install it first:
-   ```bash
-   go install github.com/mibk/dupl@latest
-   ```
-   Report clone groups found. Duplicates in test files are lower priority.
-
-5. **Check for constant comparisons (condition always false):**
-   - Find constant definitions and their values
-   - Find tests comparing constants to literal values
-   - Report any useless comparisons
-
-6. **Check for duplicate string literals:**
-   ```bash
-   grep -oE '"/[^"]*"' --include="*.go" -r . | sort | uniq -c | sort -rn | awk '$1 >= 2'
-   ```
-   Report string literals (especially route patterns) appearing 2+ times that should be extracted to constants.
-
-   **Example fix:**
-   ```go
-   // BAD: Duplicated route patterns
-   r.Get("/users", usersHandler.List)
-   r.Get("/users/{id}", usersHandler.Edit)
-   r.Post("/users", usersHandler.Create)
-
-   // GOOD: Extract to constants
-   const (
-       routeUsers   = "/users"
-       routeUsersID = "/users/{id}"
-   )
-   r.Get(routeUsers, usersHandler.List)
-   r.Get(routeUsersID, usersHandler.Edit)
-   r.Post(routeUsers, usersHandler.Create)
-   ```
-
-7. **Check for empty slice literals:**
-   ```bash
-   grep -rn ":= \[\][a-zA-Z.]*{}" --include="*.go" .
-   ```
-   Report any `x := []Type{}` that should be `var x []Type`
-
-8. **Check for package name collisions:**
-   - Find files importing common packages (url, http, json, errors, etc.)
-   - Check if those package names are used as variables
-   - Report collisions
-
-9. **Check for redundant COALESCE in SQL:**
+4. **Check for redundant COALESCE in SQL:**
    ```bash
    grep -rn "COALESCE(" --include="*.go" . | grep -v "_test.go"
    ```
    Review each COALESCE usage:
    - If the column is `NOT NULL` with a default value, COALESCE is redundant
    - Cross-reference with migration files in `internal/store/migrations/`
-   - Check column definitions: `NOT NULL DEFAULT ''` means COALESCE is unnecessary
 
-   **Example fix:**
-   ```sql
-   -- BAD: meta_title is NOT NULL DEFAULT ''
-   SELECT COALESCE(meta_title, '') FROM pages
-
-   -- GOOD: Column can never be NULL
-   SELECT meta_title FROM pages
+5. **Check for potential resource leaks (sql.Rows):**
+   ```bash
+   grep -rn "QueryContext\|Query(" --include="*.go" . | grep -v "_test.go"
    ```
+   Check if `rows` is passed to helper functions without `defer rows.Close()` in the caller.
 
-10. **Check for potential resource leaks (sql.Rows):**
-    Find functions that query the database and pass rows to helper functions without deferring Close in the caller:
-    ```bash
-    grep -rn "QueryContext\|Query(" --include="*.go" . | grep -v "_test.go"
-    ```
-
-    For each match, check if:
-    - `rows` is returned from `QueryContext` or `Query`
-    - `rows` is passed to another function without `defer rows.Close()` in the current function
-    - The helper function is responsible for closing (risky pattern)
-
-    **Example fix:**
-    ```go
-    // BAD: rows passed to helper without local defer
-    rows, err := db.QueryContext(ctx, query)
-    if err != nil {
-        return nil
-    }
-    return scanRows(rows)  // scanRows closes, but if it panics first, leak occurs
-
-    // GOOD: always defer close in caller
-    rows, err := db.QueryContext(ctx, query)
-    if err != nil {
-        return nil
-    }
-    defer func() { _ = rows.Close() }()  // safe: closed even if scanRows panics
-    return scanRows(rows)
-    ```
-
-    Note: Calling `rows.Close()` twice is safe (idempotent).
-
-11. **Report results:**
-    - List all issues found with file:line references
-    - Provide fix suggestions for each issue
-    - Summary of total issues by category
-
-## Package Names to Check for Collisions
-
-Standard library: `bytes`, `context`, `crypto`, `encoding`, `errors`, `fmt`, `hash`, `html`, `http`, `io`, `json`, `log`, `math`, `net`, `os`, `path`, `reflect`, `regexp`, `runtime`, `sort`, `sql`, `strconv`, `strings`, `sync`, `template`, `testing`, `time`, `unicode`, `url`, `xml`
+6. **Report results:**
+   - List all issues found with file:line references
+   - Provide fix suggestions for each issue
+   - Summary of total issues by category
 
 ## Expected Output
 
@@ -166,27 +83,24 @@ Standard library: `bytes`, `context`, `crypto`, `encoding`, `errors`, `fmt`, `ha
 Code Quality Report
 ==================
 
-Go Toolchain: OK (go1.25.5)
+Go Toolchain: OK (go1.X.X)
 
-Static Analysis:
-  go vet:      0 issues
-  staticcheck: 0 issues
-  errcheck:    0 issues
+golangci-lint: X issues
+  - errcheck:    X issues
+  - staticcheck: X issues
+  - unconvert:   X issues
+  - unparam:     X issues
+  - gocritic:    X issues
+  - dupl:        X clone groups
 
 Nil Safety:
-  nilaway:     0 issues
-
-Duplicate Code:
-  dupl:        0 clone groups (or N clone groups in test files)
+  nilaway:       X issues
 
 Semantic Analysis:
-  Constant comparisons:     0 issues
-  Empty slice literals:     0 issues (excluding generated files)
-  Package name collisions:  0 issues
-  Redundant COALESCE:       0 issues
-  Resource leaks:           0 issues
+  Redundant COALESCE:  X issues
+  Resource leaks:      X issues
 
-Total: 0 issues found
+Total: X issues found
 ```
 
 ## If Issues Found
@@ -197,7 +111,42 @@ For each issue, provide:
 3. How to fix it
 4. Code example (before/after)
 
-### Common nilaway Fixes
+## Linter-Specific Issue Types
+
+### unconvert (Redundant Type Conversion)
+```go
+// BAD: ConflictStrategy("skip") when ConflictSkip is already ConflictStrategy
+assert.Equal(t, ConflictStrategy("skip"), ConflictSkip)
+
+// GOOD: Compare the underlying value
+assert.Equal(t, "skip", string(ConflictSkip))
+```
+
+### unparam (Unused Parameter)
+```go
+// BAD: opts is never used in the function body
+func importMedia(ctx context.Context, opts ImportOptions, result *Result) {
+    // opts is never referenced
+}
+
+// GOOD: Remove unused parameter
+func importMedia(ctx context.Context, result *Result) {
+    // ...
+}
+```
+
+### gocritic/weakCond (Condition Always True/False)
+```go
+// BAD: RoleAdmin is const "admin", so this is always false
+const RoleAdmin = "admin"
+if RoleAdmin != "admin" {
+    t.Error("...")
+}
+
+// GOOD: Remove useless test or test actual behavior
+```
+
+## Common nilaway Fixes
 
 **Potential nil dereference after error check:**
 ```go
@@ -234,4 +183,23 @@ if len(items) != 1 {
 if items[0].Name != "test" {  // now safe
 ```
 
-Note: Generated files (*.sql.go, etc.) are excluded from empty slice literal checks.
+## Resource Leak Fix
+
+```go
+// BAD: rows passed to helper without local defer
+rows, err := db.QueryContext(ctx, query)
+if err != nil {
+    return nil
+}
+return scanRows(rows)  // if scanRows panics, leak occurs
+
+// GOOD: always defer close in caller
+rows, err := db.QueryContext(ctx, query)
+if err != nil {
+    return nil
+}
+defer func() { _ = rows.Close() }()
+return scanRows(rows)
+```
+
+Note: `rows.Close()` is idempotent - calling it twice is safe.
