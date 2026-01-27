@@ -16,6 +16,7 @@ Scan the project for code quality issues and warnings.
    - Run `nilaway ./...` for potential nil pointer dereferences
 
 4. **Semantic Analysis** (manual checks if golangci-lint misses them)
+   - Unused type parameters in generic functions
    - Redundant COALESCE in SQL queries
    - Potential resource leaks (sql.Rows not closed in caller)
 
@@ -58,7 +59,18 @@ Scan the project for code quality issues and warnings.
    go install go.uber.org/nilaway/cmd/nilaway@latest
    ```
 
-4. **Check for redundant COALESCE in SQL:**
+4. **Check for unused type parameters:**
+   ```bash
+   grep -rn "\[T any\]" --include="*.go" . | grep -v "_test.go"
+   ```
+   For each match, verify the type parameter `T` is actually used in:
+   - Function parameters
+   - Return type
+   - Function body
+
+   If `T` is never referenced, remove the type parameter.
+
+5. **Check for redundant COALESCE in SQL:**
    ```bash
    grep -rn "COALESCE(" --include="*.go" . | grep -v "_test.go"
    ```
@@ -66,13 +78,13 @@ Scan the project for code quality issues and warnings.
    - If the column is `NOT NULL` with a default value, COALESCE is redundant
    - Cross-reference with migration files in `internal/store/migrations/`
 
-5. **Check for potential resource leaks (sql.Rows):**
+6. **Check for potential resource leaks (sql.Rows):**
    ```bash
    grep -rn "QueryContext\|Query(" --include="*.go" . | grep -v "_test.go"
    ```
    Check if `rows` is passed to helper functions without `defer rows.Close()` in the caller.
 
-6. **Report results:**
+7. **Report results:**
    - List all issues found with file:line references
    - Provide fix suggestions for each issue
    - Summary of total issues by category
@@ -97,6 +109,7 @@ Nil Safety:
   nilaway:       X issues
 
 Semantic Analysis:
+  Unused type params:  X issues
   Redundant COALESCE:  X issues
   Resource leaks:      X issues
 
@@ -182,6 +195,34 @@ if len(items) != 1 {
 }
 if items[0].Name != "test" {  // now safe
 ```
+
+## Unused Type Parameter Fix
+
+```go
+// BAD: T is declared but never used in signature or body
+func assignItems[T any](ids []int64, fn func(int64) error) []int64 {
+    var result []int64
+    for _, id := range ids {
+        if fn(id) == nil {
+            result = append(result, id)
+        }
+    }
+    return result
+}
+
+// GOOD: Remove unused type parameter
+func assignItems(ids []int64, fn func(int64) error) []int64 {
+    var result []int64
+    for _, id := range ids {
+        if fn(id) == nil {
+            result = append(result, id)
+        }
+    }
+    return result
+}
+```
+
+Note: Also update call sites to remove type arguments (e.g., `assignItems[int64](...)` → `assignItems(...)`).
 
 ## Resource Leak Fix
 
