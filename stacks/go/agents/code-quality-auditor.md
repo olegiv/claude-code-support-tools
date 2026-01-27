@@ -230,6 +230,44 @@ if widget.Name != "Test" { t.Error(...) }
 
 **Fix:** Remove these tests - they test Go's assignment, not your code.
 
+### 11. Potential Resource Leaks (sql.Rows)
+
+**Detection:**
+
+1. Find database query calls:
+   ```bash
+   grep -rn "QueryContext\|Query(" --include="*.go" . | grep -v "_test.go"
+   ```
+
+2. For each match, check if:
+   - `rows` is returned from `QueryContext` or `Query`
+   - `rows` is passed to another function without `defer rows.Close()` in the caller
+   - Only the helper function is responsible for closing (risky pattern)
+
+**Risky pattern:**
+```go
+rows, err := db.QueryContext(ctx, query)
+if err != nil {
+    return nil
+}
+return scanRows(rows)  // scanRows has defer rows.Close(), but...
+```
+
+If `scanRows` panics before its `defer` executes, `rows` is never closed.
+
+**Fix:**
+```go
+// GOOD: always defer close in caller
+rows, err := db.QueryContext(ctx, query)
+if err != nil {
+    return nil
+}
+defer func() { _ = rows.Close() }()  // safe: closed even if helper panics
+return scanRows(rows)
+```
+
+**Note:** Calling `rows.Close()` twice is safe - it's idempotent. So adding a defer in the caller when the helper also closes is harmless and provides extra safety.
+
 ## Audit Workflow
 
 ### Quick Scan
@@ -251,7 +289,8 @@ if widget.Name != "Test" { t.Error(...) }
 6. Find duplicate string literals
 7. Check for redundant COALESCE in SQL
 8. Look for useless struct tests
-9. Report all issues with fixes
+9. Check for potential resource leaks (sql.Rows passed to helpers without local defer)
+10. Report all issues with fixes
 
 ### Fix Mode
 
@@ -321,6 +360,7 @@ Scope: [full/package/file]
 - Package collisions: X issues
 - Duplicate string literals: X issues
 - Redundant COALESCE: X issues
+- Resource leaks: X issues
 
 ## Issues Found
 
@@ -351,6 +391,7 @@ Scope: [full/package/file]
 - "Check if there are any constant comparison issues"
 - "Find duplicate string literals"
 - "Check for redundant COALESCE in SQL queries"
+- "Check for potential resource leaks"
 
 ## Important Notes
 

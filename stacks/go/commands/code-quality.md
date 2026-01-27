@@ -26,6 +26,7 @@ Scan the project for code quality issues and warnings.
    - Empty slice declaration using literal
    - Variable collides with imported package name
    - Redundant COALESCE in SQL queries
+   - Potential resource leaks (sql.Rows not closed in caller)
 
 ## Steps
 
@@ -119,7 +120,38 @@ Scan the project for code quality issues and warnings.
    SELECT meta_title FROM pages
    ```
 
-10. **Report results:**
+10. **Check for potential resource leaks (sql.Rows):**
+    Find functions that query the database and pass rows to helper functions without deferring Close in the caller:
+    ```bash
+    grep -rn "QueryContext\|Query(" --include="*.go" . | grep -v "_test.go"
+    ```
+
+    For each match, check if:
+    - `rows` is returned from `QueryContext` or `Query`
+    - `rows` is passed to another function without `defer rows.Close()` in the current function
+    - The helper function is responsible for closing (risky pattern)
+
+    **Example fix:**
+    ```go
+    // BAD: rows passed to helper without local defer
+    rows, err := db.QueryContext(ctx, query)
+    if err != nil {
+        return nil
+    }
+    return scanRows(rows)  // scanRows closes, but if it panics first, leak occurs
+
+    // GOOD: always defer close in caller
+    rows, err := db.QueryContext(ctx, query)
+    if err != nil {
+        return nil
+    }
+    defer func() { _ = rows.Close() }()  // safe: closed even if scanRows panics
+    return scanRows(rows)
+    ```
+
+    Note: Calling `rows.Close()` twice is safe (idempotent).
+
+11. **Report results:**
     - List all issues found with file:line references
     - Provide fix suggestions for each issue
     - Summary of total issues by category
@@ -152,6 +184,7 @@ Semantic Analysis:
   Empty slice literals:     0 issues (excluding generated files)
   Package name collisions:  0 issues
   Redundant COALESCE:       0 issues
+  Resource leaks:           0 issues
 
 Total: 0 issues found
 ```
