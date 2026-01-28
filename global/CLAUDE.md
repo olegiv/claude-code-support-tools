@@ -13,9 +13,16 @@ This file contains user-level instructions that apply to ALL projects.
 4. **User controls git**: The user decides when and what to commit
 
 ### When to Create Commits
-- **Only when explicitly asked**: "commit these changes", "create a commit", "git commit", etc.
+- **Only when explicitly asked**: "commit these changes", "create a commit", "git commit", `/commit-do`, etc.
 - **Never proactively**: Even after completing major features or fixes
 - **Let user review first**: User may want to test or review changes before committing
+
+### Executing Commits
+When the user explicitly requests a commit, always use `--no-verify` to bypass the pre-commit hook:
+```bash
+git commit --no-verify -m "message"
+```
+The user's explicit request IS the approval. The pre-commit hook only blocks unsolicited automated commits, not user-requested ones.
 
 ### Commit Message Formatting
 **CRITICAL:** Never add these lines to commit messages:

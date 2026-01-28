@@ -67,6 +67,13 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Always-thinking mode enabled
 - Template for team-wide settings
 
+**`global/hooks/`** - Git hooks for commit protection
+- `pre-commit` - Prevents Claude Code from committing without explicit user approval
+- Blocks all automated commits in non-interactive mode
+- Requires typing "YES" to approve commits in interactive mode
+- Can be installed per-repo, globally, or across all existing repos
+- See `global/hooks/README.md` for installation instructions
+
 ### 🔄 GitHub Actions Workflows
 
 **Automated PR Reviews** (`.github/workflows/claude-code-review.yml`)
@@ -172,6 +179,24 @@ cp global/settings.json ~/.claude/
 ```
 
 These will apply to all your Claude Code sessions across all projects.
+
+### Using Git Hooks
+
+Install the pre-commit hook to prevent Claude Code from committing without your approval:
+
+```bash
+# Option 1: Install to current repository only
+cp global/hooks/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+
+# Option 2: Install globally for all future repositories
+mkdir -p ~/.git-hooks
+cp global/hooks/pre-commit ~/.git-hooks/pre-commit
+chmod +x ~/.git-hooks/pre-commit
+git config --global core.hooksPath ~/.git-hooks
+```
+
+See `global/hooks/README.md` for detailed installation instructions and additional options.
 
 ### Using Stack-Specific Configurations
 
@@ -343,7 +368,10 @@ Claude will respond and complete the task with full repository access.
 │           └── detekt.yml         # Detekt config for Android/Compose
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
-│   └── settings.json
+│   ├── settings.json
+│   └── hooks/                     # Git hooks for commit protection
+│       ├── README.md              # Installation instructions
+│       └── pre-commit             # Prevents automated commits
 ├── .github/
 │   ├── workflows/                 # GitHub Actions workflows
 │   │   ├── claude.yml

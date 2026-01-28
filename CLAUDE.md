@@ -342,6 +342,22 @@ Global Claude Code settings:
 - **Custom status line** - Shows project name, directory, git branch, git status, and model
 - **alwaysThinkingEnabled** - Enables continuous thinking mode
 
+### global/hooks/
+
+Git hooks that protect against unsolicited automated commits:
+
+**pre-commit hook:**
+- Blocks automated commits in non-interactive mode (e.g., Claude Code committing on its own)
+- Requires user to type "YES" (all caps) to approve commits in interactive terminal mode
+- When the user explicitly requests a commit (e.g., `/commit-do`), Claude Code uses `--no-verify` — the user's request IS the approval
+
+**Installation options:**
+1. **Single repository**: Copy to `.git/hooks/pre-commit` in specific project
+2. **Global (all new repos)**: Set `git config --global core.hooksPath ~/.git-hooks`
+3. **All existing repos**: Use installation script (see `global/hooks/README.md`)
+
+See `global/hooks/README.md` for detailed installation instructions and usage examples.
+
 ## Development Workflow
 
 When working with this repository:

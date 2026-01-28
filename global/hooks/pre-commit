@@ -1,0 +1,44 @@
+#!/bin/bash
+# Pre-commit hook to prevent automated commits without user approval
+# This hook blocks Claude Code from committing without explicit user permission
+
+# Check if we're in an interactive terminal
+if [ -t 0 ]; then
+    # Interactive mode - ask for confirmation
+    echo "================================================"
+    echo "  GIT COMMIT CONFIRMATION REQUIRED"
+    echo "================================================"
+    echo ""
+    echo "A commit is being attempted."
+    echo ""
+    echo "Type 'YES' (all caps) to approve this commit,"
+    echo "or anything else to abort:"
+    echo ""
+    read -p "Approve commit? " response
+
+    if [ "$response" != "YES" ]; then
+        echo ""
+        echo "❌ COMMIT BLOCKED - User did not approve"
+        echo ""
+        exit 1
+    fi
+
+    echo ""
+    echo "✅ COMMIT APPROVED - Proceeding..."
+    echo ""
+else
+    # Non-interactive mode - always block
+    echo ""
+    echo "================================================"
+    echo "  ❌ COMMIT BLOCKED - NON-INTERACTIVE MODE"
+    echo "================================================"
+    echo ""
+    echo "This commit was attempted in non-interactive mode."
+    echo "All commits must be approved interactively by the user."
+    echo ""
+    echo "To commit, run 'git commit' manually in your terminal."
+    echo ""
+    exit 1
+fi
+
+exit 0
