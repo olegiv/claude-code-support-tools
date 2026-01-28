@@ -99,6 +99,21 @@ Keep pull request messages clean and professional without AI attribution footers
 3. **Local only**: These files are for local security testing and analysis only
 4. **Update after fixes**: After fixing security issues mentioned in `.audit` files, ALWAYS update the relevant audit documentation to reflect the fix status and changes made
 
+## Chrome Extension Testing
+
+**CRITICAL:** When testing UI changes that require visual verification in Chrome:
+
+1. **Check Chrome connection first**: If Chrome extension is not connected, **STOP IMMEDIATELY**
+2. **Ask user to fix**: Tell the user to connect the Chrome extension before proceeding
+3. **Do NOT fallback to curl**: Visual layout issues cannot be detected with curl - you MUST use Chrome
+4. **Wait for connection**: Do not continue testing until Chrome extension is available
+
+### When Chrome Extension is Required
+- Layout verification
+- CSS/styling checks
+- Visual regression testing
+- Any task where the user says "look in Chrome"
+
 ## Quality Assurance Rules
 
 **CRITICAL:** Always test what you do before giving the result to the user.
