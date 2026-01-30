@@ -17,25 +17,5 @@
         ]
       }
     ]
-  },
-  "spinnerVerbs": {
-    "mode": "append",
-    "verbs": [
-      "Compiling",
-      "Migrating",
-      "Publishing",
-      "Theming",
-      "Caching",
-      "Querying",
-      "Templating",
-      "Routing",
-      "Rendering",
-      "Validating",
-      "Auditing",
-      "Indexing",
-      "Scheduling",
-      "Embedding",
-      "Scanning"
-    ]
   }
 }

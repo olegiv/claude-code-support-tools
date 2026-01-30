@@ -24,8 +24,8 @@ if [[ -z "$GO_VERSION" ]]; then
     exit 0
 fi
 
-# Get compiler version
-COMPILE_VERSION=$("$(go env GOTOOLDIR)/compile" -V 2>/dev/null | awk '{print $2}')
+# Get compiler version (format: "compile version go1.X.Y")
+COMPILE_VERSION=$("$(go env GOTOOLDIR)/compile" -V 2>/dev/null | awk '{print $3}')
 if [[ -z "$COMPILE_VERSION" ]]; then
     exit 0
 fi
