@@ -1,28 +1,42 @@
-# Global Development Rules for Claude Code
+# ⛔ STOP - READ THIS FIRST ⛔
 
-This file contains user-level instructions that apply to ALL projects.
+## MANDATORY: Git Commit Approval Workflow
 
-## Git Workflow Rules
+**Before ANY `git commit` command, you MUST:**
+1. Present the draft commit message to the user
+2. Explicitly ask: "Should I proceed with this commit?"
+3. WAIT for the user's approval (e.g., "yes", "proceed", "commit it")
+4. Only THEN execute the commit
 
-**CRITICAL:** Never create commits or push changes unless explicitly instructed by the user.
-
-### Rules
-1. **No automatic commits**: Do NOT commit changes automatically after completing tasks
-2. **No automatic pushes**: Do NOT push to remote repositories unless explicitly asked
-3. **Wait for instruction**: After completing work, inform the user and wait for them to ask for a commit
-4. **User controls git**: The user decides when and what to commit
-
-### When to Create Commits
-- **Only when explicitly asked**: "commit these changes", "create a commit", "git commit", `/commit-do`, etc.
-- **Never proactively**: Even after completing major features or fixes
-- **Let user review first**: User may want to test or review changes before committing
-
-### Executing Commits
-When the user explicitly requests a commit, always use `--no-verify` to bypass the pre-commit hook:
-```bash
-git commit --no-verify -m "message"
+### ❌ WRONG - Never do this:
 ```
-The user's explicit request IS the approval. The pre-commit hook only blocks unsolicited automated commits, not user-requested ones.
+User: "Add the login feature"
+Claude: *writes code*
+Claude: *immediately runs `git commit`* ← VIOLATION!
+```
+
+### ❌ WRONG - Never do this:
+```
+User: "/commit-prepare"
+Claude: "Here's the commit message: ..."
+Claude: *immediately runs `git commit`* ← VIOLATION! Must wait for approval!
+```
+
+### ✅ CORRECT - Always do this:
+```
+User: "/commit-prepare"
+Claude: "Here's the draft commit message:
+         [message]
+         Should I proceed with this commit?"
+User: "yes"
+Claude: *now executes `git commit`*
+```
+
+**This rule has NO exceptions. Even if you think it's obvious the user wants a commit, ASK FIRST.**
+
+---
+
+## Commit & PR Formatting
 
 ### Commit Message Formatting
 **CRITICAL:** Never add these lines to commit messages:
@@ -211,7 +225,3 @@ When creating files or directories, always set appropriate permissions:
 - Use `mktemp` without template argument or with macOS-compatible format
 
 **Note:** On Linux systems, use standard GNU commands instead.
-
----
-
-*This file applies globally to all your projects. Project-specific CLAUDE.md files can add additional context.*
