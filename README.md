@@ -95,7 +95,7 @@ Located in `stacks/` directory - copy these to your project's `.claude/` directo
 - `validate-go-toolchain.sh` - Blocks builds when Go version mismatches compiler
 - `validate-go-test.sh` - Recommends race detection for test commands
 - `code-quality-auditor` agent - Comprehensive code quality scanning
-- `/code-quality` and `/commit-prepare` commands with quality integration
+- `/code-quality`, `/commit-prepare`, and `/fly-deploy` commands
 
 **Swift/Xcode** (`stacks/swift/`)
 - Pre-configured hooks for Xcode project development
@@ -348,7 +348,8 @@ Claude will respond and complete the task with full repository access.
 │   │   │   └── code-quality-auditor.md   # Code quality scanning agent
 │   │   └── commands/
 │   │       ├── code-quality.md    # Run quality checks
-│   │       └── commit-prepare.md  # Commit with quality integration
+│   │       ├── commit-prepare.md  # Commit with quality integration
+│   │       └── fly-deploy.md      # Deploy Go app to Fly.io
 │   ├── swift/                     # Swift/Xcode project tools
 │   │   ├── settings.json          # Hook configuration for xcodebuild
 │   │   └── hooks/

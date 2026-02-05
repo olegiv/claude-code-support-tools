@@ -39,6 +39,7 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `agents/code-quality-auditor.md` - Comprehensive code quality scanning
     - `commands/code-quality.md` - Run quality checks command
     - `commands/commit-prepare.md` - Commit with quality integration
+    - `commands/fly-deploy.md` - Deploy Go app to Fly.io
   - `swift/` - Swift/Xcode project tools
     - `settings.json` - Hook configuration for xcodebuild validation
     - `hooks/validate-xcodebuild.sh` - Ensures correct simulator target (iPhone 17 Pro)
