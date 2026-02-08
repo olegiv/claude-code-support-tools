@@ -19,6 +19,12 @@ Deploy a Go application to Fly.io.
    ```
    If not authenticated, tell the user to run `fly auth login`
 
+4. If a deploy script exists (`.fly/scripts/deploy.sh`) that uses local Docker, verify Docker is running:
+   ```bash
+   docker info > /dev/null 2>&1
+   ```
+   If Docker is not running, **stop immediately** and tell the user: "Docker is not running. Please start Docker Desktop and run `/fly-deploy` again."
+
 ## If `$ARGUMENTS` is "status"
 
 Run status checks only (no deployment):
