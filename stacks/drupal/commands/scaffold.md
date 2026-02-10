@@ -10,13 +10,50 @@ Generate boilerplate code for common Drupal components.
 
 ## Arguments
 
-- `$1` - Type: controller, service, form, block, plugin, entity, event, subscriber
-- `$2` - Name for the component (e.g., ExampleController, example_service)
-- `$3` - Module name (optional, will prompt if not provided)
+`$ARGUMENTS` contains space-separated values:
+- First word: Type (controller, service, form, block, plugin, entity, event, subscriber)
+- Second word: Name for the component (e.g., ExampleController, example_service)
+- Third word: Module name (optional, will prompt if not provided)
 
 ## Instructions
 
-Based on the type `$1`, generate the appropriate Drupal code following standard conventions.
+### 0. Parse and Validate Input
+```bash
+if [ ${#ARGUMENTS} -gt 256 ]; then
+  echo "ERROR: Input too long (max 256 characters)"
+  exit 1
+fi
+
+SCAFFOLD_TYPE=$(echo "$ARGUMENTS" | awk '{print $1}')
+COMPONENT_NAME=$(echo "$ARGUMENTS" | awk '{print $2}')
+MODULE_NAME=$(echo "$ARGUMENTS" | awk '{print $3}')
+
+# Validate type
+if ! echo "$SCAFFOLD_TYPE" | grep -qE '^(controller|service|form|block|plugin|entity|event|subscriber)$'; then
+  echo "ERROR: Invalid type '$SCAFFOLD_TYPE'. Use: controller, service, form, block, plugin, entity, event, subscriber"
+  exit 1
+fi
+
+# Validate component name
+if [ -z "$COMPONENT_NAME" ]; then
+  echo "ERROR: Component name is required"
+  exit 1
+fi
+if ! echo "$COMPONENT_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
+  echo "ERROR: Invalid component name. Must start with a letter, only alphanumeric and underscores."
+  exit 1
+fi
+
+# Validate module name if provided
+if [ -n "$MODULE_NAME" ]; then
+  if ! echo "$MODULE_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
+    echo "ERROR: Invalid module name. Must start with a letter, only alphanumeric and underscores."
+    exit 1
+  fi
+fi
+```
+
+Based on the type, generate the appropriate Drupal code following standard conventions.
 
 ### Supported Types
 

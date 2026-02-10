@@ -24,9 +24,9 @@ Run a PHP security scan: $ARGUMENTS
    [ -d "app" ] && SEARCH_DIRS="$SEARCH_DIRS app/"
    [ -z "$SEARCH_DIRS" ] && SEARCH_DIRS="."
 
-   # Look for dangerous functions
-   grep -rn -E "eval\s*\(" --include="*.php" $SEARCH_DIRS 2>/dev/null || true
-   grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" $SEARCH_DIRS 2>/dev/null || true
+   # Look for dangerous functions (SEARCH_DIRS intentionally unquoted for word splitting)
+   grep -rn -E "eval\s*\(" --include="*.php" -- $SEARCH_DIRS 2>/dev/null || true
+   grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" -- $SEARCH_DIRS 2>/dev/null || true
    ```
 
 4. Summarize the findings:

@@ -20,5 +20,6 @@ The agent will:
 6. Scan for exposed secrets and credentials
 7. Generate comprehensive markdown reports in .audit/ directory
 8. Provide risk assessments and remediation guidance
+9. Audit Claude Code tool definitions (commands, hooks, agents) for injection vulnerabilities
 
 **Note:** Results are stored in `.audit/` which should never be committed to git.

@@ -41,12 +41,12 @@ View Drupal watchdog logs: $ARGUMENTS
 
    For all recent logs:
    ```bash
-   ./vendor/bin/drush ws --count=$COUNT
+   ./vendor/bin/drush ws --count="$COUNT"
    ```
 
    For specific severity:
    ```bash
-   ./vendor/bin/drush ws --severity=$SEVERITY --count=$COUNT
+   ./vendor/bin/drush ws --severity="$SEVERITY" --count="$COUNT"
    ```
 
 3. If looking for errors specifically:

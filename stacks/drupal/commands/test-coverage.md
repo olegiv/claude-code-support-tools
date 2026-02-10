@@ -8,14 +8,31 @@ Check test coverage for module: $ARGUMENTS
 
 ## Instructions
 
+0. **Validate input**:
+   ```bash
+   if [ -z "${ARGUMENTS:-}" ]; then
+     echo "ERROR: Module name is required"
+     exit 1
+   fi
+   if [ ${#ARGUMENTS} -gt 128 ]; then
+     echo "ERROR: Input too long (max 128 characters)"
+     exit 1
+   fi
+   if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+     echo "ERROR: Invalid module name. Only alphanumeric and underscores allowed."
+     exit 1
+   fi
+   MODULE_NAME="$ARGUMENTS"
+   ```
+
 1. **Find all PHP classes in the module**:
    ```bash
-   find modules/custom/$1/src -name "*.php" -type f
+   find "modules/custom/$MODULE_NAME/src" -name "*.php" -type f
    ```
 
 2. **Find all test files**:
    ```bash
-   find modules/custom/$1/tests -name "*Test.php" -type f 2>/dev/null
+   find "modules/custom/$MODULE_NAME/tests" -name "*Test.php" -type f 2>/dev/null
    ```
 
 3. **Analyze coverage**:
@@ -46,5 +63,5 @@ Check test coverage for module: $ARGUMENTS
 
 5. **Optionally run existing tests**:
    ```bash
-   ./vendor/bin/phpunit -c core/phpunit.xml.dist modules/custom/$1/tests/ 2>&1 | tail -20
+   ./vendor/bin/phpunit -c core/phpunit.xml.dist "modules/custom/$MODULE_NAME/tests/" 2>&1 | tail -20
    ```

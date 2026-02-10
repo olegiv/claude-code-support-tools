@@ -8,17 +8,31 @@ Run PHPStan static analysis:
 
 Path to analyze: $ARGUMENTS (optional)
 
-1. If path provided:
+1. Validate input if provided:
    ```bash
-   ./vendor/bin/phpstan analyse $ARGUMENTS
+   if [ -n "${ARGUMENTS:-}" ]; then
+     if [ ${#ARGUMENTS} -gt 256 ]; then
+       echo "ERROR: Input too long (max 256 characters)"
+       exit 1
+     fi
+     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./ -]+$'; then
+       echo "ERROR: Invalid path. Only alphanumeric, dots, slashes, hyphens, underscores, and spaces allowed."
+       exit 1
+     fi
+   fi
    ```
 
-2. If no path specified, run default analysis:
+2. If path provided:
+   ```bash
+   ./vendor/bin/phpstan analyse "$ARGUMENTS"
+   ```
+
+3. If no path specified, run default analysis:
    ```bash
    ./vendor/bin/phpstan analyse
    ```
 
-3. Report:
+4. Report:
    - Number of errors found
    - Errors grouped by file
    - Suggestions for fixing common issues

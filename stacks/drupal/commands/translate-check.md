@@ -14,6 +14,21 @@ Check translation status and coverage for the Drupal site.
 
 ## Instructions
 
+### 0. Validate Input
+```bash
+LANG_CODE="${ARGUMENTS:-}"
+if [ -n "$LANG_CODE" ]; then
+  if [ ${#LANG_CODE} -gt 10 ]; then
+    echo "ERROR: Language code too long (max 10 characters)"
+    exit 1
+  fi
+  if ! echo "$LANG_CODE" | grep -qE '^[a-z]{2}(-[a-z]{2,3})?$'; then
+    echo "ERROR: Invalid language code format. Use lowercase ISO codes (e.g., fr, de, pt-br)"
+    exit 1
+  fi
+fi
+```
+
 ### 1. Enabled Languages
 ```bash
 ./vendor/bin/drush language:list 2>&1
@@ -39,14 +54,15 @@ ORDER BY translated_strings DESC;
 
 ### 4. Untranslated Strings Count
 ```bash
-LANG="${ARGUMENTS:-}"
-if [ -z "$LANG" ]; then
+LANG_CODE="${ARGUMENTS:-}"
+if [ -z "$LANG_CODE" ]; then
   echo "No language specified. Showing all languages from step 3."
 else
+  SAFE_LANG=$(echo "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT COUNT(*) as untranslated
   FROM locales_source s
-  LEFT JOIN locales_target t ON s.lid = t.lid AND t.language = '$LANG'
+  LEFT JOIN locales_target t ON s.lid = t.lid AND t.language = '$SAFE_LANG'
   WHERE t.lid IS NULL;
   "
 fi
@@ -67,15 +83,16 @@ ORDER BY n.type, n.langcode;
 
 ### 6. Missing Content Translations
 ```bash
-LANG="${ARGUMENTS:-}"
-if [ -n "$LANG" ]; then
+LANG_CODE="${ARGUMENTS:-}"
+if [ -n "$LANG_CODE" ]; then
+  SAFE_LANG=$(echo "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT DISTINCT n.type, COUNT(*) as missing
   FROM node_field_data n
   WHERE n.default_langcode = 1
     AND n.status = 1
     AND n.nid NOT IN (
-      SELECT nid FROM node_field_data WHERE langcode = '$LANG'
+      SELECT nid FROM node_field_data WHERE langcode = '$SAFE_LANG'
     )
   GROUP BY n.type
   ORDER BY missing DESC;

@@ -23,6 +23,12 @@ Execute drush command: $ARGUMENTS
      echo "ERROR: Unknown drush command '$DRUSH_CMD'. Verify it is safe before running."
      exit 1
    fi
+
+   # Block shell metacharacters to prevent command injection
+   if echo "$ARGUMENTS" | grep -qE '[;|&`$(){}]'; then
+     echo "ERROR: Arguments contain forbidden shell characters"
+     exit 1
+   fi
    ```
 
 2. Execute the drush command (no destructive operations without confirmation):

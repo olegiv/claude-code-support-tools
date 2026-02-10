@@ -6,29 +6,43 @@ allowed-tools: Bash, Read
 
 Check and update dependencies: $ARGUMENTS
 
-1. First, check for outdated packages:
+1. Validate input if provided:
+   ```bash
+   if [ -n "${ARGUMENTS:-}" ]; then
+     if [ ${#ARGUMENTS} -gt 128 ]; then
+       echo "ERROR: Input too long (max 128 characters)"
+       exit 1
+     fi
+     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
+       echo "ERROR: Invalid package name. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
+       exit 1
+     fi
+   fi
+   ```
+
+2. First, check for outdated packages:
    ```bash
    composer outdated
    ```
 
-2. Run security audit:
+3. Run security audit:
    ```bash
    composer audit
    ```
 
-3. If a package name is provided, show details:
+4. If a package name is provided, show details:
    ```bash
-   composer show $ARGUMENTS
-   composer why $ARGUMENTS
+   composer show "$ARGUMENTS"
+   composer why "$ARGUMENTS"
    ```
 
-4. Report:
+5. Report:
    - Outdated packages list
    - Security vulnerabilities found
    - Recommended updates
    - Breaking changes to watch for
 
-5. Ask the user if they want to proceed with updates before running:
+6. Ask the user if they want to proceed with updates before running:
    ```bash
    composer update <package-name>
    ```

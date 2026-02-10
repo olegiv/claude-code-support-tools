@@ -22,6 +22,7 @@ Conduct thorough security audits of codebases, identifying vulnerabilities, misc
 3. **Configuration Files**: Database configs, server configs, environment variables, secrets management
 4. **Infrastructure Code**: Docker files, CI/CD pipelines, deployment configurations
 5. **API Security**: Endpoint security, rate limiting, input validation, authentication mechanisms
+6. **Claude Code Tool Definitions**: Command files, hook scripts, and agent definitions that embed shell commands with user-supplied `$ARGUMENTS`
 
 ## Audit Methodology
 
@@ -122,6 +123,7 @@ Create separate reports for each audit category:
 - `security-audit-authentication.md` - Auth/authz findings
 - `security-audit-api.md` - API security assessment
 - `security-audit-secrets.md` - Secrets and sensitive data exposure
+- `security-audit-tool-definitions.md` - Claude Code command, hook, and agent security
 - `security-audit-summary.md` - Executive summary with all findings
 
 ## Key Security Checks
@@ -151,6 +153,33 @@ Create separate reports for each audit category:
 - Rate limiting configuration
 - Logging of sensitive data
 - Environment variable handling
+
+### For Claude Code Tool Definitions (commands, hooks, agents):
+
+Claude Code command files (`.md`) contain bash code blocks that are executed with user-supplied `$ARGUMENTS`. Hook scripts (`.sh`) validate tool inputs. These are a unique attack surface requiring a 3-pass security scan:
+
+#### Pass 1: SQL Injection & Code Injection
+- Search all command `.md` files for `sql:query` with `$` variable interpolation
+- For each match, verify the interpolated variable has BOTH format validation AND escaping (backslash `\` and quote `'`)
+- Search for `php:eval` with `$` variable interpolation - verify backslash and single-quote escaping for PHP string context
+- Check for `$1`/`$2`/`$3` positional parameters in command files - these do NOT work in Claude Code commands and must use `$ARGUMENTS`
+- Verify every command accepting user input has input length validation (`${#ARGUMENTS} -gt N`) and format validation (regex)
+
+#### Pass 2: Command Injection & Shell Safety
+- Check all execution commands (drush, phpunit, composer, phpstan, find, etc.) for unquoted `$ARGUMENTS` or derived variables
+- If a variable MUST be unquoted (e.g., drush needs word splitting), verify shell metacharacter validation blocks at minimum: `;|&`$(){}`
+- Check all `.sh` hook files for: unquoted variables, unsafe JSON parsing (must use `jq`, never `eval` or `python`), proper error handling
+- Verify `find` commands with user-provided path components have validated and quoted paths
+- Check that variables passed to `--flag=$VAR` style arguments are quoted: `--flag="$VAR"`
+
+#### Pass 3: Comprehensive Pattern Review
+- Every command file accepting `$ARGUMENTS` must have: length check AND format validation
+- SQL queries with variable interpolation must escape both `\` (backslash) and `'` (quote) - use `sed "s/\\\\/\\\\\\\\/g; s/'/''/g"` for SQL context
+- PHP eval with variable interpolation must escape both `\` and `'` - use `sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g"` for PHP single-quoted string context
+- Variables in execution contexts must be quoted OR have metacharacter validation before use
+- File paths constructed with user input must prevent path traversal (validate with `^[a-zA-Z0-9_]+$` or similar)
+- No variable naming collisions between different escaping contexts (e.g., use `PHP_SAFE_INPUT` vs `SQL_SAFE_INPUT`)
+- Verify defense-in-depth: validation alone may suffice for strict regexes (e.g., `^[a-z]{2}$`), but escaping should still be present for defense-in-depth when the regex allows special characters
 
 ## Interaction Guidelines
 

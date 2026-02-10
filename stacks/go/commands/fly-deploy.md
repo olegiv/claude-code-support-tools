@@ -57,9 +57,14 @@ Report app status, machine state, and health check results.
 
 **If a deploy script exists** (`.fly/scripts/deploy.sh`):
 
-Use the project's deploy script with any flags from `$ARGUMENTS`:
+Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
 ```bash
-./.fly/scripts/deploy.sh $ARGUMENTS
+# Validate arguments contain only safe characters
+if echo "$ARGUMENTS" | grep -qE '[;|&`$(){}!]'; then
+  echo "ERROR: Arguments contain forbidden shell characters"
+  exit 1
+fi
+./.fly/scripts/deploy.sh "$ARGUMENTS"
 ```
 
 **If no deploy script exists**, deploy directly:
