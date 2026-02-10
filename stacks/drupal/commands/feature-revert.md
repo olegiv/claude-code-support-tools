@@ -12,17 +12,33 @@ Revert Drupal features: $ARGUMENTS
    ```
    Then ask the user which feature(s) to revert.
 
-2. Revert the specified feature(s):
+2. Validate input:
    ```bash
-   ./vendor/bin/drush fr $ARGUMENTS -y
+   if [ -n "$ARGUMENTS" ]; then
+     if [ ${#ARGUMENTS} -gt 500 ]; then
+       echo "ERROR: Input too long (max 500 characters)"
+       exit 1
+     fi
+     for MODULE in $ARGUMENTS; do
+       if ! echo "$MODULE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+         echo "ERROR: Invalid module name '$MODULE'. Only alphanumeric, underscores, and hyphens allowed."
+         exit 1
+       fi
+     done
+   fi
    ```
 
-3. Clear caches after revert:
+3. Revert the specified feature(s):
+   ```bash
+   ./vendor/bin/drush fr "$ARGUMENTS" -y
+   ```
+
+4. Clear caches after revert:
    ```bash
    ./vendor/bin/drush cr
    ```
 
-4. Report:
+5. Report:
    - Features reverted
    - Any errors or warnings
    - Configuration changes applied
