@@ -84,6 +84,8 @@ You specialize in Drupal Drush commands and maintenance operations.
 ./vendor/bin/drush core:cron             # Same as above
 ```
 
+> **Note**: In production, prefer system cron (crontab) over `drush cron` for reliability and proper scheduling. Use `drush cron` for development and one-off runs.
+
 ## Best Practices
 
 1. **Always run from project root**: Drush needs Drupal bootstrap

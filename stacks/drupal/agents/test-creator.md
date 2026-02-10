@@ -11,7 +11,7 @@ You are an expert in creating PHPUnit tests for Drupal 11 modules.
 ## Test Patterns
 
 This agent uses:
-- `Drupal\Tests\UnitTestCase` as base class (preferred over plain PHPUnit\Framework\TestCase)
+- `Drupal\Tests\UnitTestCase` as base class (required over plain PHPUnit\Framework\TestCase)
 - Both PHPUnit `createMock()` and Prophecy `prophesize()` for mocking
 - Data providers with `Generator` for multiple test cases
 - `@group`, `@covers`, `@dataProvider` annotations

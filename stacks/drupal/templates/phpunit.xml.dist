@@ -9,6 +9,7 @@
     <ini name="error_reporting" value="32767"/>
     <ini name="memory_limit" value="-1"/>
     <env name="SIMPLETEST_BASE_URL" value="http://localhost"/>
+    <!-- Database connection string for kernel/functional tests, e.g. "pgsql://user:pass@localhost/drupal" or "mysql://user:pass@localhost/drupal" -->
     <env name="SIMPLETEST_DB" value=""/>
     <env name="BROWSERTEST_OUTPUT_DIRECTORY" value=""/>
   </php>

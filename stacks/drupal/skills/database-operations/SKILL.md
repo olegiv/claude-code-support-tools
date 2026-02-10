@@ -260,7 +260,7 @@ WHERE object_schema = DATABASE();
 ### Database Maintenance
 
 ```bash
-# PostgreSQL: Vacuum and analyze
+# PostgreSQL only: Vacuum and analyze
 ./vendor/bin/drush sql:query "VACUUM ANALYZE"
 
 # MySQL: Optimize cache tables
