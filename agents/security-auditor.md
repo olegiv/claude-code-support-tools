@@ -180,6 +180,10 @@ Claude Code command files (`.md`) contain bash code blocks that are executed wit
 - File paths constructed with user input must prevent path traversal (validate with `^[a-zA-Z0-9_]+$` or similar)
 - No variable naming collisions between different escaping contexts (e.g., use `PHP_SAFE_INPUT` vs `SQL_SAFE_INPUT`)
 - Verify defense-in-depth: validation alone may suffice for strict regexes (e.g., `^[a-z]{2}$`), but escaping should still be present for defense-in-depth when the regex allows special characters
+- Command files with `argument-hint` must implement the promised argument parsing and filtering logic
+- SQL keyword validation must strip string literals before checking to prevent false positives (e.g., `'Please CALL me'` should not trigger CALL keyword block)
+- Avoid unquoted variable word-splitting anti-patterns; use loops or arrays for multi-value iteration instead
+- `name` field is for agent files only; command files use `description`, `allowed-tools`, `argument-hint` in frontmatter
 
 ## Interaction Guidelines
 

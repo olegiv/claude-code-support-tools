@@ -1,36 +1,75 @@
 ---
 description: Run PHP security scan (composer audit and static analysis)
-argument-hint: [severity]
+argument-hint: "<severity: critical|high|medium|low>"
 allowed-tools: Bash, Read
 ---
 
-Run a PHP security scan: $ARGUMENTS
+# PHP Security Scan
 
-1. Run Composer security audit:
-   ```bash
-   composer audit
-   ```
+Run a PHP security scan with optional severity filtering.
 
-2. If PHPStan is available, run static analysis:
-   ```bash
-   ./vendor/bin/phpstan analyse 2>/dev/null || echo "PHPStan not configured"
-   ```
+## Arguments
 
-3. Check for common security issues:
-   ```bash
-   # Detect project structure
-   SEARCH_DIRS=""
-   [ -d "src" ] && SEARCH_DIRS="$SEARCH_DIRS src/"
-   [ -d "app" ] && SEARCH_DIRS="$SEARCH_DIRS app/"
-   [ -z "$SEARCH_DIRS" ] && SEARCH_DIRS="."
+- `$ARGUMENTS` - Optional severity level to filter results (critical, high, medium, low)
 
-   # Look for dangerous functions (SEARCH_DIRS intentionally unquoted for word splitting)
-   grep -rn -E "eval\s*\(" --include="*.php" -- $SEARCH_DIRS 2>/dev/null || true
-   grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" -- $SEARCH_DIRS 2>/dev/null || true
-   ```
+## Instructions
 
-4. Summarize the findings:
-   - Total vulnerabilities found by composer audit
-   - Static analysis issues (if available)
-   - Dangerous function usage
-   - Recommendations for remediation
+### 0. Validate Input
+```bash
+SEVERITY="${ARGUMENTS:-}"
+
+if [ -n "$SEVERITY" ]; then
+  if [ ${#SEVERITY} -gt 20 ]; then
+    echo "ERROR: Input too long (max 20 characters)"
+    exit 1
+  fi
+  # Normalize to lowercase
+  SEVERITY=$(echo "$SEVERITY" | tr '[:upper:]' '[:lower:]')
+  if ! echo "$SEVERITY" | grep -qE '^(critical|high|medium|low)$'; then
+    echo "ERROR: Invalid severity '$SEVERITY'. Use: critical, high, medium, low"
+    exit 1
+  fi
+fi
+```
+
+### 1. Run Composer Security Audit
+```bash
+if [ -n "$SEVERITY" ]; then
+  echo "=== Composer Audit (filtering: $SEVERITY) ==="
+  composer audit 2>&1 | grep -iE "$SEVERITY|^Package|^Sever|^Title|^CVE|^Link|^Advis|^Report|^Found|No security" || true
+else
+  echo "=== Composer Audit ==="
+  composer audit 2>&1
+fi
+```
+
+### 2. Run Static Analysis (if available)
+```bash
+echo "=== PHPStan Analysis ==="
+./vendor/bin/phpstan analyse 2>/dev/null || echo "PHPStan not configured"
+```
+
+### 3. Check for Dangerous Function Usage
+```bash
+echo "=== Dangerous Function Detection ==="
+FOUND_DIRS=false
+for dir in src app; do
+  if [ -d "$dir" ]; then
+    FOUND_DIRS=true
+    grep -rn -E "eval\s*\(" --include="*.php" "$dir/" 2>/dev/null || true
+    grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" "$dir/" 2>/dev/null || true
+  fi
+done
+if [ "$FOUND_DIRS" = false ]; then
+  grep -rn -E "eval\s*\(" --include="*.php" . 2>/dev/null || true
+  grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" . 2>/dev/null || true
+fi
+```
+
+### 4. Summary
+
+Summarize the findings:
+- Total vulnerabilities found by composer audit
+- Static analysis issues (if available)
+- Dangerous function usage
+- Recommendations for remediation

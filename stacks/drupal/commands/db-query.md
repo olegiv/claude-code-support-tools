@@ -47,8 +47,8 @@ if [ ${#QUERY} -gt 2000 ]; then
   exit 1
 fi
 
-# Strip SQL comments before validation
-CLEAN_QUERY=$(echo "$QUERY" | sed 's/--.*//g' | sed 's|/\*.*\*/||g' | tr '\n' ' ')
+# Strip SQL comments and string literals before validation
+CLEAN_QUERY=$(echo "$QUERY" | sed 's/--.*//g' | sed 's|/\*.*\*/||g' | sed "s/'[^']*'//g" | tr '\n' ' ')
 
 # Check for stacked queries (semicolons)
 if echo "$CLEAN_QUERY" | grep -qE ";"; then

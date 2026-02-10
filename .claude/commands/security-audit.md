@@ -21,5 +21,6 @@ The agent will:
 7. Generate comprehensive markdown reports in .audit/ directory
 8. Provide risk assessments and remediation guidance
 9. Audit Claude Code tool definitions (commands, hooks, agents) for injection vulnerabilities
+10. Validate command frontmatter consistency (argument-hint vs implementation, field correctness)
 
 **Note:** Results are stored in `.audit/` which should never be committed to git.
