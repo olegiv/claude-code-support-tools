@@ -47,11 +47,17 @@ ORDER BY type, status;
 ```bash
 TYPE_FILTER="${ARGUMENTS:-}"
 if [ -n "$TYPE_FILTER" ]; then
+  # Validate: alphanumeric and underscores only (Drupal machine names)
+  if ! echo "$TYPE_FILTER" | grep -qE '^[a-zA-Z0-9_]+$'; then
+    echo "ERROR: Invalid content type."
+    exit 1
+  fi
+  SAFE_TYPE=$(echo "$TYPE_FILTER" | sed "s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT nid, title, type, to_timestamp(changed) as last_changed
   FROM node_field_data
   WHERE status = 0
-    AND type = '$TYPE_FILTER'
+    AND type = '$SAFE_TYPE'
     AND changed < EXTRACT(EPOCH FROM NOW() - INTERVAL '30 days')
   ORDER BY changed ASC
   LIMIT 20;
@@ -72,11 +78,17 @@ fi
 ```bash
 TYPE_FILTER="${ARGUMENTS:-}"
 if [ -n "$TYPE_FILTER" ]; then
+  # Validate: alphanumeric and underscores only (Drupal machine names)
+  if ! echo "$TYPE_FILTER" | grep -qE '^[a-zA-Z0-9_]+$'; then
+    echo "ERROR: Invalid content type."
+    exit 1
+  fi
+  SAFE_TYPE=$(echo "$TYPE_FILTER" | sed "s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT nid, title, type, FROM_UNIXTIME(changed) as last_changed
   FROM node_field_data
   WHERE status = 0
-    AND type = '$TYPE_FILTER'
+    AND type = '$SAFE_TYPE'
     AND changed < UNIX_TIMESTAMP(NOW() - INTERVAL 30 DAY)
   ORDER BY changed ASC
   LIMIT 20;

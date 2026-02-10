@@ -6,9 +6,26 @@ allowed-tools: Bash
 
 Execute drush command: $ARGUMENTS
 
-1. Validate the command is safe to run (no destructive operations without confirmation)
+1. Validate the command is safe to run:
+   ```bash
+   if [ ${#ARGUMENTS} -gt 500 ]; then
+     echo "ERROR: Input too long (max 500 characters)"
+     exit 1
+   fi
 
-2. Execute the drush command:
+   # Extract the drush subcommand (first word)
+   DRUSH_CMD=$(echo "$ARGUMENTS" | awk '{print $1}')
+
+   # Allowlist of safe drush commands
+   SAFE_COMMANDS="cr|cache:rebuild|status|st|core:status|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|uli|user:login|ws|watchdog:show|user:information|sql:query|php:eval|pm:list|core:requirements|queue:list|queue:run|locale:update|entity:updates"
+
+   if ! echo "$DRUSH_CMD" | grep -qE "^($SAFE_COMMANDS)$"; then
+     echo "ERROR: Unknown drush command '$DRUSH_CMD'. Verify it is safe before running."
+     exit 1
+   fi
+   ```
+
+2. Execute the drush command (no destructive operations without confirmation):
    ```bash
    ./vendor/bin/drush $ARGUMENTS
    ```
