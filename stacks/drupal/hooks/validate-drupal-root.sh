@@ -25,7 +25,6 @@ if [[ -f "../core/lib/Drupal.php" ]]; then
     exit 0
 fi
 
-echo "WARNING: Current directory may not be a Drupal root (core/lib/Drupal.php not found)." >&2
-echo "Drush and PHPUnit commands should be run from the Drupal project root directory." >&2
-# Warning only, don't block - the user may have a non-standard layout
-exit 0
+echo "BLOCKED: Current directory is not a Drupal root (core/lib/Drupal.php not found)." >&2
+echo "Drush and PHPUnit commands must be run from the Drupal project root directory." >&2
+exit 2

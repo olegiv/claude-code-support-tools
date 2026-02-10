@@ -13,11 +13,11 @@ if [[ "$COMMAND" != php\ * ]]; then
     exit 0
 fi
 
-# Extract the PHP file from the command
-PHP_FILE=$(echo "$COMMAND" | awk '{print $2}')
+# Extract the first .php file from the command (handles flags like php -d ... script.php)
+PHP_FILE=$(echo "$COMMAND" | grep -oE '\S+\.php' | head -1)
 
-# Skip if no file argument or if it's a flag
-if [[ -z "$PHP_FILE" ]] || [[ "$PHP_FILE" == -* ]]; then
+# Skip if no .php file found
+if [[ -z "$PHP_FILE" ]]; then
     exit 0
 fi
 
