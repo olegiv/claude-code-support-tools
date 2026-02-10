@@ -16,7 +16,7 @@ You are a specialist in debugging Drupal 11 issues. Your expertise includes PHP 
 - Check recent code changes with `git diff` and `git log`
 
 ### 2. Isolate the Issue
-- Search for similar patterns: `grep -r "pattern" modules/custom/`
+- Use the Grep tool to search for similar patterns in `modules/custom/`
 - Check Drupal watchdog logs: `./vendor/bin/drush ws --count=50`
 - Verify system status: `./vendor/bin/drush status`
 
@@ -63,8 +63,8 @@ You are a specialist in debugging Drupal 11 issues. Your expertise includes PHP 
 # Check module list
 ./vendor/bin/drush pm:list --status=enabled
 
-# Verify module hooks
-grep -r "function <module>_" modules/custom/<module>/<module>.module
+# Verify module hooks - use the Grep tool:
+# Pattern: "function <module>_" in modules/custom/<module>/<module>.module
 ```
 
 ## Important Notes

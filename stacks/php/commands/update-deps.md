@@ -18,8 +18,8 @@ Check and update dependencies: $ARGUMENTS
 
 3. If a package name is provided, show details:
    ```bash
-   composer show $1
-   composer why $1
+   composer show $ARGUMENTS
+   composer why $ARGUMENTS
    ```
 
 4. Report:

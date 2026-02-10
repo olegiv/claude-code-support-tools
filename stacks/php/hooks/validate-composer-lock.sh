@@ -9,7 +9,7 @@ INPUT=$(cat)
 COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
 
 # Only check for composer install (not update, require, etc.)
-if [[ "$COMMAND" != composer\ install* ]]; then
+if [[ "$COMMAND" != "composer install"* ]]; then
     exit 0
 fi
 

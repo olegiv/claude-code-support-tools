@@ -10,8 +10,8 @@
     <ini name="memory_limit" value="-1"/>
     <env name="SIMPLETEST_BASE_URL" value="http://localhost"/>
     <!-- Database connection string for kernel/functional tests, e.g. "pgsql://user:pass@localhost/drupal" or "mysql://user:pass@localhost/drupal" -->
-    <env name="SIMPLETEST_DB" value=""/>
-    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value=""/>
+    <env name="SIMPLETEST_DB" value="pgsql://drupal:drupal@localhost/drupal_test"/>
+    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="sites/simpletest/browser_output"/>
   </php>
   <testsuites>
     <testsuite name="unit">

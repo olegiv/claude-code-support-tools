@@ -96,6 +96,8 @@ file_get_contents($user_path);
 
 // GOOD - Validate path is within allowed directory
 $real_path = realpath($user_path);
+// PHP 8.0+: str_starts_with($real_path, $allowed_directory)
+// PHP 7.x:  strpos($real_path, $allowed_directory) === 0
 if ($real_path && str_starts_with($real_path, $allowed_directory)) {
     file_get_contents($real_path);
 }

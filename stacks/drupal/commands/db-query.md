@@ -25,6 +25,15 @@ Run a safe read-only SQL query against the Drupal database.
 - Multiple statements
 - Queries without explicit column selection (SELECT * on large tables)
 
+## Security Warning
+
+This command attempts to prevent data modification but should not be relied upon as the sole security measure:
+
+1. **Production**: Use a read-only database user
+2. **Logs**: All queries are logged in drush output
+3. **Audit**: Review query logs regularly
+4. **Limit access**: Restrict this command to authorized users only
+
 ## Instructions
 
 ### 1. Validate the Query
@@ -47,9 +56,21 @@ if echo "$CLEAN_QUERY" | grep -qE ";"; then
   exit 1
 fi
 
-# Check for dangerous keywords
-if echo "$CLEAN_QUERY" | grep -iqE "(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE)"; then
+# Check for dangerous keywords (DML/DDL)
+if echo "$CLEAN_QUERY" | grep -iqE "\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|EXECUTE|CALL|LOAD|OUTFILE|INFILE|DUMPFILE|REPLACE|MERGE|HANDLER)\b"; then
   echo "ERROR: Only SELECT queries are allowed"
+  exit 1
+fi
+
+# Check for locking operations
+if echo "$CLEAN_QUERY" | grep -iqE "\b(FOR\s+UPDATE|LOCK\s+TABLES)\b"; then
+  echo "ERROR: Query contains forbidden locking operations"
+  exit 1
+fi
+
+# Check for stacked queries (semicolon followed by DML/DDL)
+if echo "$CLEAN_QUERY" | grep -iqE ";\s*(UPDATE|DELETE|INSERT|DROP|ALTER|CREATE|TRUNCATE)"; then
+  echo "ERROR: Attempted SQL injection detected"
   exit 1
 fi
 

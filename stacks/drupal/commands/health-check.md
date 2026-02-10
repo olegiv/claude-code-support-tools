@@ -24,8 +24,12 @@ Execute the following checks and provide a summary report:
 ### 3. Cache Status
 ```bash
 # Check if Redis is available (optional, may not be installed)
-redis-cli ping 2>&1 || echo "Redis not available"
-redis-cli INFO memory 2>&1 | head -10 || true
+if command -v redis-cli &>/dev/null; then
+    redis-cli ping 2>&1 || echo "Redis not available"
+    redis-cli INFO memory 2>&1 | head -10 || true
+else
+    echo "Redis client not installed - skipping Redis check"
+fi
 ```
 
 ### 4. Cron Status
@@ -55,7 +59,15 @@ df -h . | tail -1
 
 ### 9. File Permissions
 ```bash
-ls -la sites/default/files/ | head -5
+# Check file permissions (detect Drupal files directory)
+DRUPAL_FILES="sites/default/files"
+if [ -d "$DRUPAL_FILES" ]; then
+    ls -la "$DRUPAL_FILES/" | head -5
+else
+    echo "Default files directory not found at $DRUPAL_FILES"
+    # Try to find files directory from Drupal config
+    ./vendor/bin/drush status --field=files 2>/dev/null || true
+fi
 ```
 
 ## Output Format

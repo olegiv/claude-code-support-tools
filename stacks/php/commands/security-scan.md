@@ -18,9 +18,15 @@ Run a PHP security scan: $ARGUMENTS
 
 3. Check for common security issues:
    ```bash
+   # Detect project structure
+   SEARCH_DIRS=""
+   [ -d "src" ] && SEARCH_DIRS="$SEARCH_DIRS src/"
+   [ -d "app" ] && SEARCH_DIRS="$SEARCH_DIRS app/"
+   [ -z "$SEARCH_DIRS" ] && SEARCH_DIRS="."
+
    # Look for dangerous functions
-   grep -rn "eval\s*(" --include="*.php" src/ app/ 2>/dev/null || true
-   grep -rn "exec\s*(\|shell_exec\s*(\|system\s*(\|passthru\s*(" --include="*.php" src/ app/ 2>/dev/null || true
+   grep -rn -E "eval\s*\(" --include="*.php" $SEARCH_DIRS 2>/dev/null || true
+   grep -rn -E "(exec|shell_exec|system|passthru)\s*\(" --include="*.php" $SEARCH_DIRS 2>/dev/null || true
    ```
 
 4. Summarize the findings:

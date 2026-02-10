@@ -10,7 +10,7 @@ Path to analyze: $ARGUMENTS (optional)
 
 1. If path provided:
    ```bash
-   ./vendor/bin/phpstan analyse $1
+   ./vendor/bin/phpstan analyse $ARGUMENTS
    ```
 
 2. If no path specified, run default analysis:
