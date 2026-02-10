@@ -31,8 +31,31 @@ Run a safe read-only SQL query against the Drupal database.
 
 ```bash
 QUERY="$ARGUMENTS"
-if echo "$QUERY" | grep -iE "(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE)" > /dev/null; then
+
+# Input length check
+if [ ${#QUERY} -gt 2000 ]; then
+  echo "ERROR: Query too long (max 2000 characters)"
+  exit 1
+fi
+
+# Strip SQL comments before validation
+CLEAN_QUERY=$(echo "$QUERY" | sed 's/--.*//g' | sed 's|/\*.*\*/||g' | tr '\n' ' ')
+
+# Check for stacked queries (semicolons)
+if echo "$CLEAN_QUERY" | grep -qE ";"; then
+  echo "ERROR: Multiple statements not allowed"
+  exit 1
+fi
+
+# Check for dangerous keywords
+if echo "$CLEAN_QUERY" | grep -iqE "(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE)"; then
   echo "ERROR: Only SELECT queries are allowed"
+  exit 1
+fi
+
+# Verify query starts with SELECT
+if ! echo "$CLEAN_QUERY" | grep -iqE "^\s*SELECT\b"; then
+  echo "ERROR: Query must start with SELECT"
   exit 1
 fi
 ```

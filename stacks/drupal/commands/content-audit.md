@@ -14,6 +14,20 @@ Audit content for issues: orphaned references, unpublished items, stale content.
 
 ## Instructions
 
+### 0. Validate Input
+```bash
+if [ -n "${ARGUMENTS:-}" ]; then
+  if [ ${#ARGUMENTS} -gt 64 ]; then
+    echo "ERROR: Input too long (max 64 characters)"
+    exit 1
+  fi
+  if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+    echo "ERROR: Invalid content type. Only alphanumeric characters and underscores allowed."
+    exit 1
+  fi
+fi
+```
+
 ### 1. Content Overview
 ```bash
 ./vendor/bin/drush sql:query "

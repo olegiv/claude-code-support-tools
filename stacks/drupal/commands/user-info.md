@@ -14,7 +14,15 @@ Look up detailed information about a Drupal user.
 
 ## Instructions
 
-### 1. Identify User
+### 1. Validate Input
+```bash
+if [ ${#ARGUMENTS} -gt 254 ]; then
+  echo "ERROR: Input too long (max 254 characters)"
+  exit 1
+fi
+```
+
+### 2. Identify User
 ```bash
 INPUT="$ARGUMENTS"
 
@@ -30,10 +38,11 @@ else
 fi
 ```
 
-### 2. Get User Roles
+### 3. Get User Roles
 ```bash
+SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/'/\\\\'/g")
 ./vendor/bin/drush php:eval "
-  \$input = '$ARGUMENTS';
+  \$input = '$SAFE_INPUT';
   \$user = NULL;
 
   if (is_numeric(\$input)) {
@@ -60,16 +69,17 @@ fi
 "
 ```
 
-### 3. Recent Activity
+### 4. Recent Activity
 ```bash
+SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, message, timestamp
 FROM watchdog
 WHERE uid = (
   SELECT uid FROM users_field_data
-  WHERE CAST(uid AS CHAR) = '$ARGUMENTS'
-     OR mail = '$ARGUMENTS'
-     OR name = '$ARGUMENTS'
+  WHERE CAST(uid AS CHAR) = '$SAFE_INPUT'
+     OR mail = '$SAFE_INPUT'
+     OR name = '$SAFE_INPUT'
   LIMIT 1
 )
 ORDER BY timestamp DESC
@@ -77,16 +87,17 @@ LIMIT 10;
 " 2>&1
 ```
 
-### 4. Content Authored
+### 5. Content Authored
 ```bash
+SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, COUNT(*) as count
 FROM node_field_data
 WHERE uid = (
   SELECT uid FROM users_field_data
-  WHERE CAST(uid AS CHAR) = '$ARGUMENTS'
-     OR mail = '$ARGUMENTS'
-     OR name = '$ARGUMENTS'
+  WHERE CAST(uid AS CHAR) = '$SAFE_INPUT'
+     OR mail = '$SAFE_INPUT'
+     OR name = '$SAFE_INPUT'
   LIMIT 1
 )
 GROUP BY type;
