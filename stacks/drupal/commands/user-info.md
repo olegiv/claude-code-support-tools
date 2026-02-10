@@ -67,7 +67,7 @@ SELECT type, message, timestamp
 FROM watchdog
 WHERE uid = (
   SELECT uid FROM users_field_data
-  WHERE uid::text = '$ARGUMENTS'
+  WHERE CAST(uid AS CHAR) = '$ARGUMENTS'
      OR mail = '$ARGUMENTS'
      OR name = '$ARGUMENTS'
   LIMIT 1
@@ -77,8 +77,6 @@ LIMIT 10;
 " 2>&1
 ```
 
-Note: The query above uses PostgreSQL casting (`uid::text`). For MySQL, use `CAST(uid AS CHAR)` instead.
-
 ### 4. Content Authored
 ```bash
 ./vendor/bin/drush sql:query "
@@ -86,7 +84,7 @@ SELECT type, COUNT(*) as count
 FROM node_field_data
 WHERE uid = (
   SELECT uid FROM users_field_data
-  WHERE uid::text = '$ARGUMENTS'
+  WHERE CAST(uid AS CHAR) = '$ARGUMENTS'
      OR mail = '$ARGUMENTS'
      OR name = '$ARGUMENTS'
   LIMIT 1
@@ -94,8 +92,6 @@ WHERE uid = (
 GROUP BY type;
 " 2>&1
 ```
-
-Note: For MySQL, replace `uid::text` with `CAST(uid AS CHAR)`.
 
 ## Output Format
 
