@@ -43,7 +43,7 @@ Execute drush command: $ARGUMENTS
 
 2. Execute the drush command (no destructive operations without confirmation):
    ```bash
-   ./vendor/bin/drush $ARGUMENTS
+   ./vendor/bin/drush -- $ARGUMENTS
    ```
 
 3. Common drush commands for reference:

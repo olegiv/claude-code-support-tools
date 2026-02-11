@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Validates Go toolchain version matches go.mod before running Go commands
 # Prevents builds with mismatched compiler versions
 
@@ -6,7 +7,7 @@
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate go commands (build, test, run, install)
 if [[ "$COMMAND" != go\ build* ]] && [[ "$COMMAND" != go\ test* ]] && [[ "$COMMAND" != go\ run* ]] && [[ "$COMMAND" != go\ install* ]]; then
@@ -19,13 +20,13 @@ if [[ ! -f "go.mod" ]]; then
 fi
 
 # Get Go version from command
-GO_VERSION=$(go version 2>/dev/null | awk '{print $3}')
+GO_VERSION=$(go version 2>/dev/null | awk '{print $3}') || GO_VERSION=""
 if [[ -z "$GO_VERSION" ]]; then
     exit 0
 fi
 
 # Get compiler version (format: "compile version go1.X.Y")
-COMPILE_VERSION=$("$(go env GOTOOLDIR)/compile" -V 2>/dev/null | awk '{print $3}')
+COMPILE_VERSION=$("$(go env GOTOOLDIR)/compile" -V 2>/dev/null | awk '{print $3}') || COMPILE_VERSION=""
 if [[ -z "$COMPILE_VERSION" ]]; then
     exit 0
 fi

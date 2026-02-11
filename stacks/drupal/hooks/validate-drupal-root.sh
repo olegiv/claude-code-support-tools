@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Validates that drush/phpunit commands run from the Drupal root directory
 # Prevents "Drupal not found" errors when running from wrong directory
 
@@ -6,7 +7,7 @@
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate drush and phpunit commands
 if [[ "$COMMAND" != *drush* ]] && [[ "$COMMAND" != *phpunit* ]]; then

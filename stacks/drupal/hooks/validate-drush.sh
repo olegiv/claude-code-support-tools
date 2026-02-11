@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Validates that drush is available before running drush commands
 # Prevents confusing "command not found" errors
 
@@ -6,7 +7,7 @@
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate actual drush command invocations (not substrings like "drush/drush")
 if ! echo "$COMMAND" | grep -qE '(^|[;&|[:space:]])(\.\/)?vendor/bin/drush\b|(^|[;&|[:space:]])drush\b'; then

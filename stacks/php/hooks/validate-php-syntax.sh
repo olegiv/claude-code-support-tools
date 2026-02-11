@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 # Validates PHP syntax before running php commands
 # Catches parse errors early before execution
 
@@ -6,7 +7,7 @@
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate direct php file execution (php script.php)
 if [[ "$COMMAND" != php\ * ]]; then
@@ -14,7 +15,7 @@ if [[ "$COMMAND" != php\ * ]]; then
 fi
 
 # Extract the first .php file from the command (handles flags like php -d ... script.php)
-PHP_FILE=$(echo "$COMMAND" | grep -oE '\S+\.php' | head -1)
+PHP_FILE=$(echo "$COMMAND" | grep -oE '\S+\.php' | head -1) || PHP_FILE=""
 
 # Skip if no .php file found
 if [[ -z "$PHP_FILE" ]]; then
@@ -27,8 +28,7 @@ if [[ ! -f "$PHP_FILE" ]]; then
 fi
 
 # Run syntax check
-SYNTAX_CHECK=$(php -l "$PHP_FILE" 2>&1)
-if [[ $? -ne 0 ]]; then
+if ! SYNTAX_CHECK=$(php -l "$PHP_FILE" 2>&1); then
     echo "BLOCKED: PHP syntax error detected in $PHP_FILE" >&2
     echo "$SYNTAX_CHECK" >&2
     echo "" >&2

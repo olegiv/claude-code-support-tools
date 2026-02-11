@@ -32,7 +32,8 @@ Revert Drupal features: $ARGUMENTS
    ```bash
    # Unquoted: drush fr needs separate arguments per module
    # Safe because for-loop validation above ensures ^[a-zA-Z0-9_-]+$ per word
-   ./vendor/bin/drush fr $ARGUMENTS -y
+   # -y before -- so drush recognizes it as an option; module names after -- are positional only
+   ./vendor/bin/drush fr -y -- $ARGUMENTS
    ```
 
 4. Clear caches after revert:

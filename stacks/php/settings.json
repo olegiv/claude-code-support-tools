@@ -12,7 +12,7 @@
           {
             "type": "command",
             "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-composer-lock.sh",
-            "timeout": 5
+            "timeout": 10
           }
         ]
       }
