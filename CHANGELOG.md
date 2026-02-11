@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] - 2026-02-11
+
+### Added
+
+#### Kotlin/Android Stack
+- Kotlin/Android stack with 3 agents (android-quality-auditor,
+  kotlin-refactorer, compose-developer), 5 commands (code-quality,
+  lint, detekt, clean, test-instrumented), and Detekt template
+- UnusedImports rule for Detekt configuration
+- Backtick-quoted function name check for Android tests
+- Check for assertions duplicating while loop conditions
+
+#### Swift/Xcode Stack
+- Swift/Xcode stack with simulator validation hook (iPhone 17 Pro),
+  iOS quality auditor agent, and code-quality command
+
+#### PHP Stack
+- PHP stack with 3 agents (composer-manager, security-reviewer,
+  php-refactorer), 3 commands (phpstan, update-deps, security-scan),
+  2 hooks (validate-php-syntax, validate-composer-lock), and
+  security-review skill
+
+#### Drupal Stack
+- Drupal stack with 7 agents, 23 commands, 2 hooks, 8 skills,
+  and 2 templates (phpunit.xml.dist, phpstan.neon)
+
+#### Go Stack Enhancements
+- Nilaway nil safety analysis to code quality checks
+- Dupl duplicate code detection (mandatory in auditor agent)
+- Duplicate string literal detection
+- Redundant COALESCE detection
+- Resource leak detection
+- Unused type parameter check
+- Toolchain and test validation hooks
+- Fly.io deployment command with Docker prerequisite check
+- gopls LSP plugin support
+- Optional code quality parameter in commit-prepare
+- golangci-lint migration for code-quality tooling
+
+#### Global Configuration
+- Pre-commit hook to block unsolicited automated commits
+- Chrome extension testing rules
+- Context window usage indicator in status line
+- Update-submodule command for shared tools
+
+### Changed
+
+- Rename `lang/` directory to `stacks/` for broader scope
+- Change license from MIT to GNU GPL v3
+- Improve commit approval workflow documentation
+- Bump anthropics/claude-code-action from 1.0.27 to 1.0.46
+- Bump actions/checkout from 6.0.1 to 6.0.2
+
+### Fixed
+
+- Fix Go toolchain validation and remove spinnerVerbs
+- Fix drush hook substring matching and PostgreSQL-only SQL handling
+- Fix SQL injection and command injection in Drupal commands and
+  security audit
+- Harden input validation across all stacks (jq migration, expanded
+  metacharacter blocklists)
+- Replace hardcoded absolute paths with relative paths
+
 ## [0.1.0] - 2025-12-22
 
 ### Added
@@ -64,5 +127,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened GitHub Actions against prompt injection
 - Pinned GitHub Actions to commit SHAs
 
+[0.2.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/olegiv/claude-code-support-tools/releases/tag/v0.0.0
