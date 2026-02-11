@@ -88,6 +88,16 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `commands/logs.md` - View watchdog logs
     - `commands/module-status.md` - Module status information
     - `commands/test-run.md` - Run PHPUnit tests
+    - `commands/content-audit.md` - Find orphaned, unpublished, or stale content
+    - `commands/cron-status.md` - Cron job and scheduled task status
+    - `commands/deploy-check.md` - Pre-deployment readiness checklist
+    - `commands/maintenance.md` - Toggle maintenance mode
+    - `commands/queue-status.md` - Queue items and workers status
+    - `commands/scaffold.md` - Generate Drupal boilerplate code
+    - `commands/test-coverage.md` - Check test coverage for modules
+    - `commands/test-create.md` - Generate PHPUnit tests for classes or modules
+    - `commands/translate-check.md` - Translation status and coverage
+    - `commands/user-info.md` - User details and roles lookup
     - `skills/api-development/` - REST/JSON:API development skill
     - `skills/config-management/` - Features workflow, config splits, deployment
     - `skills/database-operations/` - PostgreSQL backup/restore operations

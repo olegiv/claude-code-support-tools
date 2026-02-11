@@ -13,6 +13,10 @@ Check and update dependencies: $ARGUMENTS
        echo "ERROR: Input too long (max 128 characters)"
        exit 1
      fi
+     if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+       echo "ERROR: Path traversal not allowed"
+       exit 1
+     fi
      if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
        echo "ERROR: Invalid package name. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
        exit 1
@@ -32,8 +36,8 @@ Check and update dependencies: $ARGUMENTS
 
 4. If a package name is provided, show details:
    ```bash
-   composer show "$ARGUMENTS"
-   composer why "$ARGUMENTS"
+   composer show -- "$ARGUMENTS"
+   composer why -- "$ARGUMENTS"
    ```
 
 5. Report:

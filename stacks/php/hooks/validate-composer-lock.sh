@@ -19,7 +19,7 @@ if [[ ! -f "composer.json" ]] || [[ ! -f "composer.lock" ]]; then
 fi
 
 # Check if composer.lock is older than composer.json
-if [[ "composer.json" -nt "composer.lock" ]]; then
+if [[ composer.json -nt composer.lock ]]; then
     echo "WARNING: composer.lock may be out of sync with composer.json" >&2
     echo "Consider running 'composer update' instead of 'composer install'" >&2
     echo "" >&2

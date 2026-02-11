@@ -15,6 +15,10 @@ Path to analyze: $ARGUMENTS (optional)
        echo "ERROR: Input too long (max 256 characters)"
        exit 1
      fi
+     if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+       echo "ERROR: Path traversal not allowed"
+       exit 1
+     fi
      if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./ -]+$'; then
        echo "ERROR: Invalid path. Only alphanumeric, dots, slashes, hyphens, underscores, and spaces allowed."
        exit 1
@@ -24,7 +28,7 @@ Path to analyze: $ARGUMENTS (optional)
 
 2. If path provided:
    ```bash
-   ./vendor/bin/phpstan analyse "$ARGUMENTS"
+   ./vendor/bin/phpstan analyse -- "$ARGUMENTS"
    ```
 
 3. If no path specified, run default analysis:

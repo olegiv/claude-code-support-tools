@@ -64,6 +64,11 @@ if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
   echo "ERROR: Arguments contain forbidden shell characters"
   exit 1
 fi
+# Block quote characters (prevent string escaping attacks)
+if echo "$ARGUMENTS" | grep -qF '"' || echo "$ARGUMENTS" | grep -qF "'"; then
+  echo "ERROR: Arguments contain forbidden quote characters"
+  exit 1
+fi
 # Block newlines
 if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
   echo "ERROR: Arguments must be single-line"
