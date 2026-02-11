@@ -8,6 +8,26 @@ Generate PHPUnit tests for: $ARGUMENTS
 
 ## Instructions
 
+### 0. Validate Input
+```bash
+if [ ${#ARGUMENTS} -gt 256 ]; then
+  echo "ERROR: Input too long (max 256 characters)"
+  exit 1
+fi
+
+# Block path traversal
+if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+  echo "ERROR: Path traversal not allowed"
+  exit 1
+fi
+
+# Validate: module name (alphanumeric/underscore) or file path (safe chars)
+if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
+  echo "ERROR: Invalid input. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
+  exit 1
+fi
+```
+
 1. **Parse the argument**:
    - If a file path is provided (contains `/` or `.php`), create tests for that specific class
    - If a module name is provided, list testable classes and ask which to test

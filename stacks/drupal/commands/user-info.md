@@ -27,7 +27,7 @@ if [[ "$INPUT" =~ ^[0-9]+$ ]]; then
   : # numeric uid - safe
 elif [[ "$INPUT" =~ @ ]]; then
   # email - allow standard email characters
-  if ! echo "$INPUT" | grep -qE '^[a-zA-Z0-9._%+@-]+$'; then
+  if ! echo "$INPUT" | grep -qE '^[a-zA-Z0-9._+@-]+$'; then
     echo "ERROR: Invalid email format"
     exit 1
   fi

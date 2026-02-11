@@ -14,6 +14,20 @@ Toggle Drupal maintenance mode on or off.
 
 ## Instructions
 
+### 0. Validate Input
+```bash
+if [ -n "${ARGUMENTS:-}" ]; then
+  if [ ${#ARGUMENTS} -gt 10 ]; then
+    echo "ERROR: Input too long (max 10 characters)"
+    exit 1
+  fi
+  if ! echo "$ARGUMENTS" | grep -qE '^(on|off)$'; then
+    echo "ERROR: Invalid argument '$ARGUMENTS'. Use 'on' or 'off'"
+    exit 1
+  fi
+fi
+```
+
 ### 1. Enable Maintenance Mode
 
 If "on" is specified:

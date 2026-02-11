@@ -47,17 +47,19 @@ if [ ${#QUERY} -gt 2000 ]; then
   exit 1
 fi
 
-# Strip SQL comments and string literals before validation
-CLEAN_QUERY=$(echo "$QUERY" | sed 's/--.*//g' | sed 's|/\*.*\*/||g' | sed "s/'[^']*'//g" | tr '\n' ' ')
-
-# Check for stacked queries (semicolons)
-if echo "$CLEAN_QUERY" | grep -qE ";"; then
-  echo "ERROR: Multiple statements not allowed"
+# Block semicolons on RAW input to prevent all stacked queries
+# regardless of comment/string escaping tricks
+if echo "$QUERY" | grep -qE ";"; then
+  echo "ERROR: Semicolons not allowed (prevents multiple statements)"
   exit 1
 fi
 
-# Check for dangerous keywords (DML/DDL)
-if echo "$CLEAN_QUERY" | grep -iqE "\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|EXECUTE|CALL|LOAD|OUTFILE|INFILE|DUMPFILE|REPLACE|MERGE|HANDLER)\b"; then
+# Flatten to single line FIRST, then strip strings (handle doubled
+# quotes before removal), then strip comments
+CLEAN_QUERY=$(echo "$QUERY" | tr '\n' ' ' | sed "s/''//g" | sed "s/'[^']*'//g" | sed 's/--.*//g' | sed -E "s|/\*([^*]|\*[^/])*\*/||g")
+
+# Check for dangerous keywords (DML/DDL/UNION)
+if echo "$CLEAN_QUERY" | grep -iqE "\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|EXECUTE|CALL|LOAD|OUTFILE|INFILE|DUMPFILE|REPLACE|MERGE|HANDLER|UNION)\b"; then
   echo "ERROR: Only SELECT queries are allowed"
   exit 1
 fi
@@ -65,12 +67,6 @@ fi
 # Check for locking operations
 if echo "$CLEAN_QUERY" | grep -iqE "\b(FOR\s+UPDATE|LOCK\s+TABLES)\b"; then
   echo "ERROR: Query contains forbidden locking operations"
-  exit 1
-fi
-
-# Check for stacked queries (semicolon followed by DML/DDL)
-if echo "$CLEAN_QUERY" | grep -iqE ";\s*(UPDATE|DELETE|INSERT|DROP|ALTER|CREATE|TRUNCATE)"; then
-  echo "ERROR: Attempted SQL injection detected"
   exit 1
 fi
 

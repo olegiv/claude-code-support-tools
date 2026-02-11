@@ -30,7 +30,9 @@ Revert Drupal features: $ARGUMENTS
 
 3. Revert the specified feature(s):
    ```bash
-   ./vendor/bin/drush fr "$ARGUMENTS" -y
+   # Unquoted: drush fr needs separate arguments per module
+   # Safe because for-loop validation above ensures ^[a-zA-Z0-9_-]+$ per word
+   ./vendor/bin/drush fr $ARGUMENTS -y
    ```
 
 4. Clear caches after revert:

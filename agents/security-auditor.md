@@ -184,6 +184,13 @@ Claude Code command files (`.md`) contain bash code blocks that are executed wit
 - SQL keyword validation must strip string literals before checking to prevent false positives (e.g., `'Please CALL me'` should not trigger CALL keyword block)
 - Avoid unquoted variable word-splitting anti-patterns; use loops or arrays for multi-value iteration instead
 - `name` field is for agent files only; command files use `description`, `allowed-tools`, `argument-hint` in frontmatter
+- SQL validation must flatten multi-line input (`tr '\n' ' '`) BEFORE stripping comments/strings to handle multi-line bypass attacks
+- SQL string literal stripping must handle doubled-quote escaping (`''`) before `'[^']*'` removal
+- Semicolons in SQL validators should be checked on RAW input before any stripping, not just on cleaned input
+- UNION must be blocked in SELECT-only query validators to prevent data exfiltration
+- Metacharacter blocklists must include: glob (`*?[]`), redirects (`<>`), escape (`\`), comment (`#`), history (`!`), tilde (`~`), and newlines
+- When unquoted expansion is intentional (word splitting for CLI tools), ALL shell-special characters must be blocked, not just common ones
+- Path traversal checks should be explicit (`..` and `/` rejection) in addition to regex validation as defense-in-depth
 
 ## Interaction Guidelines
 

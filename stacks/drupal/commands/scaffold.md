@@ -28,6 +28,14 @@ SCAFFOLD_TYPE=$(echo "$ARGUMENTS" | awk '{print $1}')
 COMPONENT_NAME=$(echo "$ARGUMENTS" | awk '{print $2}')
 MODULE_NAME=$(echo "$ARGUMENTS" | awk '{print $3}')
 
+# Explicit path traversal check (defense-in-depth)
+for VAR_CHECK in "$SCAFFOLD_TYPE" "$COMPONENT_NAME" "$MODULE_NAME"; do
+  if [ -n "$VAR_CHECK" ] && echo "$VAR_CHECK" | grep -qE '(\.\.|/)'; then
+    echo "ERROR: Path traversal characters not allowed"
+    exit 1
+  fi
+done
+
 # Validate type
 if ! echo "$SCAFFOLD_TYPE" | grep -qE '^(controller|service|form|block|plugin|entity|event|subscriber)$'; then
   echo "ERROR: Invalid type '$SCAFFOLD_TYPE'. Use: controller, service, form, block, plugin, entity, event, subscriber"

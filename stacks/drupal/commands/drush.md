@@ -24,9 +24,14 @@ Execute drush command: $ARGUMENTS
      exit 1
    fi
 
-   # Block shell metacharacters to prevent command injection
-   if echo "$ARGUMENTS" | grep -qE '[;|&`$(){}]'; then
+   # Block shell metacharacters (glob, redirect, escape, comment, history)
+   if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
      echo "ERROR: Arguments contain forbidden shell characters"
+     exit 1
+   fi
+   # Block newlines (could introduce new commands)
+   if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
+     echo "ERROR: Arguments must be single-line"
      exit 1
    fi
    ```

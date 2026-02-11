@@ -60,8 +60,13 @@ Report app status, machine state, and health check results.
 Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
 ```bash
 # Validate arguments contain only safe characters
-if echo "$ARGUMENTS" | grep -qE '[;|&`$(){}!]'; then
+if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
   echo "ERROR: Arguments contain forbidden shell characters"
+  exit 1
+fi
+# Block newlines
+if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
+  echo "ERROR: Arguments must be single-line"
   exit 1
 fi
 ./.fly/scripts/deploy.sh "$ARGUMENTS"

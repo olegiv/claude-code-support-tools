@@ -8,6 +8,12 @@ View Drupal watchdog logs: $ARGUMENTS
 
 1. Validate arguments:
    ```bash
+   # Input length check
+   if [ ${#ARGUMENTS} -gt 100 ]; then
+     echo "ERROR: Input too long (max 100 characters)"
+     exit 1
+   fi
+
    # Parse severity and count from $ARGUMENTS
    SEVERITY=$(echo "$ARGUMENTS" | awk '{print $1}')
    COUNT=$(echo "$ARGUMENTS" | awk '{print $2}')
