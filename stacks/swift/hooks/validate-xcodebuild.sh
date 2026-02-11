@@ -1,11 +1,12 @@
 #!/bin/bash
+set -euo pipefail
 # Validates xcodebuild commands use iPhone 17 Pro simulator
 
 # Read JSON input from stdin
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | python3 -c "import sys, json; data=json.load(sys.stdin); print(data.get('tool_input', {}).get('command', ''))" 2>/dev/null)
+COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate xcodebuild commands
 if [[ "$COMMAND" != *"xcodebuild"* ]]; then

@@ -1,0 +1,15 @@
+includes:
+  - vendor/mglaman/phpstan-drupal/extension.neon
+  - vendor/phpstan/phpstan-deprecation-rules/rules.neon
+
+parameters:
+  level: 2
+  paths:
+    - modules/custom
+  excludePaths:
+    - */tests/*
+    - */node_modules/*
+  drupal:
+    drupal_root: .
+  ignoreErrors:
+    - '#Drupal calls should be avoided in classes#'

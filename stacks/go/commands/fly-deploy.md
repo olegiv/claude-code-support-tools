@@ -57,9 +57,24 @@ Report app status, machine state, and health check results.
 
 **If a deploy script exists** (`.fly/scripts/deploy.sh`):
 
-Use the project's deploy script with any flags from `$ARGUMENTS`:
+Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
 ```bash
-./.fly/scripts/deploy.sh $ARGUMENTS
+# Validate arguments contain only safe characters
+if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
+  echo "ERROR: Arguments contain forbidden shell characters"
+  exit 1
+fi
+# Block quote characters (prevent string escaping attacks)
+if echo "$ARGUMENTS" | grep -qF '"' || echo "$ARGUMENTS" | grep -qF "'"; then
+  echo "ERROR: Arguments contain forbidden quote characters"
+  exit 1
+fi
+# Block newlines
+if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
+  echo "ERROR: Arguments must be single-line"
+  exit 1
+fi
+./.fly/scripts/deploy.sh "$ARGUMENTS"
 ```
 
 **If no deploy script exists**, deploy directly:

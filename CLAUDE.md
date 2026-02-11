@@ -53,6 +53,61 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `commands/clean.md` - Clean build artifacts command
     - `commands/test-instrumented.md` - Run instrumented tests command
     - `templates/detekt.yml` - Detekt configuration template for Android/Compose projects
+  - `php/` - PHP project tools
+    - `settings.json` - Hook configuration for PHP command validation
+    - `hooks/validate-php-syntax.sh` - Validates PHP syntax before execution
+    - `hooks/validate-composer-lock.sh` - Ensures composer.lock stays in sync with composer.json
+    - `agents/composer-manager.md` - Composer dependency management agent
+    - `agents/security-reviewer.md` - PHP security scanning and code review agent
+    - `agents/php-refactorer.md` - PHP refactoring and modern best practices agent
+    - `commands/phpstan.md` - Run PHPStan static analysis command
+    - `commands/update-deps.md` - Update Composer dependencies command
+    - `commands/security-scan.md` - PHP security scanning command
+    - `skills/security-review/SKILL.md` - PHP security review skill
+  - `drupal/` - Drupal project tools
+    - `settings.json` - Hook configuration for Drupal command validation
+    - `hooks/validate-drush.sh` - Validates drush command execution context
+    - `hooks/validate-drupal-root.sh` - Ensures commands run from Drupal root directory
+    - `agents/drupal-debugger.md` - Debug errors, test failures, configuration issues
+    - `agents/drush-helper.md` - Drush commands and system administration
+    - `agents/config-reviewer.md` - Configuration safety and deployment readiness
+    - `agents/performance-tuner.md` - Redis, caching, database optimization
+    - `agents/test-creator.md` - Generate PHPUnit tests for Drupal modules
+    - `agents/api-developer.md` - REST/JSON:API development, external integrations
+    - `agents/migration-expert.md` - Content migrations, CRM sync, data transformations
+    - `commands/cache-clear.md` - Clear all Drupal caches
+    - `commands/config-diff.md` - Show configuration differences (database vs code)
+    - `commands/config-export.md` - Export Drupal configuration
+    - `commands/config-import.md` - Import Drupal configuration
+    - `commands/backup-db.md` - Create database backup
+    - `commands/db-query.md` - Execute safe SELECT queries
+    - `commands/db-update.md` - Run database updates
+    - `commands/drush.md` - Execute drush commands
+    - `commands/feature-revert.md` - Revert feature configuration
+    - `commands/health-check.md` - Site health: DB, Redis, Solr, cron
+    - `commands/logs.md` - View watchdog logs
+    - `commands/module-status.md` - Module status information
+    - `commands/test-run.md` - Run PHPUnit tests
+    - `commands/content-audit.md` - Find orphaned, unpublished, or stale content
+    - `commands/cron-status.md` - Cron job and scheduled task status
+    - `commands/deploy-check.md` - Pre-deployment readiness checklist
+    - `commands/maintenance.md` - Toggle maintenance mode
+    - `commands/queue-status.md` - Queue items and workers status
+    - `commands/scaffold.md` - Generate Drupal boilerplate code
+    - `commands/test-coverage.md` - Check test coverage for modules
+    - `commands/test-create.md` - Generate PHPUnit tests for classes or modules
+    - `commands/translate-check.md` - Translation status and coverage
+    - `commands/user-info.md` - User details and roles lookup
+    - `skills/api-development/` - REST/JSON:API development skill
+    - `skills/config-management/` - Features workflow, config splits, deployment
+    - `skills/database-operations/` - PostgreSQL backup/restore operations
+    - `skills/drupal-drush/` - Comprehensive Drush command reference
+    - `skills/drupal-hooks/` - Hook and event subscriber patterns
+    - `skills/drupal-migrations/` - Migration YAMLs, source/process plugins
+    - `skills/drupal-testing/` - PHPUnit tests, mocking, assertions
+    - `skills/performance-optimization/` - Redis, caching, PostgreSQL tuning
+    - `templates/phpunit.xml.dist` - Standard PHPUnit configuration for custom module testing
+    - `templates/phpstan.neon` - Base PHPStan configuration for Drupal projects
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode

@@ -110,6 +110,32 @@ Located in `stacks/` directory - copy these to your project's `.claude/` directo
 - `/code-quality`, `/lint`, `/detekt`, `/clean`, `/test-instrumented` commands
 - `templates/detekt.yml` - Ready-to-use Detekt configuration for Android/Compose projects
 
+**PHP** (`stacks/php/`)
+- Pre-configured agents, commands, and hooks for PHP development
+- `composer-manager` agent - Dependency management with Composer
+- `security-reviewer` agent - PHP security scanning and code review
+- `php-refactorer` agent - PHP refactoring and modern best practices
+- `/phpstan`, `/update-deps`, `/security-scan` commands
+- `skills/security-review` - Security review skill for PHP projects
+- `hooks/validate-php-syntax.sh` - Validates PHP syntax before execution
+- `hooks/validate-composer-lock.sh` - Ensures composer.lock stays in sync
+
+**Drupal** (`stacks/drupal/`)
+- Pre-configured agents, commands, skills, hooks, and templates for Drupal development
+- `drupal-debugger` agent - Debug errors, test failures, configuration issues
+- `drush-helper` agent - Drush commands and system administration
+- `config-reviewer` agent - Configuration safety and deployment readiness
+- `performance-tuner` agent - Redis, caching, database optimization
+- `test-creator` agent - Generate PHPUnit tests for modules
+- `api-developer` agent - REST/JSON:API development, external integrations
+- `migration-expert` agent - Content migrations, CRM sync, data transformations
+- 23 commands: `/backup-db`, `/cache-clear`, `/config-diff`, `/config-export`, `/config-import`, `/content-audit`, `/cron-status`, `/db-query`, `/db-update`, `/deploy-check`, `/drush`, `/feature-revert`, `/health-check`, `/logs`, `/maintenance`, `/module-status`, `/queue-status`, `/scaffold`, `/test-coverage`, `/test-create`, `/test-run`, `/translate-check`, `/user-info`
+- 8 skills: api-development, config-management, database-operations, drupal-drush, drupal-hooks, drupal-migrations, drupal-testing, performance-optimization
+- `hooks/validate-drush.sh` - Validates drush command execution context
+- `hooks/validate-drupal-root.sh` - Ensures commands run from Drupal root
+- `templates/phpunit.xml.dist` - Standard PHPUnit configuration for custom module testing
+- `templates/phpstan.neon` - Base PHPStan configuration for Drupal projects
+
 ### 🔒 Security Documentation
 
 **Security Policy** ([SECURITY.md](SECURITY.md))
@@ -221,6 +247,27 @@ chmod +x /path/to/your/project/.claude/hooks/validate-xcodebuild.sh
 # For Kotlin/Android projects
 cp -r stacks/kotlin/agents /path/to/your/project/.claude/
 cp -r stacks/kotlin/commands /path/to/your/project/.claude/
+
+# For PHP projects
+cp stacks/php/settings.json /path/to/your/project/.claude/
+mkdir -p /path/to/your/project/.claude/hooks
+cp stacks/php/hooks/*.sh /path/to/your/project/.claude/hooks/
+chmod +x /path/to/your/project/.claude/hooks/*.sh
+# Optional: Copy agents, commands, and skills
+cp -r stacks/php/agents /path/to/your/project/.claude/
+cp -r stacks/php/commands /path/to/your/project/.claude/
+cp -r stacks/php/skills /path/to/your/project/.claude/
+
+# For Drupal projects
+cp stacks/drupal/settings.json /path/to/your/project/.claude/
+mkdir -p /path/to/your/project/.claude/hooks
+cp stacks/drupal/hooks/*.sh /path/to/your/project/.claude/hooks/
+chmod +x /path/to/your/project/.claude/hooks/*.sh
+# Optional: Copy agents, commands, skills, and templates
+cp -r stacks/drupal/agents /path/to/your/project/.claude/
+cp -r stacks/drupal/commands /path/to/your/project/.claude/
+cp -r stacks/drupal/skills /path/to/your/project/.claude/
+cp -r stacks/drupal/templates /path/to/your/project/.claude/
 ```
 
 ### Setting Up GitHub Actions
@@ -354,19 +401,74 @@ Claude will respond and complete the task with full repository access.
 │   │   ├── settings.json          # Hook configuration for xcodebuild
 │   │   └── hooks/
 │   │       └── validate-xcodebuild.sh  # Simulator validation hook
-│   └── kotlin/                    # Kotlin/Android project tools
+│   ├── kotlin/                    # Kotlin/Android project tools
+│   │   ├── agents/
+│   │   │   ├── android-quality-auditor.md  # Android code quality auditor
+│   │   │   ├── kotlin-refactorer.md        # Kotlin refactoring agent
+│   │   │   └── compose-developer.md        # Jetpack Compose development
+│   │   ├── commands/
+│   │   │   ├── code-quality.md    # Run quality checks
+│   │   │   ├── lint.md            # Run Android Lint
+│   │   │   ├── detekt.md          # Run Detekt static analysis
+│   │   │   ├── clean.md           # Clean build artifacts
+│   │   │   └── test-instrumented.md  # Run instrumented tests
+│   │   └── templates/
+│   │       └── detekt.yml         # Detekt config for Android/Compose
+│   ├── php/                       # PHP project tools
+│   │   ├── settings.json          # Hook configuration for PHP commands
+│   │   ├── hooks/
+│   │   │   ├── validate-php-syntax.sh     # PHP syntax validation
+│   │   │   └── validate-composer-lock.sh  # Composer lock sync check
+│   │   ├── agents/
+│   │   │   ├── composer-manager.md        # Composer dependency management
+│   │   │   ├── security-reviewer.md       # PHP security scanning
+│   │   │   └── php-refactorer.md          # PHP refactoring agent
+│   │   ├── commands/
+│   │   │   ├── phpstan.md         # Run PHPStan static analysis
+│   │   │   ├── update-deps.md     # Update Composer dependencies
+│   │   │   └── security-scan.md   # PHP security scanning
+│   │   └── skills/
+│   │       └── security-review/   # PHP security review skill
+│   │           └── SKILL.md
+│   └── drupal/                    # Drupal project tools
+│       ├── settings.json          # Hook configuration for Drupal commands
+│       ├── hooks/
+│       │   ├── validate-drush.sh          # Drush command validation
+│       │   └── validate-drupal-root.sh    # Drupal root directory check
 │       ├── agents/
-│       │   ├── android-quality-auditor.md  # Android code quality auditor
-│       │   ├── kotlin-refactorer.md        # Kotlin refactoring agent
-│       │   └── compose-developer.md        # Jetpack Compose development
+│       │   ├── drupal-debugger.md         # Debug errors and config issues
+│       │   ├── drush-helper.md            # Drush commands and sysadmin
+│       │   ├── config-reviewer.md         # Configuration safety review
+│       │   ├── performance-tuner.md       # Redis, caching, DB optimization
+│       │   ├── test-creator.md            # PHPUnit test generation
+│       │   ├── api-developer.md           # REST/JSON:API development
+│       │   └── migration-expert.md        # Content migrations and data sync
 │       ├── commands/
-│       │   ├── code-quality.md    # Run quality checks
-│       │   ├── lint.md            # Run Android Lint
-│       │   ├── detekt.md          # Run Detekt static analysis
-│       │   ├── clean.md           # Clean build artifacts
-│       │   └── test-instrumented.md  # Run instrumented tests
+│       │   ├── cache-clear.md     # Clear all caches
+│       │   ├── config-diff.md     # Config differences
+│       │   ├── config-export.md   # Export Drupal configuration
+│       │   ├── config-import.md   # Import Drupal configuration
+│       │   ├── backup-db.md       # Create database backup
+│       │   ├── db-query.md        # Safe SELECT queries
+│       │   ├── db-update.md       # Run database updates
+│       │   ├── drush.md           # Execute drush command
+│       │   ├── feature-revert.md  # Revert feature configuration
+│       │   ├── health-check.md    # Site health check
+│       │   ├── logs.md            # View watchdog logs
+│       │   ├── module-status.md   # Module status information
+│       │   └── test-run.md        # Run PHPUnit tests
+│       ├── skills/
+│       │   ├── api-development/   # REST/JSON:API skill
+│       │   ├── config-management/ # Features workflow and config splits
+│       │   ├── database-operations/ # PostgreSQL backup/restore
+│       │   ├── drupal-drush/      # Comprehensive Drush reference
+│       │   ├── drupal-hooks/      # Hook and event subscriber patterns
+│       │   ├── drupal-migrations/ # Migration YAMLs and plugins
+│       │   ├── drupal-testing/    # PHPUnit tests and mocking
+│       │   └── performance-optimization/ # Redis, caching, tuning
 │       └── templates/
-│           └── detekt.yml         # Detekt config for Android/Compose
+│           ├── phpunit.xml.dist   # PHPUnit config for custom modules
+│           └── phpstan.neon       # PHPStan config for Drupal projects
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   ├── settings.json

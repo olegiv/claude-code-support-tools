@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         bootstrap="core/tests/bootstrap.php"
+         colors="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         beStrictAboutOutputDuringTests="true">
+  <php>
+    <ini name="error_reporting" value="32767"/>
+    <ini name="memory_limit" value="-1"/>
+    <env name="SIMPLETEST_BASE_URL" value="http://localhost"/>
+    <!-- Database connection string for kernel/functional tests, e.g. "pgsql://user:pass@localhost/drupal" or "mysql://user:pass@localhost/drupal" -->
+    <env name="SIMPLETEST_DB" value="pgsql://drupal:drupal@localhost/drupal_test"/>
+    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="sites/simpletest/browser_output"/>
+  </php>
+  <testsuites>
+    <testsuite name="unit">
+      <directory>./modules/custom/*/tests/src/Unit</directory>
+    </testsuite>
+    <testsuite name="kernel">
+      <directory>./modules/custom/*/tests/src/Kernel</directory>
+    </testsuite>
+    <testsuite name="functional">
+      <directory>./modules/custom/*/tests/src/Functional</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>
