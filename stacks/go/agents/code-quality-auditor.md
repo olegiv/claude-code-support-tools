@@ -51,6 +51,7 @@ You are an expert code quality auditor for a Go project. Your role is to identif
 17. `<script>` tags without nonce in `.templ`/`.html` (blocking CSP issue)
 18. Inline HTML event handlers (`onclick`, `onchange`, `onsubmit`, etc.) in `.templ`/`.html` (blocking CSP issue)
 19. Go-generated script HTML not passed through nonce injection (`util.AddNonceToScriptTags(...)` or equivalent)
+20. High-risk DOM XSS sink flows: untrusted/dynamic input to `innerHTML` and navigation sinks (`window.location.href`, `location.assign`, `location.replace`)
 
 ## Audit Workflow
 
@@ -150,6 +151,52 @@ Remediation patterns:
 - If `.templ` files changed: run `make templ`.
 
 If any CSP finding is present, quality status is **FAILED (blocking)** until fixed.
+
+### BLOCKING CHECK: DOM XSS sink safety (high-risk only)
+
+Run these checks exactly:
+
+**Potential sink patterns (JS/template scripts):**
+```bash
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "innerHTML\\s*=|window\\.location\\.href\\s*=|location\\.assign\\(|location\\.replace\\("
+```
+
+**Potential untrusted source patterns (DOM/network/location):**
+```bash
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "dataset\\.|getAttribute\\(|responseText|location\\.search|location\\.hash|document\\.cookie"
+```
+
+**API-derived fields used in JS render paths (review manually):**
+```bash
+rg -n --glob '*.go' --glob '*.templ' "filename|filepath|thumbnail|response\\.json\\(|json:\\\"filename\\\"|json:\\\"filepath\\\"|json:\\\"thumbnail\\\""
+```
+
+Decision rules:
+- **BLOCKING (high-risk):** untrusted/dynamic input is written to `innerHTML`, or used in navigation sinks, without strict sanitization/validation.
+- **WARNING/INFO only:** static HTML assignment, or flows with clear strict validation/sanitization.
+
+Safe-pattern criteria for URL navigation:
+- Parse with `new URL(raw, window.location.origin)`.
+- Allowlist protocol (`http:` / `https:`).
+- Enforce same-origin (`parsed.origin === window.location.origin`).
+- Navigate using normalized internal target (`pathname + search + hash`).
+
+Examples:
+```javascript
+// BAD (blocking): dynamic message interpreted as HTML
+error.innerHTML = '<svg ...></svg>' + message;
+
+// BAD (blocking): dataset value used directly as redirect target
+window.location.href = dataset.redirectUrl;
+
+// GOOD (safe): validated same-origin fallback URL
+window.location.href = safeHistoryFallbackURL(fallbackURL);
+```
+
+Remediation guidance:
+- Prefer `textContent` and DOM node creation over string HTML templating for untrusted values.
+- Avoid interpolating API/DOM values into `innerHTML` strings.
+- Validate redirect URLs before navigation using strict protocol + origin checks.
 
 ### 5. Manual Checks
 
@@ -819,6 +866,40 @@ If `.templ` files were modified during fixes, run:
 make templ
 ```
 
+### DOM XSS Sink Safety (BLOCKING-HIGH-RISK)
+
+```javascript
+// BAD: dynamic value interpreted as HTML
+error.innerHTML = '<svg ...></svg>' + message;
+
+// GOOD: build trusted SVG node + untrusted text via textContent
+const icon = document.createElement('span');
+icon.className = 'form-error-icon';
+icon.innerHTML = '<svg ...></svg>'; // static trusted constant only
+const text = document.createElement('span');
+text.textContent = message;
+error.replaceChildren(icon, text);
+```
+
+```javascript
+// BAD: unvalidated redirect target from DOM
+window.location.href = dataset.redirectUrl;
+
+// GOOD: strict same-origin URL validation before redirect
+function safeRedirectTarget(raw) {
+  if (typeof raw !== 'string' || raw.trim() === '') return '/admin';
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    const allowed = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (!allowed || parsed.origin !== window.location.origin) return '/admin';
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return '/admin';
+  }
+}
+window.location.href = safeRedirectTarget(dataset.redirectUrl);
+```
+
 ## Report Format
 
 ```
@@ -865,12 +946,17 @@ By linter:
 - Inline HTML handlers: X issues
 - Go script nonce wiring: X issues
 
+## DOM XSS Sink Safety (BLOCKING-HIGH-RISK)
+- innerHTML with untrusted input: X issues
+- Redirect sink with untrusted URL: X issues
+
 ## Manual Checks
 - Stuttering names: X issues
 - Incorrect doc comments: X issues
 - Unkeyed struct literals: X issues
 - Always true/false: X issues
 - Unused exported constants: X issues
+- High-risk DOM XSS sink flows: X issues
 - Redundant named-type conversion: X issues
 - Redundant struct conversion (type alias): X issues
 - Pointer to local variable (new(expr)):   X issues
@@ -897,7 +983,7 @@ By linter:
 - Total issues: X
 - Fixed: Y
 - Remaining: Z
-- Blocking status: PASS|FAIL (FAIL if any CSP issue remains)
+- Blocking status: PASS|FAIL (FAIL if any CSP issue or high-risk DOM XSS issue remains)
 ```
 
 ## Commands
@@ -931,3 +1017,4 @@ go test ./...
 4. **Test files** - Some linters (dupl, gocyclo) are disabled for test files
 5. **Always run tests** - After making fixes, verify with `go test ./...`
 6. **Never downgrade Go** - Fix toolchain issues by upgrading, not downgrading
+7. **Blocking gates include CSP + high-risk DOM XSS** - The audit fails until both are clean

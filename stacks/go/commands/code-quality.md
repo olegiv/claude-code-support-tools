@@ -33,7 +33,13 @@ Scan the project for code quality issues and warnings.
    - Verify Go-generated script HTML uses nonce injection (`util.AddNonceToScriptTags(...)` or equivalent)
    - Treat all CSP findings as must-fix before quality pass
 
-8. **Semantic Analysis** (manual checks if golangci-lint misses them)
+8. **DOM XSS Sink Safety (HIGH/BLOCKING for high-risk findings)**
+   - Detect untrusted/dynamic input flowing into `innerHTML` sinks
+   - Detect untrusted/dynamic input flowing into navigation sinks (`window.location.href`, `location.assign`, `location.replace`)
+   - Classify only high-confidence unsafe flows as blocking
+   - Keep static HTML writes and clearly sanitized/validated flows as warning/info
+
+9. **Semantic Analysis** (manual checks if golangci-lint misses them)
    - Stuttering names — exported symbols that repeat the package name (`revive/exported` detects this but is suppressed by the `comments` exclusion preset)
    - Incorrect doc comments — comment on exported symbol starts with wrong name (`revive/exported` detects this but is suppressed by the `comments` exclusion preset)
    - Struct initialization without field names (`govet/composites` only catches cross-package types, not anonymous structs or same-package types)
@@ -256,6 +262,52 @@ Remediation patterns:
 - Replace inline HTML handlers with `data-*` attributes + JS listeners
   (delegated listeners in static JS or a nonced inline script).
 - If `.templ` files changed: run `make templ`.
+
+### BLOCKING CHECK: DOM XSS sink safety (high-risk only)
+
+Run these checks exactly:
+
+**Potential sink patterns (JS/template scripts):**
+```bash
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "innerHTML\\s*=|window\\.location\\.href\\s*=|location\\.assign\\(|location\\.replace\\("
+```
+
+**Potential untrusted source patterns (DOM/network/location):**
+```bash
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "dataset\\.|getAttribute\\(|responseText|location\\.search|location\\.hash|document\\.cookie"
+```
+
+**API-derived fields used in JS render paths (review manually):**
+```bash
+rg -n --glob '*.go' --glob '*.templ' "filename|filepath|thumbnail|response\\.json\\(|json:\\\"filename\\\"|json:\\\"filepath\\\"|json:\\\"thumbnail\\\""
+```
+
+Decision rules:
+- **BLOCKING (high-risk):** untrusted/dynamic input is written to `innerHTML`, or used in navigation sinks, without strict sanitization/validation.
+- **WARNING/INFO only:** static HTML assignment, or flows with clear strict validation/sanitization.
+
+Safe-pattern criteria for URL navigation:
+- Parse with `new URL(raw, window.location.origin)`.
+- Allowlist protocol (`http:` / `https:`).
+- Enforce same-origin (`parsed.origin === window.location.origin`).
+- Navigate using normalized internal target (`pathname + search + hash`).
+
+Examples:
+```javascript
+// BAD (blocking): dynamic message interpreted as HTML
+error.innerHTML = '<svg ...></svg>' + message;
+
+// BAD (blocking): dataset value used directly as redirect target
+window.location.href = dataset.redirectUrl;
+
+// GOOD (safe): validated same-origin fallback URL
+window.location.href = safeHistoryFallbackURL(fallbackURL);
+```
+
+Remediation guidance:
+- Prefer `textContent` and DOM node creation over string HTML templating for untrusted values.
+- Avoid interpolating API/DOM values into `innerHTML` strings.
+- Validate redirect URLs before navigation using strict protocol + origin checks.
 
 9. **Check for stuttering names (exported symbols repeating package name):**
 
@@ -526,12 +578,12 @@ Remediation patterns:
 
 21. **Report results:**
    - List all issues found with file:line references
-   - Include rule name for each finding (for CSP use `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`)
-   - Explain why the issue is dangerous (for CSP: breaks nonce-based CSP and can lead to blocked scripts)
+   - Include rule name for each finding (for CSP use `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`; for DOM XSS use `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
+   - Explain why the issue is dangerous (for CSP: breaks nonce-based CSP and can lead to blocked scripts; for DOM XSS: untrusted data is reinterpreted as executable HTML/URL)
    - Provide exact fix pattern for each finding
    - Provide fix suggestions for each issue
    - Summary of total issues by category
-   - If any CSP finding exists, mark the run as **FAILED (blocking)** until fixed
+   - If any CSP finding or high-risk DOM XSS finding exists, mark the run as **FAILED (blocking)** until fixed
 
 ## Expected Output
 
@@ -571,6 +623,10 @@ CSP Template Safety (BLOCKING):
   Inline HTML handlers:       X issues
   Go script nonce wiring:     X issues
 
+DOM XSS Sink Safety (BLOCKING-HIGH-RISK):
+  innerHTML with untrusted input: X issues
+  Redirect sink with untrusted URL: X issues
+
 Semantic Analysis:
   Stuttering names:          X issues
   Incorrect doc comments:    X issues
@@ -586,16 +642,16 @@ Semantic Analysis:
   Resource leaks:               X issues
 
 Total: X issues found
-Blocking: PASS|FAIL (FAIL if CSP findings exist)
+Blocking: PASS|FAIL (FAIL if CSP findings or high-risk DOM XSS findings exist)
 ```
 
 ## If Issues Found
 
 For each issue, provide:
 1. File path and line number
-2. Rule name (e.g., `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`)
+2. Rule name (e.g., `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`, `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
 3. Description of the issue
-4. Why it matters (for CSP: breaks nonce-based CSP and can block script execution)
+4. Why it matters (for CSP: breaks nonce-based CSP and can block script execution; for DOM XSS: untrusted content/URLs can execute attacker-controlled behavior)
 5. How to fix it (exact pattern)
 6. Code example (before/after)
 
@@ -985,6 +1041,40 @@ return template.HTML(util.AddNonceToScriptTags(scripts.String(), nonce))
 If `.templ` files were modified during fixes, run:
 ```bash
 make templ
+```
+
+## DOM XSS Sink Safety Fix (BLOCKING-HIGH-RISK)
+
+```javascript
+// BAD: dynamic value interpreted as HTML
+error.innerHTML = '<svg ...></svg>' + message;
+
+// GOOD: build trusted SVG node + untrusted text via textContent
+const icon = document.createElement('span');
+icon.className = 'form-error-icon';
+icon.innerHTML = '<svg ...></svg>'; // static trusted constant only
+const text = document.createElement('span');
+text.textContent = message;
+error.replaceChildren(icon, text);
+```
+
+```javascript
+// BAD: unvalidated redirect target from DOM
+window.location.href = dataset.redirectUrl;
+
+// GOOD: strict same-origin URL validation before redirect
+function safeRedirectTarget(raw) {
+  if (typeof raw !== 'string' || raw.trim() === '') return '/admin';
+  try {
+    const parsed = new URL(raw, window.location.origin);
+    const allowed = parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    if (!allowed || parsed.origin !== window.location.origin) return '/admin';
+    return parsed.pathname + parsed.search + parsed.hash;
+  } catch {
+    return '/admin';
+  }
+}
+window.location.href = safeRedirectTarget(dataset.redirectUrl);
 ```
 
 ## Unresolved CSS Custom Property Fix
