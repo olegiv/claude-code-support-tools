@@ -48,6 +48,9 @@ You are an expert code quality auditor for a Go project. Your role is to identif
 14. Pointer to local variable replaceable with `new(expr)` (Go 1.26+ feature: `tmp := expr; &tmp` → `new(expr)`)
 15. Cross-method/cross-file code duplication (golangci-lint `dupl` misses: methods with identical bodies on different receivers, identical test helpers across packages, small duplicated blocks below the 200-token threshold)
 16. Broken `$schema` relative paths in i18n `messages.json` files
+17. `<script>` tags without nonce in `.templ`/`.html` (blocking CSP issue)
+18. Inline HTML event handlers (`onclick`, `onchange`, `onsubmit`, etc.) in `.templ`/`.html` (blocking CSP issue)
+19. Go-generated script HTML not passed through nonce injection (`util.AddNonceToScriptTags(...)` or equivalent)
 
 ## Audit Workflow
 
@@ -111,6 +114,42 @@ Check for:
 - Unnecessary 3-group splits (third-party chi separated from project imports by blank line)
 
 Fix: use 2 groups (stdlib + all external sorted alphabetically). Run `goimports -w <file>` to auto-fix.
+
+### BLOCKING CHECK: CSP Template Safety (must-fix before quality pass)
+
+Run these checks exactly:
+
+**Missing nonce on script tags (`.templ` / `.html`):**
+```bash
+rg -n --glob '*.templ' --glob '*.html' "<script" | rg -v "nonce="
+```
+
+**Inline HTML event handlers (`.templ` / `.html`):**
+```bash
+rg -n --glob '*.templ' --glob '*.html' "\\son(click|change|input|submit|load|error|focus|blur|keydown|keyup|keypress|mouseover|mouseout|mouseenter|mouseleave|dblclick|contextmenu|dragstart|dragend|drop|scroll|resize)="
+```
+
+**Go-generated script HTML nonce verification (non-generated files only):**
+```bash
+rg -n --glob '*.go' --glob '!*_templ.go' "<script"
+rg -n "AddNonceToScriptTags\\(" --glob '*.go'
+```
+
+For each Go `<script` literal, verify it is nonce-injected before rendering
+via `util.AddNonceToScriptTags(...)` (or equivalent nonce flow).
+
+Acceptable exception:
+- JavaScript property assignments such as `element.onclick = ...` **inside already nonced scripts**
+  are acceptable. This check targets inline HTML handler attributes in markup, not JS code strings.
+
+Remediation patterns:
+- `.templ`: `<script nonce={ templ.GetNonce(ctx) }>`
+- Go HTML templates: `<script nonce="{{.CSPNonce}}">`
+- Replace inline HTML handlers with `data-*` attributes + JS listeners
+  (delegated listeners in static JS or a nonced inline script).
+- If `.templ` files changed: run `make templ`.
+
+If any CSP finding is present, quality status is **FAILED (blocking)** until fixed.
 
 ### 5. Manual Checks
 
@@ -293,9 +332,13 @@ Common cause: theme locales are 5 levels deep but use only 4 `../` segments.
 
 For each issue:
 1. Show file:line reference
-2. Explain the issue
-3. Provide the fix
-4. Verify with tests
+2. Include rule name (for CSP use `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`, `CSP-GO-NONCE-FLOW`)
+3. Explain the issue
+4. Explain why it matters (for CSP: breaks nonce-based CSP and can block script execution)
+5. Provide the exact fix pattern
+6. Verify with tests
+
+If any CSP issue remains unresolved, report status as **FAILED (blocking)**.
 
 ## Common Fixes
 
@@ -738,6 +781,44 @@ func (m *Module) reloadBannedIPs() error { return m.reloadPatterns(q, &m.bannedM
 
 Choose: body/UI → `sans-serif`, serif headings → `serif`, code → `monospace`.
 
+### CSP Template Safety (BLOCKING)
+
+```templ
+// BAD: inline script without nonce
+<script>
+  initPage()
+</script>
+
+// GOOD
+<script nonce={ templ.GetNonce(ctx) }>
+  initPage()
+</script>
+```
+
+```html
+<!-- BAD: inline HTML handler -->
+<button onclick="save()">Save</button>
+
+<!-- GOOD: data-* + JS listener -->
+<button data-action="save">Save</button>
+<script nonce="{{.CSPNonce}}">
+document.addEventListener('click', function (e) {
+  const btn = e.target.closest('[data-action="save"]');
+  if (btn) save();
+});
+</script>
+```
+
+```go
+// GOOD: nonce injection for script literals before rendering
+return template.HTML(util.AddNonceToScriptTags(scripts.String(), nonce))
+```
+
+If `.templ` files were modified during fixes, run:
+```bash
+make templ
+```
+
 ## Report Format
 
 ```
@@ -779,6 +860,11 @@ By linter:
 ## JSON Schema
 - Broken $schema paths:       X issues
 
+## CSP Template Safety (BLOCKING)
+- Missing script nonce: X issues
+- Inline HTML handlers: X issues
+- Go script nonce wiring: X issues
+
 ## Manual Checks
 - Stuttering names: X issues
 - Incorrect doc comments: X issues
@@ -796,18 +882,22 @@ By linter:
 
 ### [CQ-001] Unused parameter
 - File: internal/handler/foo.go:123
+- Rule: UNPARAM-UNUSED
 - Issue: Parameter 'opts' is never used
 - Fix: Remove parameter and update call sites
 
-### [CQ-002] Redundant type conversion
-- File: internal/handler/bar_test.go:45
-- Issue: Redundant conversion to ConflictStrategy
-- Fix: Use string(constant) instead
+### [CQ-002] Missing CSP nonce
+- File: modules/example/views.templ:195
+- Rule: CSP-NONCE-MISSING
+- Issue: `<script>` tag has no nonce
+- Why it matters: nonce-based CSP blocks inline script execution without a nonce
+- Fix: Use `<script nonce={ templ.GetNonce(ctx) }>`
 
 ## Summary
 - Total issues: X
 - Fixed: Y
 - Remaining: Z
+- Blocking status: PASS|FAIL (FAIL if any CSP issue remains)
 ```
 
 ## Commands
