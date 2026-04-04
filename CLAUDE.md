@@ -28,6 +28,7 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `test-workflows.md` - Validates GitHub Actions workflow syntax
   - `new-agent.md` - Scaffolds new agent files with proper template
   - `new-command.md` - Scaffolds new command files with proper template
+  - `finalize.md` - Reviews session changes and runs tests, translations, or docs updates
 - **`commands/`** - Template commands for copying to projects
   - `setup-project-tools.md` - Analyzes project and generates tailored Claude Code extensions
   - `no-ticket/` - Alternative command structures for workflows without ticket references
@@ -111,6 +112,8 @@ This repository contains Claude Code support tools including autonomous agents, 
 - **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode
+  - `commands/` - Global slash command templates
+    - `finalize.md` - Reviews session changes and runs tests, translations, or docs updates
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
   - `claude.yml` - Responds to @claude mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code
@@ -297,6 +300,15 @@ Commands for maintaining this Claude Code support tools repository:
 - Follows proper markdown structure
 - Validates created file
 - Reminds to update documentation
+
+### Session Finalization Command
+
+**`/finalize`** - Review all session changes and run quality actions
+- Accepts parameter: `all`, `tests`, `translations`, `docs` (comma-separated)
+- **tests**: Checks test coverage for modified files, adds/updates tests
+- **translations**: Scans for new user-facing strings, adds missing translation keys
+- **docs**: Updates README, API docs, inline docs, and config references
+- Defaults to `all` if no parameter provided
 
 ### Commit Workflow Commands
 

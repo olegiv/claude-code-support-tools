@@ -43,6 +43,9 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 - `/new-agent` - Scaffold a new agent file with proper template
 - `/new-command` - Scaffold a new command file with proper template
 
+**Session Finalization Command**
+- `/finalize` - Review session changes and run quality actions (tests, translations, docs)
+
 **Commit Workflow Commands**
 - `/commit-prepare` - Review changes and draft commit messages following best practices
 - `/commit-do` - Create commits with proper formatting and HEREDOC syntax
@@ -66,6 +69,9 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Custom status line showing project, git branch, and model
 - Always-thinking mode enabled
 - Template for team-wide settings
+
+**`global/commands/`** - Global slash command templates
+- `finalize.md` - Review session changes and run quality actions (tests, translations, docs)
 
 **`global/hooks/`** - Git hooks for commit protection
 - `pre-commit` - Prevents Claude Code from committing without explicit user approval
@@ -205,6 +211,17 @@ cp global/settings.json ~/.claude/
 ```
 
 These will apply to all your Claude Code sessions across all projects.
+
+### Using Global Commands
+
+Copy global command templates to your `~/.claude/commands/` directory:
+
+```bash
+mkdir -p ~/.claude/commands
+cp global/commands/finalize.md ~/.claude/commands/
+```
+
+These commands will be available as slash commands in all Claude Code sessions.
 
 ### Using Git Hooks
 
@@ -375,6 +392,7 @@ Claude will respond and complete the task with full repository access.
 │   └── commands/                  # Repository-specific slash commands
 │       ├── commit-prepare.md     # Review changes
 │       ├── commit-do.md          # Create commits
+│       ├── finalize.md           # Session finalization
 │       ├── security-audit.md     # Security audit command
 │       ├── validate-agents.md    # Validate agent files
 │       ├── validate-commands.md  # Validate command files
@@ -472,6 +490,8 @@ Claude will respond and complete the task with full repository access.
 ├── global/                        # User-level configuration templates
 │   ├── CLAUDE.md
 │   ├── settings.json
+│   ├── commands/                  # Global slash command templates
+│   │   └── finalize.md            # Session finalization command
 │   └── hooks/                     # Git hooks for commit protection
 │       ├── README.md              # Installation instructions
 │       └── pre-commit             # Prevents automated commits
