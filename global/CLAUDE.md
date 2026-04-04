@@ -1,5 +1,11 @@
 # ⛔ STOP - READ THIS FIRST ⛔
 
+## MANDATORY: Respect the Active Permission Mode
+
+IMPORTANT: You MUST operate in the current mode. In plan mode: NO code, NO file edits, NO commits. Enforced by hooks — violations are automatically detected.
+
+---
+
 ## MANDATORY: Git Commit Approval Workflow
 
 **Before ANY `git commit` command, you MUST:**
