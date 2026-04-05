@@ -141,6 +141,13 @@ Keep pull request messages clean and professional without AI attribution footers
 - Visual regression testing
 - Any task where the user says "look in Chrome"
 
+### Clear Browser Cache Before Testing
+**MANDATORY:** Before verifying ANY visual change in Chrome, clear the browser cache first to ensure you're seeing fresh assets. Use JavaScript to hard-reload:
+```
+location.reload(true)
+```
+Or navigate with a cache-busting parameter. Never trust that the browser is showing the latest version.
+
 ## Quality Assurance Rules
 
 **CRITICAL:** Always test what you do before giving the result to the user.
