@@ -323,7 +323,7 @@ Two-step commit workflow enforcing the repository's strict git policies:
 2. **`/commit-do`** - Create commit with prepared message
    - Verifies changes exist
    - Stages all changes with `git add .`
-   - Creates commit using HEREDOC format
+   - Writes prepared message to a temporary file and commits with `git commit -F`
    - Does NOT push automatically
 
 **Commit message format enforced:**
