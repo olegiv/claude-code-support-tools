@@ -111,17 +111,19 @@ Scan the project for code quality issues and warnings.
 
    Also check for unnecessary 3-group splits (third-party like chi separated from project imports):
    ```bash
-   grep -rl 'go-chi/chi' --include="*.go" . | xargs grep -l 'chi/v5"' | while read f; do
-     python3 -c "
+   grep -rl 'go-chi/chi' --include="*.go" . | xargs grep -l 'chi/v5"' | while read -r f; do
+     python3 - "$f" <<'PY'
    import re
-   with open('$f') as fh:
+   import sys
+   fpath = sys.argv[1]
+   with open(fpath) as fh:
        content = fh.read()
    m = re.search(r'import \((.*?)\)', content, re.DOTALL)
    if m:
        groups = [g.strip() for g in re.split(r'\n\s*\n', m.group(1)) if g.strip()]
        if len(groups) > 2:
-           print(f'$f: {len(groups)} import groups (expected 2)')
-   "
+           print(f'{fpath}: {len(groups)} import groups (expected 2)')
+   PY
    done
    ```
 
@@ -163,17 +165,18 @@ Scan the project for code quality issues and warnings.
    ```bash
    for f in internal/themes/*/static/css/theme.css custom/themes/*/static/css/theme.css; do
      [ -f "$f" ] || continue
-     python3 -c "
+     python3 - "$f" <<'PY'
    import re, sys
-   with open('$f') as fh:
+   fpath = sys.argv[1]
+   with open(fpath) as fh:
        css = fh.read()
    for m in re.finditer(r'([^{}]+)\{([^{}]+)\}', css):
        sel, body = m.group(1).strip(), m.group(2)
        for prop in ['margin', 'padding']:
            sides = [s for s in ['top','right','bottom','left'] if re.search(rf'{prop}-{s}\s*:', body)]
            if len(sides) >= 2:
-               print(f'$f: {sel} — {prop}-{{\", \".join(sides)}} can use shorthand')
-   "
+               print(f'{fpath}: {sel} — {prop}-{{\", \".join(sides)}} can use shorthand')
+   PY
    done
    ```
 
