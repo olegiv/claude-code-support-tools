@@ -99,8 +99,8 @@ assert_not_contains "unicode path: not unknown"         "$OUT2" "unknown"
 
 # ---------- Test 3a: raw ESC byte in cwd ----------
 # jq -Rs encodes the ESC as \u001b, so it survives JSON, then decodes back
-# to a real 0x1B byte inside the status line script. The `tr -d '[:cntrl:]'`
-# guard must catch it and fall back to "unknown".
+# to a real 0x1B byte inside the status line script. The control-byte guard
+# must catch it and fall back to "unknown".
 ESC=$(printf '\033')
 EVIL="$TMPROOT/${ESC}[31mEVIL"
 OUT3A=$(run_status "$EVIL")
@@ -118,7 +118,13 @@ OUT3B=$(run_status_raw_json "$EVIL_JSON")
 assert_contains     "JSON \\u001b: falls back to unknown" "$OUT3B" "unknown"
 assert_not_contains "JSON \\u001b: payload not echoed"    "$OUT3B" "[31mEVIL"
 
-# ---------- Test 3c: other control chars (CR, LF, TAB, DEL) ----------
+# ---------- Test 3c: C1 control bytes and other control chars ----------
+# U+009B (CSI) becomes UTF-8 bytes C2 9B. The validator should reject it.
+C1=$(printf '\302\233')
+OUT3C1=$(run_status "$TMPROOT/x${C1}y")
+assert_contains "C1 CSI in cwd: falls back to unknown" "$OUT3C1" "unknown"
+
+# ASCII controls should also still be rejected.
 for ctrl_name in CR LF TAB DEL; do
   case "$ctrl_name" in
     CR)  CTRL=$(printf '\r')  ;;
