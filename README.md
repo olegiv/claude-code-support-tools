@@ -48,7 +48,7 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 
 **Commit Workflow Commands**
 - `/commit-prepare` - Review changes and draft commit messages following best practices
-- `/commit-do` - Create commits with proper formatting and HEREDOC syntax
+- `/commit-do` - Create commits with proper formatting using a safe temp-file + `git commit -F` flow
 
 Both commit commands enforce strict commit message standards:
 - Subject line: max 50 chars, imperative mood
