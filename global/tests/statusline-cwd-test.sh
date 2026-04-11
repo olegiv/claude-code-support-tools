@@ -99,8 +99,8 @@ assert_not_contains "unicode path: not unknown"         "$OUT2" "unknown"
 
 # ---------- Test 3a: raw ESC byte in cwd ----------
 # jq -Rs encodes the ESC as \u001b, so it survives JSON, then decodes back
-# to a real 0x1B byte inside the status line script. The `tr -d '[:cntrl:]'`
-# guard must catch it and fall back to "unknown".
+# to a real 0x1B byte inside the status line script. The control-byte guard
+# must catch it and fall back to "unknown".
 ESC=$(printf '\033')
 EVIL="$TMPROOT/${ESC}[31mEVIL"
 OUT3A=$(run_status "$EVIL")
@@ -118,7 +118,23 @@ OUT3B=$(run_status_raw_json "$EVIL_JSON")
 assert_contains     "JSON \\u001b: falls back to unknown" "$OUT3B" "unknown"
 assert_not_contains "JSON \\u001b: payload not echoed"    "$OUT3B" "[31mEVIL"
 
-# ---------- Test 3c: other control chars (CR, LF, TAB, DEL) ----------
+# ---------- Test 3c: C1 control bytes and other control chars ----------
+# C1 controls are UTF-8 bytes C2 80..C2 9F. The validator must reject the
+# whole range. Cover the first (U+0080), CSI (U+009B), and last (U+009F)
+# codepoints to guard against off-by-one errors in the predicate, and
+# assert the attacker payload is not echoed (mirroring tests 3a/3b).
+for c1_name in "U+0080" "U+009B" "U+009F"; do
+  case "$c1_name" in
+    "U+0080") C1=$(printf '\302\200') ;;
+    "U+009B") C1=$(printf '\302\233') ;;
+    "U+009F") C1=$(printf '\302\237') ;;
+  esac
+  OUT3C1=$(run_status "$TMPROOT/x${C1}y")
+  assert_contains     "$c1_name in cwd: falls back to unknown" "$OUT3C1" "unknown"
+  assert_not_contains "$c1_name in cwd: payload not echoed"    "$OUT3C1" "x${C1}y"
+done
+
+# ASCII controls should also still be rejected.
 for ctrl_name in CR LF TAB DEL; do
   case "$ctrl_name" in
     CR)  CTRL=$(printf '\r')  ;;

@@ -412,7 +412,7 @@ Global Claude Code settings:
 - **Custom status line** - Shows project name, directory, git branch, git status, and model
 - **alwaysThinkingEnabled** - Enables continuous thinking mode
 
-The status line command validates `.workspace.current_dir` against terminal escape injection by stripping control characters (`tr -d '[:cntrl:]'`) and falling back to `unknown` on mismatch or non-existent paths. All git operations use `git -C "$safe_cwd"` so a malicious `cwd` cannot leak metadata from the calling process directory.
+The status line command validates `.workspace.current_dir` against terminal escape injection using a `jq` codepoint predicate (`explode | all(. >= 32 and . != 127 and (. < 128 or . > 159))`) that rejects C0 controls, DEL, and the full C1 range (U+0080–U+009F), and falls back to `unknown` on mismatch or non-existent paths. All git operations use `git -C "$safe_cwd"` so a malicious `cwd` cannot leak metadata from the calling process directory.
 
 ### global/tests/
 
