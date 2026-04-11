@@ -79,7 +79,7 @@ cat Package.resolved 2>/dev/null | jq '.pins[].state.version' 2>/dev/null
 curl -s "https://api.github.com/repos/Alamofire/Alamofire/releases/latest" | grep tag_name
 
 # Check CocoaPods versions
-pod search <package_name> --simple
+pod search -- "<package_name>" --simple
 
 # Check Swift Package versions on GitHub
 # Navigate to the package repository and check releases
@@ -90,7 +90,7 @@ pod search <package_name> --simple
 ```bash
 xcodebuild build \
   -project *.xcodeproj \
-  -scheme <scheme_name> \
+  -scheme "<scheme_name>" \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO 2>&1 | grep -E "(warning:|error:)"
 ```
@@ -189,7 +189,7 @@ plutil -convert xml1 -o - */Info.plist 2>/dev/null | grep -E "Usage|Description"
 ```bash
 xcodebuild test \
   -project *.xcodeproj \
-  -scheme <scheme_name> \
+  -scheme "<scheme_name>" \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO 2>&1 | grep -E "(Test Case|passed|failed|error)"
 ```
@@ -284,7 +284,7 @@ After applying fixes (only with user approval):
 ```bash
 xcodebuild build \
   -project *.xcodeproj \
-  -scheme <scheme_name> \
+  -scheme "<scheme_name>" \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
   CODE_SIGNING_ALLOWED=NO
 ```
