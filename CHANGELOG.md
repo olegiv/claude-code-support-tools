@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- Status line `cwd` validation in `global/settings.json` no longer rejects
+  legitimate paths containing `(`, `)`, `+`, `@`, `,`, spaces, or Unicode.
+  PR #24 introduced an overly narrow allowlist regex
+  (`^[[:alnum:]_./~ -]+$`) that caused such paths to fall back to `unknown`
+  and lose the git branch/status indicators. Replaced with a control-character
+  denylist (`tr -d '[:cntrl:]'`) that preserves the anti-injection hardening
+  while accepting all real-world filesystem paths. Resolves the regression
+  flagged in PR #24 review.
+
+### Added
+
+- `global/tests/statusline-cwd-test.sh` — POSIX shell regression suite for
+  the status line `cwd` validation. 16 assertions covering shell
+  metacharacters, Unicode paths, raw and JSON-escaped ANSI/control-character
+  injection attempts, missing paths, and empty input.
+
 ## [0.2.0] - 2026-02-11
 
 ### Added

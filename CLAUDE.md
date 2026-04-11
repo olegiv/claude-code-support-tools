@@ -114,6 +114,8 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `settings.json` - Global settings including custom status line and alwaysThinking mode
   - `commands/` - Global slash command templates
     - `finalize.md` - Reviews session changes and runs tests, translations, or docs updates
+  - `tests/` - Self-contained POSIX shell tests for global configuration
+    - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
   - `claude.yml` - Responds to @claude mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code
@@ -409,6 +411,19 @@ Enforces strict git workflow rules across all projects:
 Global Claude Code settings:
 - **Custom status line** - Shows project name, directory, git branch, git status, and model
 - **alwaysThinkingEnabled** - Enables continuous thinking mode
+
+The status line command validates `.workspace.current_dir` against terminal escape injection by stripping control characters (`tr -d '[:cntrl:]'`) and falling back to `unknown` on mismatch or non-existent paths. All git operations use `git -C "$safe_cwd"` so a malicious `cwd` cannot leak metadata from the calling process directory.
+
+### global/tests/
+
+Self-contained POSIX shell tests for the files in `global/`. Run with plain `sh` — no test framework, only `jq` and `git` required.
+
+- **`statusline-cwd-test.sh`** - Regression coverage for the status line `cwd` validation: asserts that paths with shell metacharacters (`(`, `)`, `+`, `@`, `,`, spaces) and Unicode render normally, while control characters (raw ESC, JSON-escaped `\u001b`, CR, LF, TAB, DEL), missing paths, and empty input all fall back to `unknown` without echoing the attacker payload.
+
+Run from the repository root:
+```bash
+sh global/tests/statusline-cwd-test.sh
+```
 
 ### global/hooks/
 

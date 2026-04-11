@@ -80,6 +80,10 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Can be installed per-repo, globally, or across all existing repos
 - See `global/hooks/README.md` for installation instructions
 
+**`global/tests/`** - Self-contained shell tests for global configuration
+- `statusline-cwd-test.sh` - Verifies the status line `cwd` validation: accepts paths with shell metacharacters and Unicode, rejects control-character injection attempts and missing paths
+- Run with `sh global/tests/statusline-cwd-test.sh` (requires `jq` and `git`)
+
 ### 🔄 GitHub Actions Workflows
 
 **Automated PR Reviews** (`.github/workflows/claude-code-review.yml`)
