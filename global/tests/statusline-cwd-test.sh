@@ -119,10 +119,20 @@ assert_contains     "JSON \\u001b: falls back to unknown" "$OUT3B" "unknown"
 assert_not_contains "JSON \\u001b: payload not echoed"    "$OUT3B" "[31mEVIL"
 
 # ---------- Test 3c: C1 control bytes and other control chars ----------
-# U+009B (CSI) becomes UTF-8 bytes C2 9B. The validator should reject it.
-C1=$(printf '\302\233')
-OUT3C1=$(run_status "$TMPROOT/x${C1}y")
-assert_contains "C1 CSI in cwd: falls back to unknown" "$OUT3C1" "unknown"
+# C1 controls are UTF-8 bytes C2 80..C2 9F. The validator must reject the
+# whole range. Cover the first (U+0080), CSI (U+009B), and last (U+009F)
+# codepoints to guard against off-by-one errors in the predicate, and
+# assert the attacker payload is not echoed (mirroring tests 3a/3b).
+for c1_name in "U+0080" "U+009B" "U+009F"; do
+  case "$c1_name" in
+    "U+0080") C1=$(printf '\302\200') ;;
+    "U+009B") C1=$(printf '\302\233') ;;
+    "U+009F") C1=$(printf '\302\237') ;;
+  esac
+  OUT3C1=$(run_status "$TMPROOT/x${C1}y")
+  assert_contains     "$c1_name in cwd: falls back to unknown" "$OUT3C1" "unknown"
+  assert_not_contains "$c1_name in cwd: payload not echoed"    "$OUT3C1" "x${C1}y"
+done
 
 # ASCII controls should also still be rejected.
 for ctrl_name in CR LF TAB DEL; do
