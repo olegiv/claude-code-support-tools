@@ -282,17 +282,18 @@ When a rule uses 2+ side-specific margin or padding properties, they can be coll
 ```bash
 for f in internal/themes/*/static/css/theme.css custom/themes/*/static/css/theme.css; do
   [ -f "$f" ] || continue
-  python3 -c "
+  python3 - "$f" <<'PY'
 import re, sys
-with open('$f') as fh:
+fpath = sys.argv[1]
+with open(fpath) as fh:
     css = fh.read()
 for m in re.finditer(r'([^{}]+)\{([^{}]+)\}', css):
     sel, body = m.group(1).strip(), m.group(2)
     for prop in ['margin', 'padding']:
         sides = [s for s in ['top','right','bottom','left'] if re.search(rf'{prop}-{s}\s*:', body)]
         if len(sides) >= 2:
-            print(f'$f: {sel} — {prop}-{{\", \".join(sides)}} can use shorthand')
-"
+            print(f'{fpath}: {sel} — {prop}-{{\", \".join(sides)}} can use shorthand')
+PY
 done
 ```
 Common patterns: `margin-top` + `margin-bottom` → shorthand, `margin-left` + `margin-right` → shorthand.
