@@ -7,12 +7,18 @@ Create a git commit with the prepared commit message:
 5. Pass the message to `git commit -F` via a unique temp file. The message
    must NEVER pass through the shell — no heredocs, no `-m "$(...)"`, no
    `printf "$msg"`, no shared/predictable paths.
-   - Run `mktemp -t claude-commit-msg.XXXXXX` via Bash and capture the
-     printed path. `mktemp` creates the file atomically with restrictive
-     permissions, so it cannot be hijacked by a pre-existing symlink and
-     will not collide with other concurrent sessions.
+   - Run `mktemp "${TMPDIR:-/tmp}/claude-commit-msg.XXXXXX"` via Bash and
+     capture the printed path. Use the positional template form (not
+     `mktemp -t ...`) — `-t` means a literal *prefix* on macOS BSD and
+     a *template* on GNU, so it is not portable. `mktemp` creates the
+     file atomically with restrictive permissions, so it cannot be
+     hijacked by a pre-existing symlink and will not collide with other
+     concurrent sessions.
    - Use the `Write` tool to save the verbatim approved commit message to
-     that captured path. Example body:
+     that captured path. If the `Write` tool fails for any reason (disk
+     full, permission error), `rm -f` the captured path and abort
+     before running `git commit` — do not commit a partial/empty
+     message file. Example body:
      ```
      Subject line
 
