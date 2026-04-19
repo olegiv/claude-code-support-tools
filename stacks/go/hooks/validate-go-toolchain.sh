@@ -25,8 +25,13 @@ if [[ -z "$GO_VERSION" ]]; then
     exit 0
 fi
 
-# Get compiler version (format: "compile version go1.X.Y")
-COMPILE_VERSION=$("$(go env GOTOOLDIR)/compile" -V 2>/dev/null | awk '{print $3}') || COMPILE_VERSION=""
+# Get compiler version (format: "compile version go1.X.Y").
+# Assign GOTOOLDIR to its own variable before using it as a command path, so
+# the outer command substitution quotes a single well-formed token. The raw
+# $(go env GOTOOLDIR) expansion is subject to word-splitting even inside
+# double quotes, which would fail on paths containing spaces or globs.
+GOTOOLDIR="$(go env GOTOOLDIR)"
+COMPILE_VERSION=$("$GOTOOLDIR/compile" -V 2>/dev/null | awk '{print $3}') || COMPILE_VERSION=""
 if [[ -z "$COMPILE_VERSION" ]]; then
     exit 0
 fi
