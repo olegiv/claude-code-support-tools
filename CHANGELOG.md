@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `global/commands/release-gh-prepare.md` — slash command
+  (`/release-gh-prepare`) that cuts a new version of the host project:
+  updates `CHANGELOG.md` (moves `[Unreleased]` → `[X.Y.Z] - DATE`, adds
+  the compare link), commits, pushes to `origin/master`, and creates a
+  GitHub draft release via `gh`. Hard preconditions on branch, clean
+  tree, origin-sync, and CHANGELOG shape; mandatory user-approval gate
+  on the proposed version before any edit or git operation. Auto-infers
+  the version via semver from the `[Unreleased]` section
+  (BREAKING → major, `### Added` → minor, otherwise patch) and the
+  release title from the first bold bullet. Does not publish the
+  release or create the git tag — those stay in the user's hands via
+  the GitHub UI.
+
 ### Fixed
 
 - Status line `cwd` validation in `global/settings.json` no longer rejects

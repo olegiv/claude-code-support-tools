@@ -114,6 +114,7 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `settings.json` - Global settings including custom status line and alwaysThinking mode
   - `commands/` - Global slash command templates
     - `finalize.md` - Reviews session changes and runs tests, translations, or docs updates
+    - `release-gh-prepare.md` - Cuts a new version: updates CHANGELOG.md, commits, pushes, and creates a GitHub draft release. Mandatory user approval of the proposed version.
   - `tests/` - Self-contained POSIX shell tests for global configuration
     - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
@@ -311,6 +312,18 @@ Commands for maintaining this Claude Code support tools repository:
 - **translations**: Scans for new user-facing strings, adds missing translation keys
 - **docs**: Updates README, API docs, inline docs, and config references
 - Defaults to `all` if no parameter provided
+
+### Release Command
+
+**`/release-gh-prepare`** - Cut a new version with a GitHub draft release
+- Optional argument: a version override like `0.12.0` (skips inference)
+- Hard preconditions: on `master`, clean tree, in sync with `origin/master`, `CHANGELOG.md` with non-empty `[Unreleased]`, `gh` authenticated
+- Infers next version from Unreleased content using semver (BREAKING → major, Added → minor, otherwise patch)
+- Infers release title from the first bold bullet in Unreleased
+- **Mandatory approval gate** before any edit or git operation: user must accept the version, override it, or cancel
+- Updates `CHANGELOG.md` (Unreleased → `[X.Y.Z] - YYYY-MM-DD`, compare links)
+- Commits, pushes to `origin/master`, and creates a `gh release create --draft`
+- Does NOT publish the release or create the git tag — user does that from the GitHub UI
 
 ### Commit Workflow Commands
 

@@ -46,6 +46,9 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 **Session Finalization Command**
 - `/finalize` - Review session changes and run quality actions (tests, translations, docs)
 
+**Release Command**
+- `/release-gh-prepare` - Cut a new version: update CHANGELOG, commit, push, and create a GitHub draft release. Mandatory user approval of the proposed version.
+
 **Commit Workflow Commands**
 - `/commit-prepare` - Review changes and draft commit messages following best practices
 - `/commit-do` - Create commits with proper formatting using a safe temp-file + `git commit -F` flow
@@ -72,6 +75,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 
 **`global/commands/`** - Global slash command templates
 - `finalize.md` - Review session changes and run quality actions (tests, translations, docs)
+- `release-gh-prepare.md` - Cut a new version: update CHANGELOG, commit, push, and create a GitHub draft release
 
 **`global/hooks/`** - Git hooks for commit protection
 - `pre-commit` - Prevents Claude Code from committing without explicit user approval
@@ -495,7 +499,8 @@ Claude will respond and complete the task with full repository access.
 │   ├── CLAUDE.md
 │   ├── settings.json
 │   ├── commands/                  # Global slash command templates
-│   │   └── finalize.md            # Session finalization command
+│   │   ├── finalize.md            # Session finalization command
+│   │   └── release-gh-prepare.md  # Draft GitHub release with CHANGELOG update
 │   └── hooks/                     # Git hooks for commit protection
 │       ├── README.md              # Installation instructions
 │       └── pre-commit             # Prevents automated commits
