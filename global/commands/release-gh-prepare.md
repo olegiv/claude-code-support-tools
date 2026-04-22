@@ -5,7 +5,9 @@ description: "Cut a new version: update CHANGELOG, commit, push, and create a Gi
 
 # release-gh-prepare
 
-Prepare a new GitHub **draft** release for the current project. Updates
+Prepare a new GitHub **draft** release for the current project. Drafts the
+release notes from the commits since the last tag, lets the user pick the
+version, writes the notes under a new `## [X.Y.Z] - YYYY-MM-DD` heading in
 `CHANGELOG.md`, commits, pushes, and creates the draft via `gh`.
 
 **This command does NOT publish the release.** The GitHub UI "Publish
@@ -13,8 +15,8 @@ release" button — and therefore the git tag creation — is deliberately
 left to the user.
 
 Optional argument: a version override like `0.12.0` or `v0.12.0`. If
-provided, the auto-inference step is skipped and the argument is used
-as the proposed version (still subject to the mandatory approval gate).
+provided, the version-selection question is skipped and the argument is
+used directly (still subject to the content-approval gate).
 
 ## Hard preconditions — abort if any fails
 
@@ -27,14 +29,21 @@ Before any edit or git action:
    changes).
 3. The current branch is in sync with `origin/master` (no unpushed
    commits and no unpulled commits from origin).
-4. `CHANGELOG.md` exists at the repository root, contains a
-   `## [Unreleased]` heading, and the section under it is non-empty
-   (has at least one `### ...` subsection with bullet content).
-5. `gh auth status` succeeds and the repository has an `origin`
+4. `CHANGELOG.md` exists at the repository root.
+5. There is at least one commit on `master` since the last release
+   tag. If `git log <last-tag>..HEAD` is empty, there is nothing to
+   release — abort.
+6. `gh auth status` succeeds and the repository has an `origin`
    remote pointing to github.com.
 
 If any precondition fails, report which one and stop — do not prompt
 for recovery and do not attempt partial progress.
+
+**Note on `[Unreleased]`:** This command does NOT require the
+`[Unreleased]` section in `CHANGELOG.md` to be populated. It drafts
+release notes directly from the commit history. An empty `[Unreleased]`
+stub is the expected shape between releases and stays empty after this
+command runs (no populate/rename dance).
 
 ## Step 1 — read state
 
@@ -43,121 +52,168 @@ Capture:
 - Latest released version: from the top compare-link row
   (`[X.Y.Z]: …compare/vA...vX.Y.Z`) at the bottom of `CHANGELOG.md`,
   OR from `git describe --tags --abbrev=0` as a fallback.
-- Unreleased section content: everything between `## [Unreleased]`
-  and the next `## [` heading.
+- Commits since the last tag: `git log <last-tag>..HEAD --oneline`.
+  Follow up with `git show --stat <sha>` for any commit whose
+  one-liner is ambiguous, and `gh pr view <N>` for any merge commit
+  or PR-associated commit so you can synthesize user-facing impact.
 - GitHub owner/repo: parse from `gh repo view --json
   nameWithOwner --jq .nameWithOwner`.
 - Today's date in `YYYY-MM-DD` (use `date +%Y-%m-%d`, never hardcode).
 
-## Step 2 — infer proposed version
+Explicitly categorize each commit:
+- **User-facing** (goes into release notes): new features, changed
+  behavior, bugfixes, security fixes, dependency bumps that affect
+  the shipped binary, docs changes that operators read.
+- **Internal** (omitted): wiki submodule bumps, shared Claude
+  submodule bumps, CLAUDE.md docs-index tweaks, slash-command
+  symlinks, merge commits with no substantive delta of their own.
 
-If the user supplied a version argument, use it verbatim (strip a
-leading `v` and re-add it consistently). Otherwise apply semver to the
-Unreleased content:
+## Step 2 — draft release notes
 
-- **Major bump** if `BREAKING` appears anywhere in the Unreleased
-  section AND the project's `go.mod` / `package.json` / equivalent
-  does not scope the break as "internal API only". When in doubt,
-  propose minor and surface the BREAKING tag in the rationale so the
-  user can override to major.
-- **Minor bump** if `### Added` has any bullets (new public API, new
-  feature, new scope).
-- **Patch bump** otherwise (only `### Fixed` / `### Security` /
-  `### Dependencies` / `### Changed` with no new surface).
+Produce a Keep-a-Changelog-style draft organized into
+`### Added / ### Changed / ### Fixed / ### Security / ### Removed /
+### ⚠️ Breaking Changes` as warranted. Group with `#### Component`
+subheadings (match the style of prior releases in this CHANGELOG.md).
 
-Compute the next version from the latest tag using the chosen bump.
-Never propose a decrease or a skipped minor/patch unless the user's
-override dictates it.
+Rules:
+- Focus on WHAT and WHY from the user/operator perspective, not how.
+- Reference security audit finding IDs (FIND-xxx, SEC-xxx) when a
+  commit closes one — the user tracks these.
+- Mention new config/env vars by name (e.g. `OCMS_HSTS_PRELOAD`).
+- Omit internal churn per Step 1.
+- Each code-level security fix should note if it ships with a drift
+  test (when the commit body or audit report says so).
 
-## Step 3 — infer release title
+## Step 3 — propose version via AskUserQuestion
 
-From the Unreleased section, take the first non-heading bullet line
-that starts with bold text (`- **...**`). Strip the bold markers and
-any trailing punctuation. That becomes the release subtitle.
+Offer 2–3 version options based on the drafted notes:
 
-- Example: `- **Finding exclusions now operate at prompt level, not
-  as a post-filter.**` → title becomes `vX.Y.Z — Finding exclusions
-  now operate at prompt level`.
-- Trim the subtitle to ~50 characters at a clause boundary so the
-  full `vX.Y.Z — ...` string stays under ~70 chars.
-- If there is no bold bullet, fall back to the first plain bullet
-  line. If that is also missing, use `vX.Y.Z` alone with no subtitle.
+- **Major bump** if the draft has `### ⚠️ Breaking Changes` or a
+  removed public surface that is not scoped to internal API only.
+- **Minor bump** if `### Added` has any user-facing bullets (new
+  public API, new feature, new scope).
+- **Patch bump** if the draft is only `### Fixed` / `### Security` /
+  `### Changed` bullets with no new surface.
 
-## Step 4 — MANDATORY approval gate
+Present options via AskUserQuestion with concise reasoning attached
+to each option. Recommended choice first with "(Recommended)" suffix
+if one is clearly right. Let the user pick, override with a version
+string, or cancel.
 
-This step is NOT optional. Do not edit any file, do not run any
-git-state-changing command until the user approves.
+**Never** skip this step. Even if the bump is obvious, the user's
+version-choice authority is not delegated. If the user passed a
+version argument to the command, use that verbatim and skip the
+question.
+
+## Step 4 — infer release title
+
+From the drafted notes, take the first bullet of the top `#### …`
+subgroup under `### Added` (or the first bullet overall if there is
+no Added section). Strip bold markers and trailing punctuation, trim
+to ~50 characters at a clause boundary so the full `vX.Y.Z — …`
+string stays under ~70 chars.
+
+Fallback order: first Added bullet → first bullet of any section →
+`vX.Y.Z` alone with no subtitle.
+
+Always let the user override the title in Step 5's content-approval
+gate.
+
+## Step 5 — MANDATORY content-approval gate
 
 Present a single compact message with:
 
 - **Proposed version:** `vX.Y.Z` (previous: `vA.B.C`).
-- **Bump reason:** one sentence explaining which signal drove the
-  bump (BREAKING, Added, only Fixed, etc.).
 - **Proposed title:** `vX.Y.Z — <subtitle>`.
-- **Release body source:** the `[Unreleased]` section content,
-  verbatim, as it will appear in the draft.
-- **Ask:** "Accept, override with a specific version like `0.12.0`,
-  adjust the title, or cancel?"
+- **Release notes draft:** the full `### Added / ### Changed / …`
+  block as it will land in `CHANGELOG.md` and the release body.
+- **Ask:** "Accept, adjust the title, request edits to the notes, or
+  cancel?"
 
-Wait for the user. Accept any of these:
-
+Wait for the user. Accept any of:
 - "yes" / "accept" / "proceed" → continue with the proposal.
-- A version string (`0.12.0`) → use it instead, recompute title.
 - A title override → use it instead.
+- Edit instructions → revise notes and re-present.
 - "cancel" / "no" / anything negative → stop without side effects.
 
-Never assume approval from silence. Never interpret ambiguity as
-"proceed". If unsure, ask again.
+Never assume approval from silence.
 
-## Step 5 — update CHANGELOG.md
+## Step 6 — update CHANGELOG.md
 
-1. Rename the existing `## [Unreleased]` heading to
-   `## [X.Y.Z] - YYYY-MM-DD`.
-2. Insert a fresh empty `## [Unreleased]` section above it. One
-   blank line of separation.
-3. At the bottom compare-link list:
-   - Replace `[Unreleased]: …compare/vA.B.C...HEAD` with
-     `[Unreleased]: …compare/vX.Y.Z...HEAD`.
-   - Add a new line
-     `[X.Y.Z]: …compare/vA.B.C...vX.Y.Z` directly under the
-     `[Unreleased]` row.
+Two edits to one file. No other files touched.
 
-No other edits. The existing Unreleased body is the release notes.
+1. **Insert a new section directly below the existing `[Unreleased]`
+   stub.** Leave the `## [Unreleased]` header and its empty body
+   alone — it is Keep-a-Changelog convention and stays as a stub
+   between releases. Insert between the blank line after
+   `## [Unreleased]` and the previous release's heading:
 
-## Step 6 — commit gate
+   ```markdown
+   ## [X.Y.Z] - YYYY-MM-DD
 
-Show `git diff CHANGELOG.md` (expect ~5-line diff: heading rename,
-new empty `[Unreleased]` block, two link-list rows).
+   <the approved release notes from Step 5>
+
+   ```
+
+2. **Update the compare-link block at the bottom:**
+   - Rewrite the existing `[Unreleased]: …compare/vA.B.C...HEAD`
+     line to `[Unreleased]: …compare/vX.Y.Z...HEAD`.
+   - Insert a new line directly under it:
+     `[X.Y.Z]: …compare/vA.B.C...vX.Y.Z`.
+
+Do NOT rename `[Unreleased]`. Do NOT delete anything. The resulting
+diff should be `N insertions, 1 deletion` where N is the size of the
+inserted section plus the one new compare-link row.
+
+## Step 7 — commit gate
+
+Show `git diff --stat CHANGELOG.md` and the first 30 + last 10 lines
+of `git diff CHANGELOG.md` so the user can sanity-check the edit
+landed as planned.
 
 Draft commit message:
 
 ```
 Cut vX.Y.Z
 
-Move [Unreleased] entries to [X.Y.Z] - YYYY-MM-DD and add the
-compare link. No code changes; the version string is derived from
-the git tag at build time.
+Add [X.Y.Z] section to CHANGELOG with release notes and update the
+compare-link block. No code changes; the version string is derived
+from the git tag at build time.
 ```
 
-Adjust the second line if the project's version string comes from
-somewhere other than the git tag (check `Makefile`, `setup.py`,
-`Cargo.toml`, `package.json`, etc. — mention the adjustment).
+Adjust the second paragraph if the project's version string comes
+from somewhere other than the git tag (check `Makefile`, `setup.py`,
+`Cargo.toml`, `package.json`, etc. — mention the adjustment, but do
+NOT auto-edit those files).
 
 Ask: "Should I proceed with this commit?" Wait for explicit "yes".
 
-## Step 7 — push gate
+When committing, use `git commit --no-verify` per the user-explicit-
+commit convention (projects with a pre-commit hook that blocks
+automated commits allow them when the user explicitly requests it).
+
+## Step 8 — push gate
 
 After the commit succeeds, ask: "Should I push to origin/master?"
-Wait for explicit "yes". This is a shared-state change; silent
-execution is forbidden.
+Wait for explicit "yes". Shared-state change; silent execution is
+forbidden.
 
-## Step 8 — create GitHub draft release
+## Step 9 — create GitHub draft release
 
-Once pushed, get the full SHA:
+Once pushed, get the full SHA and write the release body to a temp
+file so `gh` does not shell-interpolate:
 
 ```bash
 FULL_SHA=$(git rev-parse HEAD)
 ```
+
+Write the release body to `/tmp/<repo>-<version>-notes.md`:
+- A one- to two-sentence opening blurb synthesized from the top
+  bullet (mirroring what the release title communicates, expanded).
+- The full `[X.Y.Z]` content (the release-notes block from Step 2,
+  WITHOUT the `## [X.Y.Z] - YYYY-MM-DD` heading itself).
+- A trailing `**Full changelog:**
+  https://…/compare/vA.B.C...vX.Y.Z` line.
 
 Then:
 
@@ -166,62 +222,65 @@ gh release create vX.Y.Z \
   --draft \
   --target "$FULL_SHA" \
   --title "vX.Y.Z — <subtitle>" \
-  --notes "<release body>"
+  --notes-file /tmp/<repo>-<version>-notes.md
 ```
 
 Notes:
-
 - Pass the **full 40-char SHA** to `--target`. Short SHAs are
   rejected by the GitHub API with `target_commitish is invalid`.
-- The release body is the `[Unreleased]` content from before the
-  CHANGELOG rename, with a one- or two-sentence opening blurb
-  synthesized from the top bullet (mirroring what the release title
-  communicates, expanded to 2 sentences). End the body with a
-  `**Full changelog:** https://…/compare/vA.B.C...vX.Y.Z` line.
+- Prefer `--notes-file` over `--notes "<body>"` — keeps shell
+  quoting out of the release body and avoids `$`/backtick
+  interpolation in inline code samples.
 - Do NOT pass `--generate-notes`. The curated CHANGELOG is the
   source of truth.
 - The git tag `vX.Y.Z` will NOT exist yet. Draft releases can
   reference a commit SHA directly; the tag is created only when the
   user publishes from the GitHub UI.
 
-## Step 9 — verify and report
+Clean up the temp file after `gh release create` succeeds.
+
+## Step 10 — verify and report
 
 Run:
 
 ```bash
 gh release view vX.Y.Z --json name,tagName,isDraft,targetCommitish,url
+git tag -l vX.Y.Z   # expect empty output
 ```
 
-Confirm `isDraft: true` and `targetCommitish` matches the full SHA
-from step 8. Report:
+Confirm `isDraft: true`, `targetCommitish` matches the full SHA from
+step 8, and no local `vX.Y.Z` tag exists. Report:
 
 - Commit SHA on master.
-- Draft release URL (from `.url` in the JSON). Note that the URL
-  will contain `untagged-<hash>` until published.
+- Draft release URL (from `.url` in the JSON). Note the URL contains
+  `untagged-<hash>` until published.
 - Reminder: "Review in the GitHub UI and click **Publish release**
   when ready. Publishing creates the `vX.Y.Z` tag."
 
 ## Error recovery
 
-If step 8 fails after step 7 has pushed the CHANGELOG commit:
+If Step 9 fails after Step 8 has pushed the CHANGELOG commit:
 
 - Do NOT force-push, do NOT reset. The commit is already on
   origin/master and other users may have pulled it.
 - Report the exact error and the commit SHA.
 - Suggest a manual retry: `gh release create vX.Y.Z --draft
-  --target <sha> …`.
+  --target <sha> --notes-file <path>`.
 
-If the user cancels at the approval gate in step 4, exit cleanly
-with no file changes and no git operations performed.
+If the user cancels at the content-approval gate in Step 5, exit
+cleanly with no file changes and no git operations performed.
 
 ## What this command does NOT do
 
 - Publish the release. That button stays in the user's hands.
 - Create the git tag. Publishing the draft release creates the tag.
+- Rename or delete the `[Unreleased]` stub. It stays empty.
+- Populate `[Unreleased]` as an intermediate step. The command writes
+  a new `[X.Y.Z]` section directly; no populate-then-rename churn.
 - Update other files (Makefile version strings, Cargo.toml version,
   package.json version, etc.). If the project pins its version
-  outside of the git tag, warn the user during step 6's commit-gate
-  but do not auto-edit.
+  outside of the git tag, warn the user during the Step 7 commit
+  gate but do not auto-edit.
 - Write a `.github/release.yml` auto-notes config. The curated
   CHANGELOG body is the deliberate choice; do not introduce
   generate-notes as a fallback.
