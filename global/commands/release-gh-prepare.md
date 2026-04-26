@@ -22,17 +22,27 @@ used directly (still subject to the content-approval gate).
 
 Before any edit or git action:
 
-1. The current branch is `master`. If it is `main`, `dev`, a feature
-   branch, or a detached HEAD — abort with a message explaining that
-   this command releases off `master` only.
+1. The current branch is the project's default branch. Resolve it via:
+   - `git symbolic-ref --short refs/remotes/origin/HEAD` (returns
+     `origin/<branch>`; strip the prefix). Fast path; works on any
+     clone where `origin/HEAD` is set.
+   - Fallback: `gh repo view --json defaultBranchRef --jq
+     .defaultBranchRef.name`.
+   - If both fail, abort with a message asking the user to run
+     `git remote set-head origin --auto` and retry.
+
+   Call the resolved name `<default-branch>`. If the current branch
+   does not match it, or if HEAD is detached — abort with a message
+   naming the resolved default and explaining that this command
+   releases off the default branch only.
 2. `git status --porcelain` is empty (no uncommitted or untracked
    changes).
-3. The current branch is in sync with `origin/master` (no unpushed
-   commits and no unpulled commits from origin).
+3. The current branch is in sync with `origin/<default-branch>` (no
+   unpushed commits and no unpulled commits from origin).
 4. `CHANGELOG.md` exists at the repository root.
-5. There is at least one commit on `master` since the last release
-   tag. If `git log <last-tag>..HEAD` is empty, there is nothing to
-   release — abort.
+5. There is at least one commit on `<default-branch>` since the last
+   release tag. If `git log <last-tag>..HEAD` is empty, there is
+   nothing to release — abort.
 6. `gh auth status` succeeds and the repository has an `origin`
    remote pointing to github.com.
 
@@ -194,9 +204,9 @@ automated commits allow them when the user explicitly requests it).
 
 ## Step 8 — push gate
 
-After the commit succeeds, ask: "Should I push to origin/master?"
-Wait for explicit "yes". Shared-state change; silent execution is
-forbidden.
+After the commit succeeds, ask: "Should I push to
+`origin/<default-branch>`?" Wait for explicit "yes". Shared-state
+change; silent execution is forbidden.
 
 ## Step 9 — create GitHub draft release
 
@@ -251,7 +261,7 @@ git tag -l vX.Y.Z   # expect empty output
 Confirm `isDraft: true`, `targetCommitish` matches the full SHA from
 step 8, and no local `vX.Y.Z` tag exists. Report:
 
-- Commit SHA on master.
+- Commit SHA on `<default-branch>`.
 - Draft release URL (from `.url` in the JSON). Note the URL contains
   `untagged-<hash>` until published.
 - Reminder: "Review in the GitHub UI and click **Publish release**
@@ -262,7 +272,7 @@ step 8, and no local `vX.Y.Z` tag exists. Report:
 If Step 9 fails after Step 8 has pushed the CHANGELOG commit:
 
 - Do NOT force-push, do NOT reset. The commit is already on
-  origin/master and other users may have pulled it.
+  `origin/<default-branch>` and other users may have pulled it.
 - Report the exact error and the commit SHA.
 - Suggest a manual retry: `gh release create vX.Y.Z --draft
   --target <sha> --notes-file <path>`.
@@ -286,4 +296,5 @@ cleanly with no file changes and no git operations performed.
   generate-notes as a fallback.
 - Run tests, linters, or vulnerability scans. Those belong in CI
   and in the user's separate `/test`, `/lint`, `/security-audit`
-  workflows. This command assumes master HEAD is already clean.
+  workflows. This command assumes `<default-branch>` HEAD is already
+  clean.
