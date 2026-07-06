@@ -1,5 +1,4 @@
 ---
-allowed-tools: ""
 argument-hint: "[version]"
 description: "Cut a new version: update CHANGELOG, commit, push, and create a GitHub draft release. Mandatory user approval of the version."
 ---

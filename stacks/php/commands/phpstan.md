@@ -1,7 +1,7 @@
 ---
 description: Run PHPStan static analysis
 argument-hint: [path]
-allowed-tools: Bash(./vendor/bin/phpstan:*)
+allowed-tools: Bash
 ---
 
 Run PHPStan static analysis:

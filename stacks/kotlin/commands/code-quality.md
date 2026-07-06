@@ -1,6 +1,5 @@
 ---
 description: "Scan the Android project for code quality issues and warnings"
-allowed-tools: Bash, Read, Grep
 ---
 
 Scan the project for code quality issues and warnings.
