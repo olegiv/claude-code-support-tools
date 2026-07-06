@@ -22,7 +22,7 @@ if [ -n "$LANG_CODE" ]; then
     echo "ERROR: Language code too long (max 10 characters)"
     exit 1
   fi
-  if ! echo "$LANG_CODE" | grep -qE '^[a-z]{2}(-[a-z]{2,3})?$'; then
+  if ! printf '%s' "$LANG_CODE" | grep -qE '^[a-z]{2}(-[a-z]{2,3})?$'; then
     echo "ERROR: Invalid language code format. Use lowercase ISO codes (e.g., fr, de, pt-br)"
     exit 1
   fi
@@ -58,7 +58,7 @@ LANG_CODE="${ARGUMENTS:-}"
 if [ -z "$LANG_CODE" ]; then
   echo "No language specified. Showing all languages from step 3."
 else
-  SAFE_LANG=$(echo "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+  SAFE_LANG=$(printf '%s' "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT COUNT(*) as untranslated
   FROM locales_source s
@@ -85,7 +85,7 @@ ORDER BY n.type, n.langcode;
 ```bash
 LANG_CODE="${ARGUMENTS:-}"
 if [ -n "$LANG_CODE" ]; then
-  SAFE_LANG=$(echo "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+  SAFE_LANG=$(printf '%s' "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
   ./vendor/bin/drush sql:query "
   SELECT DISTINCT n.type, COUNT(*) as missing
   FROM node_field_data n

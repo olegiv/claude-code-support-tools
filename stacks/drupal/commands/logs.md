@@ -15,14 +15,14 @@ View Drupal watchdog logs: $ARGUMENTS
    fi
 
    # Parse severity and count from $ARGUMENTS
-   SEVERITY=$(echo "$ARGUMENTS" | awk '{print $1}')
-   COUNT=$(echo "$ARGUMENTS" | awk '{print $2}')
+   SEVERITY=$(printf '%s' "$ARGUMENTS" | awk '{print $1}')
+   COUNT=$(printf '%s' "$ARGUMENTS" | awk '{print $2}')
 
    # Validate severity if provided
    if [ -n "$SEVERITY" ]; then
-     if ! echo "$SEVERITY" | grep -qE '^(error|warning|notice|info|debug|emergency|alert|critical)$'; then
+     if ! printf '%s' "$SEVERITY" | grep -qE '^(error|warning|notice|info|debug|emergency|alert|critical)$'; then
        # Might be a count instead of severity
-       if echo "$SEVERITY" | grep -qE '^[0-9]+$'; then
+       if printf '%s' "$SEVERITY" | grep -qE '^[0-9]+$'; then
          COUNT="$SEVERITY"
          SEVERITY=""
        else
@@ -34,7 +34,7 @@ View Drupal watchdog logs: $ARGUMENTS
 
    # Validate and cap count
    COUNT="${COUNT:-50}"
-   if ! echo "$COUNT" | grep -qE '^[0-9]+$'; then
+   if ! printf '%s' "$COUNT" | grep -qE '^[0-9]+$'; then
      echo "ERROR: Count must be a number"
      exit 1
    fi

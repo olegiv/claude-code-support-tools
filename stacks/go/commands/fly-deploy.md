@@ -60,12 +60,12 @@ Report app status, machine state, and health check results.
 Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
 ```bash
 # Validate arguments contain only safe characters
-if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
+if printf '%s' "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
   echo "ERROR: Arguments contain forbidden shell characters"
   exit 1
 fi
 # Block quote characters (prevent string escaping attacks)
-if echo "$ARGUMENTS" | grep -qF '"' || echo "$ARGUMENTS" | grep -qF "'"; then
+if printf '%s' "$ARGUMENTS" | grep -qF '"' || printf '%s' "$ARGUMENTS" | grep -qF "'"; then
   echo "ERROR: Arguments contain forbidden quote characters"
   exit 1
 fi

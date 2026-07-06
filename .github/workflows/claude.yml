@@ -18,26 +18,30 @@ concurrency:
 jobs:
   claude:
     # Security: Only allow trusted users (OWNER, MEMBER, COLLABORATOR) to trigger Claude
-    # This prevents prompt injection attacks from external contributors
+    # This prevents prompt injection attacks from external contributors.
+    # Each event branch validates the association of THAT event's own actor
+    # (comment / review / issue author). Do NOT flatten these into a single
+    # shared OR of all three associations: for an issue_comment event the
+    # payload carries both .comment (the commenter) and .issue (the original
+    # author), so an untrusted user commenting on a trusted user's issue/PR
+    # would satisfy a shared OR via github.event.issue.author_association and
+    # bypass the gate. Keep the association check inside each event branch.
     # See: https://www.aikido.dev/blog/promptpwnd-github-actions-ai-agents
     if: |
       github.event.sender.type == 'User' &&
       (
-        github.event.comment.author_association == 'OWNER' ||
-        github.event.comment.author_association == 'MEMBER' ||
-        github.event.comment.author_association == 'COLLABORATOR' ||
-        github.event.issue.author_association == 'OWNER' ||
-        github.event.issue.author_association == 'MEMBER' ||
-        github.event.issue.author_association == 'COLLABORATOR' ||
-        github.event.review.author_association == 'OWNER' ||
-        github.event.review.author_association == 'MEMBER' ||
-        github.event.review.author_association == 'COLLABORATOR'
-      ) &&
-      (
-        (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
-        (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
-        (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-        (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+        (github.event_name == 'issue_comment' &&
+          contains(github.event.comment.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+        (github.event_name == 'pull_request_review_comment' &&
+          contains(github.event.comment.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+        (github.event_name == 'pull_request_review' &&
+          contains(github.event.review.body, '@claude') &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.review.author_association)) ||
+        (github.event_name == 'issues' &&
+          (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')) &&
+          contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.issue.author_association))
       )
     runs-on: ubuntu-latest
     timeout-minutes: 15

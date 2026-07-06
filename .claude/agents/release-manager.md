@@ -108,6 +108,10 @@ You are a release management expert for open-source Claude Code tool repositorie
 - Verify all changes are committed
 
 **Tagging:**
+- **Confirmation gate (required):** Before creating any tag, present the
+  exact tag name and message to the user and wait for explicit approval
+  (e.g. "yes"). Never tag without it — a pushed tag is public and
+  awkward to reverse. Never assume approval from silence.
 - Create annotated git tag: `git tag -a vX.Y.Z -m "Release vX.Y.Z"`
 - Tag message should include release highlights
 - Follow existing tag conventions
@@ -120,6 +124,11 @@ You are a release management expert for open-source Claude Code tool repositorie
 ### 6. Release Creation
 
 **GitHub Release:**
+- **Confirmation gate (required):** Creating/publishing a release is a
+  public, hard-to-reverse action (it triggers notifications and webhooks
+  and, for a published release, creates the tag). Present the release
+  title, target, and notes and wait for explicit user approval before
+  running `gh release create`. Never assume approval from silence.
 - Create release from tag
 - Use version number as release title (vX.Y.Z)
 - Copy changelog entry to release notes

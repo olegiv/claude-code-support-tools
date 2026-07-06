@@ -1,5 +1,6 @@
 ---
 allowed-tools: ""
+argument-hint: "[version]"
 description: "Cut a new version: update CHANGELOG, commit, push, and create a GitHub draft release. Mandatory user approval of the version."
 ---
 
@@ -14,9 +15,18 @@ version, writes the notes under a new `## [X.Y.Z] - YYYY-MM-DD` heading in
 release" button — and therefore the git tag creation — is deliberately
 left to the user.
 
-Optional argument: a version override like `0.12.0` or `v0.12.0`. If
-provided, the version-selection question is skipped and the argument is
-used directly (still subject to the content-approval gate).
+Optional argument: a version override like `0.12.0` or `v0.12.0`, passed
+as `$ARGUMENTS`. If provided, the version-selection question in Step 3 is
+skipped and the value is used as the release version (still subject to the
+content-approval gate in Step 5).
+
+**Validate `$ARGUMENTS` before using it anywhere.** If it is non-empty it
+MUST match the regex `^v?[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$` exactly
+(optional leading `v`, then `MAJOR.MINOR.PATCH`, optional `-prerelease`).
+If it does not match, abort immediately and ask the user for a valid
+version — never pass an unvalidated argument to `git` or `gh`. In
+particular, reject any value beginning with `-` (e.g. `--generate-notes`):
+it must never be forwarded where a CLI could parse it as a flag.
 
 ## Hard preconditions — abort if any fails
 
@@ -112,7 +122,8 @@ string, or cancel.
 
 **Never** skip this step. Even if the bump is obvious, the user's
 version-choice authority is not delegated. If the user passed a
-version argument to the command, use that verbatim and skip the
+version argument to the command, use the validated `$ARGUMENTS` (it
+must already have passed the format check above) and skip the
 question.
 
 ## Step 4 — infer release title
@@ -125,6 +136,14 @@ string stays under ~70 chars.
 
 Fallback order: first Added bullet → first bullet of any section →
 `vX.Y.Z` alone with no subtitle.
+
+**Sanitize the subtitle.** It is synthesized from commit messages and
+`gh pr view` output — attacker-influenceable in a repo that accepts
+outside contributions — and lands inside a shell-quoted `--title` value
+in Step 9 (`gh release create` has no `--title-file` option). Strip any
+`"`, `` ` ``, `$`, and `\` from the subtitle before composing the title.
+The `vX.Y.Z` prefix is already format-validated; only the free-text
+subtitle needs stripping.
 
 Always let the user override the title in Step 5's content-approval
 gate.
@@ -146,7 +165,8 @@ Wait for the user. Accept any of:
 - Edit instructions → revise notes and re-present.
 - "cancel" / "no" / anything negative → stop without side effects.
 
-Never assume approval from silence.
+Never assume approval from silence. Never interpret ambiguity as
+"proceed" — if the response is unclear, ask again rather than acting.
 
 ## Step 6 — update CHANGELOG.md
 
@@ -228,14 +248,20 @@ Write the release body to `/tmp/<repo>-<version>-notes.md`:
 Then:
 
 ```bash
-gh release create vX.Y.Z \
+gh release create \
   --draft \
   --target "$FULL_SHA" \
   --title "vX.Y.Z — <subtitle>" \
-  --notes-file /tmp/<repo>-<version>-notes.md
+  --notes-file /tmp/<repo>-<version>-notes.md \
+  -- vX.Y.Z
 ```
 
 Notes:
+- The `--` before `vX.Y.Z` ends option parsing so the tag can never
+  be misread as a flag (defense in depth on top of the version-format
+  check). `gh release create` takes positional args
+  (`[<tag>] [<files>...]`), so `--` must come **after** all flags,
+  with the tag as the final positional.
 - Pass the **full 40-char SHA** to `--target`. Short SHAs are
   rejected by the GitHub API with `target_commitish is invalid`.
 - Prefer `--notes-file` over `--notes "<body>"` — keeps shell
@@ -274,8 +300,8 @@ If Step 9 fails after Step 8 has pushed the CHANGELOG commit:
 - Do NOT force-push, do NOT reset. The commit is already on
   `origin/<default-branch>` and other users may have pulled it.
 - Report the exact error and the commit SHA.
-- Suggest a manual retry: `gh release create vX.Y.Z --draft
-  --target <sha> --notes-file <path>`.
+- Suggest a manual retry: `gh release create --draft --target <sha>
+  --notes-file <path> -- vX.Y.Z`.
 
 If the user cancels at the content-approval gate in Step 5, exit
 cleanly with no file changes and no git operations performed.

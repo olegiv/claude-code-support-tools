@@ -15,11 +15,15 @@ Path to analyze: $ARGUMENTS (optional)
        echo "ERROR: Input too long (max 256 characters)"
        exit 1
      fi
-     if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+     if printf '%s' "$ARGUMENTS" | grep -qE '\.\.'; then
        echo "ERROR: Path traversal not allowed"
        exit 1
      fi
-     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./ -]+$'; then
+     if printf '%s' "$ARGUMENTS" | grep -qE '^/'; then
+       echo "ERROR: Absolute paths not allowed"
+       exit 1
+     fi
+     if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./ -]+$'; then
        echo "ERROR: Invalid path. Only alphanumeric, dots, slashes, hyphens, underscores, and spaces allowed."
        exit 1
      fi

@@ -24,8 +24,8 @@ if [ -n "$SEVERITY" ]; then
     exit 1
   fi
   # Normalize to lowercase
-  SEVERITY=$(echo "$SEVERITY" | tr '[:upper:]' '[:lower:]')
-  if ! echo "$SEVERITY" | grep -qE '^(critical|high|medium|low)$'; then
+  SEVERITY=$(printf '%s' "$SEVERITY" | tr '[:upper:]' '[:lower:]')
+  if ! printf '%s' "$SEVERITY" | grep -qE '^(critical|high|medium|low)$'; then
     echo "ERROR: Invalid severity '$SEVERITY'. Use: critical, high, medium, low"
     exit 1
   fi

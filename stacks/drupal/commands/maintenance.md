@@ -21,7 +21,7 @@ if [ -n "${ARGUMENTS:-}" ]; then
     echo "ERROR: Input too long (max 10 characters)"
     exit 1
   fi
-  if ! echo "$ARGUMENTS" | grep -qE '^(on|off)$'; then
+  if ! printf '%s' "$ARGUMENTS" | grep -qE '^(on|off)$'; then
     echo "ERROR: Invalid argument '$ARGUMENTS'. Use 'on' or 'off'"
     exit 1
   fi

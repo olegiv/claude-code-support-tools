@@ -13,11 +13,15 @@ Check and update dependencies: $ARGUMENTS
        echo "ERROR: Input too long (max 128 characters)"
        exit 1
      fi
-     if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+     if printf '%s' "$ARGUMENTS" | grep -qE '\.\.'; then
        echo "ERROR: Path traversal not allowed"
        exit 1
      fi
-     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
+     if printf '%s' "$ARGUMENTS" | grep -qE '^/'; then
+       echo "ERROR: Absolute paths not allowed"
+       exit 1
+     fi
+     if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
        echo "ERROR: Invalid package name. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
        exit 1
      fi

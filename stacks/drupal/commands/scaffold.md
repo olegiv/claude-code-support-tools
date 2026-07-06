@@ -24,20 +24,20 @@ if [ ${#ARGUMENTS} -gt 256 ]; then
   exit 1
 fi
 
-SCAFFOLD_TYPE=$(echo "$ARGUMENTS" | awk '{print $1}')
-COMPONENT_NAME=$(echo "$ARGUMENTS" | awk '{print $2}')
-MODULE_NAME=$(echo "$ARGUMENTS" | awk '{print $3}')
+SCAFFOLD_TYPE=$(printf '%s' "$ARGUMENTS" | awk '{print $1}')
+COMPONENT_NAME=$(printf '%s' "$ARGUMENTS" | awk '{print $2}')
+MODULE_NAME=$(printf '%s' "$ARGUMENTS" | awk '{print $3}')
 
 # Explicit path traversal check (defense-in-depth)
 for VAR_CHECK in "$SCAFFOLD_TYPE" "$COMPONENT_NAME" "$MODULE_NAME"; do
-  if [ -n "$VAR_CHECK" ] && echo "$VAR_CHECK" | grep -qE '(\.\.|/)'; then
+  if [ -n "$VAR_CHECK" ] && printf '%s' "$VAR_CHECK" | grep -qE '(\.\.|/)'; then
     echo "ERROR: Path traversal characters not allowed"
     exit 1
   fi
 done
 
 # Validate type
-if ! echo "$SCAFFOLD_TYPE" | grep -qE '^(controller|service|form|block|plugin|entity|event|subscriber)$'; then
+if ! printf '%s' "$SCAFFOLD_TYPE" | grep -qE '^(controller|service|form|block|plugin|entity|event|subscriber)$'; then
   echo "ERROR: Invalid type '$SCAFFOLD_TYPE'. Use: controller, service, form, block, plugin, entity, event, subscriber"
   exit 1
 fi
@@ -47,14 +47,14 @@ if [ -z "$COMPONENT_NAME" ]; then
   echo "ERROR: Component name is required"
   exit 1
 fi
-if ! echo "$COMPONENT_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
+if ! printf '%s' "$COMPONENT_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
   echo "ERROR: Invalid component name. Must start with a letter, only alphanumeric and underscores."
   exit 1
 fi
 
 # Validate module name if provided
 if [ -n "$MODULE_NAME" ]; then
-  if ! echo "$MODULE_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
+  if ! printf '%s' "$MODULE_NAME" | grep -qE '^[a-zA-Z][a-zA-Z0-9_]*$'; then
     echo "ERROR: Invalid module name. Must start with a letter, only alphanumeric and underscores."
     exit 1
   fi
