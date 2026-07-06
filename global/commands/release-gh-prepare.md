@@ -278,8 +278,9 @@ Notes:
   reference a commit SHA directly; the tag is created only when the
   user publishes from the GitHub UI.
 
-Clean up with `rm -f "$NOTES_FILE"` after `gh release create` — and also
-on failure, so the temp file never leaks.
+Clean up with `rm -f "$NOTES_FILE"` after `gh release create` **succeeds**.
+If it fails, leave the file in place so the retry in "Error recovery" can
+reuse it, and tell the user to remove it once the retry succeeds.
 
 ## Step 10 — verify and report
 
@@ -306,8 +307,11 @@ If Step 9 fails after Step 8 has pushed the CHANGELOG commit:
 - Do NOT force-push, do NOT reset. The commit is already on
   `origin/<default-branch>` and other users may have pulled it.
 - Report the exact error and the commit SHA.
-- Suggest a manual retry: `gh release create --draft --target <sha>
-  --notes-file <path> -- vX.Y.Z`.
+- Suggest a manual retry reusing the notes file that was intentionally
+  kept on failure: `gh release create --draft --target <sha>
+  --notes-file "$NOTES_FILE" -- vX.Y.Z`, then `rm -f "$NOTES_FILE"`
+  once it succeeds. If `$NOTES_FILE` is no longer available, recreate
+  the notes per Step 9 before retrying.
 
 If the user cancels at the content-approval gate in Step 5, exit
 cleanly with no file changes and no git operations performed.
