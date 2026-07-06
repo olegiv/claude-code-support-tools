@@ -7,10 +7,10 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate actual drush command invocations (not substrings like "drush/drush")
-if ! echo "$COMMAND" | grep -qE '(^|[;&|[:space:]])(\.\/)?vendor/bin/drush\b|(^|[;&|[:space:]])drush\b'; then
+if ! printf '%s' "$COMMAND" | grep -qE '(^|[;&|[:space:]])(\.\/)?vendor/bin/drush\b|(^|[;&|[:space:]])drush\b'; then
     exit 0
 fi
 

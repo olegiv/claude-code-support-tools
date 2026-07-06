@@ -21,7 +21,7 @@ if [ -n "${ARGUMENTS:-}" ]; then
     echo "ERROR: Input too long (max 64 characters)"
     exit 1
   fi
-  if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+  if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
     echo "ERROR: Invalid content type. Only alphanumeric characters and underscores allowed."
     exit 1
   fi

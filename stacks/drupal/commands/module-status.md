@@ -1,5 +1,5 @@
 ---
-description: Check status of Drupal modules (optional: module name)
+description: "Check status of Drupal modules (optional: module name)"
 argument-hint: [module-name]
 allowed-tools: Bash, Read, Grep
 ---
@@ -13,7 +13,7 @@ Check Drupal module status for: $ARGUMENTS
        echo "ERROR: Input too long (max 128 characters)"
        exit 1
      fi
-     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+     if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
        echo "ERROR: Invalid module name. Only alphanumeric and underscores allowed."
        exit 1
      fi

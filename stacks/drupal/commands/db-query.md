@@ -47,31 +47,45 @@ if [ ${#QUERY} -gt 2000 ]; then
   exit 1
 fi
 
+# Validation pipelines use printf, not echo: under zsh the builtin echo
+# decodes backslash escapes before grep/sed inspect the string, while the
+# raw $ARGUMENTS still reaches the database below — so a check on the
+# echo-decoded copy would not match what actually executes.
+
 # Block semicolons on RAW input to prevent all stacked queries
 # regardless of comment/string escaping tricks
-if echo "$QUERY" | grep -qE ";"; then
+if printf '%s' "$QUERY" | grep -qE ";"; then
   echo "ERROR: Semicolons not allowed (prevents multiple statements)"
+  exit 1
+fi
+
+# Block MySQL/MariaDB versioned comments (/*! ... */) on RAW input: those
+# execute as code rather than being ignored, so the comment-stripping step
+# below would hide keywords like UNION from the filter while the database
+# still runs them. Reject outright.
+if printf '%s' "$QUERY" | grep -qF '/*!'; then
+  echo "ERROR: Versioned comments (/*! ... */) are not allowed"
   exit 1
 fi
 
 # Flatten to single line FIRST, then strip strings (handle doubled
 # quotes before removal), then strip comments
-CLEAN_QUERY=$(echo "$QUERY" | tr '\n' ' ' | sed "s/''//g" | sed "s/'[^']*'//g" | sed 's/--.*//g' | sed -E "s|/\*([^*]|\*[^/])*\*/||g")
+CLEAN_QUERY=$(printf '%s' "$QUERY" | tr '\n' ' ' | sed "s/''//g" | sed "s/'[^']*'//g" | sed 's/--.*//g' | sed -E "s#/\*([^*]|\*[^/])*\*/##g")
 
 # Check for dangerous keywords (DML/DDL/UNION)
-if echo "$CLEAN_QUERY" | grep -iqE "\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|EXECUTE|CALL|LOAD|OUTFILE|INFILE|DUMPFILE|REPLACE|MERGE|HANDLER|UNION)\b"; then
+if printf '%s' "$CLEAN_QUERY" | grep -iqE "\b(INSERT|UPDATE|DELETE|DROP|TRUNCATE|ALTER|CREATE|GRANT|REVOKE|EXECUTE|CALL|LOAD|OUTFILE|INFILE|DUMPFILE|REPLACE|MERGE|HANDLER|UNION)\b"; then
   echo "ERROR: Only SELECT queries are allowed"
   exit 1
 fi
 
 # Check for locking operations
-if echo "$CLEAN_QUERY" | grep -iqE "\b(FOR\s+UPDATE|LOCK\s+TABLES)\b"; then
+if printf '%s' "$CLEAN_QUERY" | grep -iqE "\b(FOR\s+UPDATE|LOCK\s+TABLES)\b"; then
   echo "ERROR: Query contains forbidden locking operations"
   exit 1
 fi
 
 # Verify query starts with SELECT
-if ! echo "$CLEAN_QUERY" | grep -iqE "^\s*SELECT\b"; then
+if ! printf '%s' "$CLEAN_QUERY" | grep -iqE "^\s*SELECT\b"; then
   echo "ERROR: Query must start with SELECT"
   exit 1
 fi

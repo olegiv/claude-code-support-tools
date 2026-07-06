@@ -15,14 +15,22 @@ if [ ${#ARGUMENTS} -gt 256 ]; then
   exit 1
 fi
 
-# Block path traversal
-if echo "$ARGUMENTS" | grep -qE '\.\.'; then
+# Block path traversal (use printf, not echo: under zsh echo decodes
+# backslash escapes before grep sees them)
+if printf '%s' "$ARGUMENTS" | grep -qE '\.\.'; then
   echo "ERROR: Path traversal not allowed"
   exit 1
 fi
 
+# Block absolute paths — inputs are module names or project-relative
+# paths, never absolute filesystem paths like /etc/passwd
+if printf '%s' "$ARGUMENTS" | grep -qE '^/'; then
+  echo "ERROR: Absolute paths not allowed"
+  exit 1
+fi
+
 # Validate: module name (alphanumeric/underscore) or file path (safe chars)
-if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
+if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
   echo "ERROR: Invalid input. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
   exit 1
 fi

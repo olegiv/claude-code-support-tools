@@ -76,7 +76,8 @@ Update the following sections:
    - Maintain existing document structure and style
 
 4. **Apply Updates:**
-   - Show proposed changes to user for review
+   - Show the proposed diff and ask the user to approve it
+   - Wait for an affirmative response before calling Edit/Write; never assume approval from silence
    - Apply updates using the Edit tool
    - Verify all documentation is synchronized
 

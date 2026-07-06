@@ -1,3 +1,8 @@
+---
+description: "Run Android Lint to check for code quality issues"
+allowed-tools: Bash
+---
+
 Run Android Lint to check for code quality issues.
 
 ## Steps

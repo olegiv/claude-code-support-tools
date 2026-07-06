@@ -68,7 +68,7 @@ When validating:
 
 5. **Offer Fixes:**
    - If issues are found, offer to fix them automatically
-   - Show the proposed changes before applying
+   - Show the proposed changes, then wait for explicit user approval before applying; never assume approval from silence
    - Create properly formatted files
 
 ## Output Format

@@ -1,3 +1,8 @@
+---
+description: "Run instrumented tests (Espresso + Compose UI) on a connected device"
+allowed-tools: Bash
+---
+
 Run instrumented tests (Espresso + Compose UI tests) on connected device.
 
 ## Steps

@@ -47,7 +47,7 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
      if [ ${#ARGUMENTS} -gt 128 ]; then
        echo "ERROR: Input too long (max 128 characters)"; exit 1
      fi
-     if ! echo "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+     if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
        echo "ERROR: Invalid module name. Only alphanumeric and underscores allowed."; exit 1
      fi
      TARGET="modules/custom/$ARGUMENTS"
@@ -158,7 +158,7 @@ For each issue, provide:
 // BAD: service located statically inside a class
 class TrackerService {
   public function build() {
-    $config = \Drupal::config('iru_tracker.settings');
+    $config = \Drupal::config('example_tracker.settings');
   }
 }
 
@@ -170,7 +170,7 @@ class TrackerService {
   ) {}
 
   public function build() {
-    $config = $this->configFactory->get('iru_tracker.settings');
+    $config = $this->configFactory->get('example_tracker.settings');
   }
 
 }

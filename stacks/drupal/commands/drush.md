@@ -13,25 +13,36 @@ Execute drush command: $ARGUMENTS
      exit 1
    fi
 
-   # Extract the drush subcommand (first word)
-   DRUSH_CMD=$(echo "$ARGUMENTS" | awk '{print $1}')
+   # Extract the drush subcommand (first word). Use printf, not echo:
+   # under zsh the builtin echo decodes backslash escapes, so the value
+   # checked here could differ from the raw $ARGUMENTS run below.
+   DRUSH_CMD=$(printf '%s' "$ARGUMENTS" | awk '{print $1}')
 
-   # Allowlist of safe drush commands
-   SAFE_COMMANDS="cr|cache:rebuild|status|st|core:status|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|uli|user:login|ws|watchdog:show|user:information|sql:query|php:eval|pm:list|core:requirements|queue:list|queue:run|locale:update|entity:updates"
+   # Allowlist of safe drush commands. Deliberately excludes sql:query and
+   # php:eval: their effect is determined entirely by free-form text this
+   # generic wrapper does not validate. Use /db-query for read-only SQL.
+   SAFE_COMMANDS="cr|cache:rebuild|status|st|core:status|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|uli|user:login|ws|watchdog:show|user:information|pm:list|core:requirements|queue:list|queue:run|locale:update|entity:updates"
 
-   if ! echo "$DRUSH_CMD" | grep -qE "^($SAFE_COMMANDS)$"; then
+   if ! printf '%s' "$DRUSH_CMD" | grep -qE "^($SAFE_COMMANDS)$"; then
      echo "ERROR: Unknown drush command '$DRUSH_CMD'. Verify it is safe before running."
      exit 1
    fi
 
    # Block shell metacharacters (glob, redirect, escape, comment, history)
-   if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
+   if printf '%s' "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
      echo "ERROR: Arguments contain forbidden shell characters"
      exit 1
    fi
    # Block quote characters (prevent string escaping attacks)
-   if echo "$ARGUMENTS" | grep -qF '"' || echo "$ARGUMENTS" | grep -qF "'"; then
+   if printf '%s' "$ARGUMENTS" | grep -qF '"' || printf '%s' "$ARGUMENTS" | grep -qF "'"; then
      echo "ERROR: Arguments contain forbidden quote characters"
+     exit 1
+   fi
+   # Block auto-confirmation flags so drush's native prompts for
+   # destructive operations (updb/cim/fr/en/pmu) always fire — this
+   # command must never suppress them on the user's behalf.
+   if printf '%s' "$ARGUMENTS" | grep -qE '(^|[[:space:]])(-y|--yes|-n|--no)([[:space:]]|$)'; then
+     echo "ERROR: Auto-confirmation flags (-y/--yes/-n/--no) are not allowed"
      exit 1
    fi
    # Block newlines (could introduce new commands)
@@ -46,15 +57,19 @@ Execute drush command: $ARGUMENTS
    ./vendor/bin/drush -- $ARGUMENTS
    ```
 
-3. Common drush commands for reference:
+3. Common drush commands for reference. This command blocks the
+   `-y`/`--yes` auto-confirm flag, so destructive operations prompt
+   interactively; for scripted config/database workflows use the
+   purpose-built `/db-update`, `/config-import`, and `/feature-revert`
+   commands, and `/db-query` for read-only SQL:
    - `cr` - Clear all caches
    - `status` - Show system status
-   - `updb -y` - Run database updates
-   - `cex -y` - Export configuration
-   - `cim -y` - Import configuration
-   - `fr <module> -y` - Revert feature
-   - `en <module> -y` - Enable module
-   - `pmu <module> -y` - Uninstall module
+   - `updb` - Run database updates (prompts for confirmation)
+   - `cex` - Export configuration (prompts for confirmation)
+   - `cim` - Import configuration (prompts for confirmation)
+   - `fr <module>` - Revert feature (prompts for confirmation)
+   - `en <module>` - Enable module (prompts for confirmation)
+   - `pmu <module>` - Uninstall module (prompts for confirmation)
    - `uli` - Generate login link
    - `ws --count=50` - Show watchdog logs
 

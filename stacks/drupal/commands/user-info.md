@@ -27,13 +27,13 @@ if [[ "$INPUT" =~ ^[0-9]+$ ]]; then
   : # numeric uid - safe
 elif [[ "$INPUT" =~ @ ]]; then
   # email - allow standard email characters
-  if ! echo "$INPUT" | grep -qE '^[a-zA-Z0-9._+@-]+$'; then
+  if ! printf '%s' "$INPUT" | grep -qE '^[a-zA-Z0-9._+@-]+$'; then
     echo "ERROR: Invalid email format"
     exit 1
   fi
 else
   # username - alphanumeric, underscores, hyphens, dots
-  if ! echo "$INPUT" | grep -qE '^[a-zA-Z0-9._-]+$'; then
+  if ! printf '%s' "$INPUT" | grep -qE '^[a-zA-Z0-9._-]+$'; then
     echo "ERROR: Invalid username format. Only alphanumeric, dots, hyphens, underscores allowed."
     exit 1
   fi
@@ -59,7 +59,7 @@ fi
 ### 3. Get User Roles
 ```bash
 # Escape for PHP single-quoted string context: \ -> \\, ' -> \'
-PHP_SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
+PHP_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
 ./vendor/bin/drush php:eval "
   \$input = '$PHP_SAFE_INPUT';
   \$user = NULL;
@@ -91,7 +91,7 @@ PHP_SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
 ### 4. Recent Activity
 ```bash
 # Escape for SQL string context: \ -> \\, ' -> ''
-SQL_SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+SQL_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, message, timestamp
 FROM watchdog
@@ -110,7 +110,7 @@ LIMIT 10;
 ### 5. Content Authored
 ```bash
 # Escape for SQL string context: \ -> \\, ' -> ''
-SQL_SAFE_INPUT=$(echo "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+SQL_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, COUNT(*) as count
 FROM node_field_data

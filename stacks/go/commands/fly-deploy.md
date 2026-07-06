@@ -1,3 +1,9 @@
+---
+description: "Deploy a Go application to Fly.io (--reset, --logs, or status)"
+argument-hint: "[--reset | --logs | status]"
+allowed-tools: Bash
+---
+
 Deploy a Go application to Fly.io.
 
 **Parameter:** `$ARGUMENTS` - Options: `--reset` (reset database before deploy), `--logs` (show logs after deploy), `status` (check deployment status only)
@@ -59,13 +65,18 @@ Report app status, machine state, and health check results.
 
 Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
 ```bash
+# Cap argument length
+if [ ${#ARGUMENTS} -gt 100 ]; then
+  echo "ERROR: Arguments too long (max 100 characters)"
+  exit 1
+fi
 # Validate arguments contain only safe characters
-if echo "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
+if printf '%s' "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
   echo "ERROR: Arguments contain forbidden shell characters"
   exit 1
 fi
 # Block quote characters (prevent string escaping attacks)
-if echo "$ARGUMENTS" | grep -qF '"' || echo "$ARGUMENTS" | grep -qF "'"; then
+if printf '%s' "$ARGUMENTS" | grep -qF '"' || printf '%s' "$ARGUMENTS" | grep -qF "'"; then
   echo "ERROR: Arguments contain forbidden quote characters"
   exit 1
 fi
@@ -109,7 +120,8 @@ fi
 
 3. Extract the app URL and verify it responds:
    ```bash
-   curl -s -o /dev/null -w "%{http_code}" "https://$(grep '^app ' fly.toml | awk -F\"' '{print $2}').fly.dev/health"
+   url="https://$(grep '^app ' fly.toml | awk -F'"' '{print $2}').fly.dev/health"
+   curl -s -o /dev/null -w "%{http_code}" "$url"
    ```
 
 ## Step 4: Report Results

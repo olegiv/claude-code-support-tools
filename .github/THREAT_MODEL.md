@@ -1,6 +1,6 @@
 # Threat Model: Claude Code Support Tools
 
-**Last Updated**: 2025-12-12
+**Last Updated**: 2026-07-06
 **Document Version**: 1.0
 
 ## Overview
@@ -81,7 +81,7 @@ This document describes the threat model for the Claude Code Support Tools repos
 
 **Mitigations**:
 - ✅ Restrict AI agent tools with `--allowed-tools`
-- ✅ Author association checks (OWNER, MEMBER, COLLABORATOR only)
+- ✅ Author association checks (OWNER, MEMBER, COLLABORATOR only), validated per event type so an untrusted commenter cannot trigger the workflow via a trusted user's issue/PR
 - ✅ Limited tool permissions in workflows
 
 **Status**: MITIGATED

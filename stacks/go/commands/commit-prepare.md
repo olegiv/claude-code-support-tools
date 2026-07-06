@@ -1,5 +1,4 @@
 ---
-allowed-tools: ""
 description: "Review changes and prepare a commit message"
 ---
 

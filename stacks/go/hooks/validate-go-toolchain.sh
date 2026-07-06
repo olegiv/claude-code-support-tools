@@ -7,7 +7,7 @@ set -euo pipefail
 INPUT=$(cat)
 
 # Extract the command from tool_input
-COMMAND=$(echo "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
+COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
 # Only validate go commands (build, test, run, install)
 if [[ "$COMMAND" != go\ build* ]] && [[ "$COMMAND" != go\ test* ]] && [[ "$COMMAND" != go\ run* ]] && [[ "$COMMAND" != go\ install* ]]; then

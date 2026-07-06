@@ -20,7 +20,7 @@ Revert Drupal features: $ARGUMENTS
        exit 1
      fi
      for MODULE in $ARGUMENTS; do
-       if ! echo "$MODULE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
+       if ! printf '%s' "$MODULE" | grep -qE '^[a-zA-Z0-9_-]+$'; then
          echo "ERROR: Invalid module name '$MODULE'. Only alphanumeric, underscores, and hyphens allowed."
          exit 1
        fi

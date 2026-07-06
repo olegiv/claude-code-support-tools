@@ -1,3 +1,7 @@
+---
+description: "Scan the Android project for code quality issues and warnings"
+---
+
 Scan the project for code quality issues and warnings.
 
 Use the **@android-quality-auditor** agent to perform a comprehensive code quality audit of the Android project.

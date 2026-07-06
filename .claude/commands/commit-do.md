@@ -2,7 +2,7 @@ Create a git commit with the prepared commit message:
 
 1. Verify there are changes to commit by running `git status`
 2. If no commit message was prepared in the conversation, remind the user to run `/prepare-commit` first
-3. Add all changed files to staging: `git add .`
+3. Stage only the intended files from the prepared commit scope using explicit paths, for example `git add -- path/to/file`; do not use `git add .` or `git add -A` (avoids accidentally staging unrelated or sensitive local files)
 4. Create the commit using the message prepared by `/prepare-commit`
 5. Pass the message to `git commit -F` via a unique temp file. The message
    must NEVER pass through the shell — no heredocs, no `-m "$(...)"`, no
