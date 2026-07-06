@@ -1,3 +1,8 @@
+---
+allowed-tools: ""
+description: "Perform a comprehensive security audit of the current project"
+---
+
 # security-audit
 
 Perform a comprehensive security audit of the current project.

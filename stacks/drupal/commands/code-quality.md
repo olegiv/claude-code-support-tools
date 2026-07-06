@@ -158,7 +158,7 @@ For each issue, provide:
 // BAD: service located statically inside a class
 class TrackerService {
   public function build() {
-    $config = \Drupal::config('iru_tracker.settings');
+    $config = \Drupal::config('example_tracker.settings');
   }
 }
 
@@ -170,7 +170,7 @@ class TrackerService {
   ) {}
 
   public function build() {
-    $config = $this->configFactory->get('iru_tracker.settings');
+    $config = $this->configFactory->get('example_tracker.settings');
   }
 
 }

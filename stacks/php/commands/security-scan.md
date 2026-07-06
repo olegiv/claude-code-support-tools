@@ -1,7 +1,7 @@
 ---
 description: Run PHP security scan (composer audit and static analysis)
 argument-hint: "<severity: critical|high|medium|low>"
-allowed-tools: Bash, Read
+allowed-tools: Bash(composer:*), Bash(./vendor/bin/phpstan:*), Bash(grep:*), Read
 ---
 
 # PHP Security Scan

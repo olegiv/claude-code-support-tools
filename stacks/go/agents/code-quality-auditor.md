@@ -59,7 +59,7 @@ You are an expert code quality auditor for a Go project. Your role is to identif
 
 ```bash
 go version
-$(go env GOTOOLDIR)/compile -V
+"$(go env GOTOOLDIR)/compile" -V
 ```
 
 **If versions don't match:**

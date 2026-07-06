@@ -10,7 +10,7 @@ The `pre-commit` hook blocks all automated commit attempts and requires interact
 
 - ✅ **Interactive mode**: Prompts user to type "YES" (all caps) to approve commit
 - ❌ **Non-interactive mode**: Always blocks automated commits from Claude Code
-- 🔒 **Cannot be bypassed**: Physically prevents Claude Code from committing without approval
+- 🔒 **Strong default barrier**: Blocks accidental non-interactive commits and requires typed confirmation interactively. This is not a cryptographic guarantee — it relies on `git commit --no-verify` being reserved for genuinely user-approved commits (a behavioral convention, since `--no-verify` is a standard flag available to any caller), and a deliberately-instructed or compromised agent could in principle allocate a pseudo-terminal to satisfy the interactive check.
 
 ### Installation
 

@@ -1,7 +1,7 @@
 ---
 description: "Check and update Composer dependencies (optional: package name)"
 argument-hint: [package-name]
-allowed-tools: Bash, Read
+allowed-tools: Bash(composer:*), Read
 ---
 
 Check and update dependencies: $ARGUMENTS

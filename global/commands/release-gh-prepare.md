@@ -235,9 +235,14 @@ file so `gh` does not shell-interpolate:
 
 ```bash
 FULL_SHA=$(git rev-parse HEAD)
+NOTES_FILE=$(mktemp "${TMPDIR:-/tmp}/<repo>-<version>-notes.XXXXXX")
 ```
 
-Write the release body to `/tmp/<repo>-<version>-notes.md`:
+Use the positional `mktemp` template form (portable across macOS BSD and
+GNU); it creates the file atomically with restrictive permissions, so it
+cannot be pre-planted via a predictable path or hijacked by a symlink.
+
+Write the release body to `$NOTES_FILE`:
 - A one- to two-sentence opening blurb synthesized from the top
   bullet (mirroring what the release title communicates, expanded).
 - The full `[X.Y.Z]` content (the release-notes block from Step 2,
@@ -252,7 +257,7 @@ gh release create \
   --draft \
   --target "$FULL_SHA" \
   --title "vX.Y.Z — <subtitle>" \
-  --notes-file /tmp/<repo>-<version>-notes.md \
+  --notes-file "$NOTES_FILE" \
   -- vX.Y.Z
 ```
 
@@ -273,7 +278,8 @@ Notes:
   reference a commit SHA directly; the tag is created only when the
   user publishes from the GitHub UI.
 
-Clean up the temp file after `gh release create` succeeds.
+Clean up with `rm -f "$NOTES_FILE"` after `gh release create` — and also
+on failure, so the temp file never leaks.
 
 ## Step 10 — verify and report
 

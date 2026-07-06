@@ -1,3 +1,8 @@
+---
+description: "Run Detekt static analysis on the Kotlin codebase"
+allowed-tools: Bash
+---
+
 Run Detekt static analysis on the Kotlin codebase.
 
 ## What This Command Does

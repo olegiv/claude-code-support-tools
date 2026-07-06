@@ -1,0 +1,73 @@
+#!/bin/sh
+# Regression test for the claude.yml trust-boundary trigger condition.
+#
+# Guards the fix for GHA-NEW-001: every event branch must validate the
+# author_association of its OWN actor, and the flat cross-entity OR of
+# three different entities' associations must never be reintroduced (that
+# bug let an untrusted commenter trigger the workflow via a trusted user's
+# issue/PR).
+#
+# Run from the repository root:
+#   sh .github/tests/claude-trigger-test.sh
+# Requires only POSIX sh + grep.
+
+set -eu
+
+WORKFLOW="${1:-.github/workflows/claude.yml}"
+pass=0
+fail=0
+
+expect_count() {
+  # expect_count "description" pattern expected_count
+  actual=$(printf '%s\n' "$STRIPPED" | grep -Fc "$2" || true)
+  if [ "$actual" = "$3" ]; then
+    printf 'PASS  %s (%s)\n' "$1" "$actual"
+    pass=$((pass + 1))
+  else
+    printf 'FAIL  %s: got %s, expected %s\n' "$1" "$actual" "$3"
+    fail=$((fail + 1))
+  fi
+}
+
+if [ ! -f "$WORKFLOW" ]; then
+  printf 'FAIL  workflow not found: %s\n' "$WORKFLOW"
+  exit 1
+fi
+
+# Strip full-line comments so the checks below inspect the actual `if:`
+# expression, not prose that documents it (the condition's own comment
+# legitimately names github.event.issue.author_association, etc.).
+STRIPPED=$(grep -v '^[[:space:]]*#' "$WORKFLOW")
+
+# 1. Anti-pattern guard: the old flat "== 'OWNER'" equality style is gone.
+#    Reintroducing it is exactly how the trust-boundary bug comes back.
+expect_count "no flat author_association equality (anti-pattern)" \
+  "author_association == '" "0"
+
+# 2. Exactly one per-event allowlist-membership check per event branch (4).
+expect_count "four per-event association allowlist checks" \
+  '["OWNER","MEMBER","COLLABORATOR"]' "4"
+
+# 3. Each actor's association is consulted only where it belongs:
+#    comment author for the two comment events, review author for the
+#    review event, issue author for the issues event.
+expect_count "comment.author_association appears twice" \
+  "github.event.comment.author_association" "2"
+expect_count "review.author_association appears once" \
+  "github.event.review.author_association" "1"
+expect_count "issue.author_association appears once" \
+  "github.event.issue.author_association" "1"
+
+# 4. All four event types are still branched explicitly.
+for ev in issue_comment pull_request_review_comment pull_request_review issues; do
+  if printf '%s\n' "$STRIPPED" | grep -Fq "github.event_name == '$ev'"; then
+    printf 'PASS  event branch present: %s\n' "$ev"
+    pass=$((pass + 1))
+  else
+    printf 'FAIL  event branch missing: %s\n' "$ev"
+    fail=$((fail + 1))
+  fi
+done
+
+printf '\n%d/%d passed\n' "$pass" "$((pass + fail))"
+[ "$fail" -eq 0 ]

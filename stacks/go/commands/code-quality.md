@@ -1,3 +1,8 @@
+---
+description: "Scan the Go project for code quality issues and warnings"
+allowed-tools: Bash
+---
+
 Scan the project for code quality issues and warnings.
 
 ## Checks Performed
@@ -58,7 +63,7 @@ Scan the project for code quality issues and warnings.
 1. **Check Go toolchain:**
    ```bash
    go version
-   $(go env GOTOOLDIR)/compile -V
+   "$(go env GOTOOLDIR)/compile" -V
    ```
    If versions don't match, report error and provide fix instructions.
 

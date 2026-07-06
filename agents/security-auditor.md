@@ -126,6 +126,8 @@ Create separate reports for each audit category:
 - `security-audit-tool-definitions.md` - Claude Code command, hook, and agent security
 - `security-audit-summary.md` - Executive summary with all findings
 
+**Output location (important):** Write all of these reports into a `.audit/` directory at the project root, and verify `.audit/` is listed in the project's `.gitignore` (add it if missing) *before* writing — these reports must never be committed. Default to `.audit/` yourself rather than relying on the invoking command to specify the location.
+
 ## Key Security Checks
 
 ### For Go Applications (like this OCMS project):

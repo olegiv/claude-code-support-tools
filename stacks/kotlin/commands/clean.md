@@ -1,3 +1,8 @@
+---
+description: "Clean build artifacts and caches"
+allowed-tools: Bash
+---
+
 Clean build artifacts and caches.
 
 ## Steps

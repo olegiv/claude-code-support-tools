@@ -1,5 +1,5 @@
 ---
-allowed-tools: ""
+allowed-tools: Bash(git status:*), Bash(git diff:*), Bash(git log:*)
 description: "Review changes and prepare a commit message"
 ---
 
