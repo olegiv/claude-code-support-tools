@@ -140,8 +140,8 @@ This repository undergoes regular security audits. See `.audit/README.md` for:
 - Open findings and remediation status
 - Audit methodology and standards
 
-**Last audit**: 2025-12-12
-**Next scheduled audit**: 2026-01-12
+**Last audit**: 2026-07-06
+**Next scheduled audit**: 2026-08-06
 
 ## Supported Versions
 

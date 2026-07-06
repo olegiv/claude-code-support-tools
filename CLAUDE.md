@@ -318,13 +318,13 @@ Commands for maintaining this Claude Code support tools repository:
 ### Release Command
 
 **`/release-gh-prepare`** - Cut a new version with a GitHub draft release
-- Optional argument: a version override like `0.12.0` (skips inference)
-- Hard preconditions: on `master`, clean tree, in sync with `origin/master`, `CHANGELOG.md` with non-empty `[Unreleased]`, `gh` authenticated
-- Infers next version from Unreleased content using semver (BREAKING → major, Added → minor, otherwise patch)
-- Infers release title from the first bold bullet in Unreleased
-- **Mandatory approval gate** before any edit or git operation: user must accept the version, override it, or cancel
-- Updates `CHANGELOG.md` (Unreleased → `[X.Y.Z] - YYYY-MM-DD`, compare links)
-- Commits, pushes to `origin/master`, and creates a `gh release create --draft`
+- Optional argument: a version override like `0.12.0` or `v0.12.0`, validated against a semver regex before it reaches `git`/`gh`
+- Hard preconditions: on the repository's default branch (resolved dynamically, not hardcoded), clean tree, in sync with `origin/<default-branch>`, `CHANGELOG.md` exists, at least one commit since the last tag, `gh` authenticated
+- Drafts release notes from the commit history since the last tag (does NOT require a populated `[Unreleased]` section)
+- Proposes the version via AskUserQuestion using semver (BREAKING → major, Added → minor, otherwise patch); infers the release title from the drafted notes
+- **Mandatory approval gates**: the version/notes content, the commit, and the push each require explicit user approval
+- Inserts a new `## [X.Y.Z] - YYYY-MM-DD` section in `CHANGELOG.md` and updates the compare links, leaving the `[Unreleased]` stub in place
+- Commits, pushes to `origin/<default-branch>`, and creates a `gh release create --draft` targeting the commit SHA
 - Does NOT publish the release or create the git tag — user does that from the GitHub UI
 
 ### Commit Workflow Commands

@@ -60,14 +60,14 @@ jobs:
 
       - name: Checkout repository
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v4
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0  # v7.0.0
         with:
           fetch-depth: 1
 
       - name: Run Claude Code Review
         id: claude-review
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
-        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1
+        uses: anthropics/claude-code-action@2fee15510437d71399d9139ed60433470484a8fb  # v1.0.153
         env:
           # Security: Use environment variables instead of direct expression interpolation
           # This prevents potential expression injection attacks

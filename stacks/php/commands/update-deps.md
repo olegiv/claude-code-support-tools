@@ -1,5 +1,5 @@
 ---
-description: Check and update Composer dependencies (optional: package name)
+description: "Check and update Composer dependencies (optional: package name)"
 argument-hint: [package-name]
 allowed-tools: Bash, Read
 ---

@@ -1,5 +1,5 @@
 ---
-description: Check status of Drupal modules (optional: module name)
+description: "Check status of Drupal modules (optional: module name)"
 argument-hint: [module-name]
 allowed-tools: Bash, Read, Grep
 ---

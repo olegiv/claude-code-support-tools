@@ -1,6 +1,6 @@
 ---
-description: View Drupal watchdog logs (optional: severity or count)
-argument-hint: [error|warning|notice] [count]
+description: "View Drupal watchdog logs (optional: severity or count)"
+argument-hint: "[error|warning|notice] [count]"
 allowed-tools: Bash
 ---
 

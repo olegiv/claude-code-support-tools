@@ -1,5 +1,5 @@
 ---
-description: Run PHPUnit tests (optional: module name or 'all')
+description: "Run PHPUnit tests (optional: module name or 'all')"
 argument-hint: [module-name | all]
 allowed-tools: Bash, Read
 ---
