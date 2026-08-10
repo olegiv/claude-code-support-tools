@@ -83,7 +83,7 @@ jobs:
       - name: Run Claude Code
         id: claude
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
-        uses: anthropics/claude-code-action@af0559ee4f514d1ef21826982bed13f7edc3c35e  # v1.0.178
+        uses: anthropics/claude-code-action@1623c36729ac1cd5895198cded705a287de7db79  # v1.0.187
         with:
           # Security: Long-lived token - rotate every 90 days (see SECURITY.md for policy)
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
