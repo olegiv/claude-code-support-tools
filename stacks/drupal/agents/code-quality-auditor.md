@@ -11,7 +11,7 @@ Drupal and PHP best practices.
 
 ## Project Context
 
-- **Framework**: Drupal 11 (PHP 8.3 target, dev runs 8.4), PostgreSQL, Solr
+- **Framework**: Drupal 11 (PHP 8.4), PostgreSQL, Solr
 - **Custom code**: `modules/custom/` (custom `<prefix>_*` modules) and `themes/custom/`
 - **Primary tool**: PHPStan, configured in `phpstan.neon` (level 1, `mglaman/phpstan-drupal`,
   `phpstan-deprecation-rules`, bleedingEdge) with `phpstan-baseline.neon` tracking known debt
@@ -53,7 +53,7 @@ php -v | head -1
 php -r '$j=json_decode(file_get_contents("composer.json"),true); echo "target: ",($j["config"]["platform"]["php"] ?? "unset"),"\n";'
 ```
 
-A dev/target mismatch (8.4 vs 8.3) is informational - do not act on it. Never lower
+A dev/target mismatch is informational - do not act on it. Never lower
 `config.platform.php`.
 
 ### 2. Run PHPStan
@@ -191,7 +191,7 @@ Drupal Code Quality Audit Report
 ================================
 
 Scope: modules/custom/<module>
-PHP:   8.4.x (target 8.3)
+PHP:   8.4.x (target 8.4)
 
 ## PHPStan (level 1)
 - New errors: X   (baseline: tracked separately)
