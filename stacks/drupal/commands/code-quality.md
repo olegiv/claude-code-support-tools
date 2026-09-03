@@ -7,6 +7,9 @@ allowed-tools: Bash, Read
 Scan custom Drupal code for quality issues, coding-standard violations, deprecated API
 usage, and dependency vulnerabilities.
 
+**Read-only.** Report findings and offer the exact fixes and commands; do not edit files
+and do not run `phpcbf` / `composer lint-fix*`. The user decides what to apply.
+
 Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom modules)
 
 ## Checks Performed
@@ -178,15 +181,22 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
      now arrives **with sniff codes** (`-s` from `<arg value="sp"/>`), so each finding
      can be looked up or excluded by name.
 
-   **4d. Auto-fix, scoped.** Most violations are mechanical:
+   **4d. Offer the mechanical fixes - this command does not apply them.** Most
+   violations are mechanical. Show the patch with `--report=diff`, which writes nothing:
    ```bash
-   $PHPCBF --filter=GitModified ${TARGET:+"$TARGET"}    # or: composer lint-fix-changed
+   $PHPCS --report=diff ${TARGET:+"$TARGET"}            # read-only preview
    ```
-   Never run `$PHPCBF` or `composer lint-fix` without `--filter=` or an explicit path.
-   On a drifted repo that rewrites indentation, `array()`, trailing commas and comment
-   punctuation across every file in scope. If you reformat a legacy file, commit that
-   reformatting **separately** from your behavioural change, so the real diff stays
-   readable and `git blame` stays useful.
+   Then hand the user the command and let them decide:
+   ```bash
+   # Offer this - do not execute it.
+   composer lint-fix-changed                            # or: $PHPCBF --filter=GitModified <paths>
+   ```
+   State how many files it would rewrite. A **directory argument is not a scope**:
+   `phpcbf modules/custom/<module>` rewrites every file in that module, including ones
+   the current change never touched; with no argument it rewrites all of
+   `modules/custom` and `themes/custom`. And reformatting a legacy file belongs in its
+   **own** commit, separate from the behavioural change, so the real diff stays readable
+   and `git blame` stays useful.
 
    - If the standards are not found, confirm `drupal/coder` is installed: `./vendor/bin/phpcs -i`.
 
@@ -332,10 +342,10 @@ public function getCount(): int {
    project with accumulated drift can never show a clean tree. The gate is therefore
    **changed files** (`--filter=GitModified`), the same discipline the baseline gives
    PHPStan. Report the tree-wide figure as debt; never as a to-do list.
-4. **Auto-fix style, but only what you touched** - run `phpcbf` against the files in
-   your change, then commit that reformatting as its **own** commit, separate from the
-   behavioural change. Never run `phpcbf` or `composer lint-fix` across the whole tree
-   as a side effect of another task.
+4. **This command is read-only** - it reports and offers fixes; it does not run
+   `phpcbf` or `composer lint-fix*`. Use `--report=diff` to show what a fix would do.
+   Applying it is the user's call, scoped to the files their change touches, and
+   committed on its own - never a side effect of an audit.
 5. **Verify after fixes** - run the module's tests:
    `./vendor/bin/phpunit -c core/phpunit.xml.dist "modules/custom/<module>/tests/"` (or `/test-run`).
 6. **Never edit `vendor/` or `core/`** - scope all fixes to `modules/custom` / `themes/custom`.

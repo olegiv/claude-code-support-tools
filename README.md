@@ -143,7 +143,7 @@ Located in `stacks/` directory - copy these to your project's `.claude/` directo
 - `test-creator` agent - Generate PHPUnit tests for modules
 - `api-developer` agent - REST/JSON:API development, external integrations
 - `migration-expert` agent - Content migrations, CRM sync, data transformations
-- `code-quality-auditor` agent - Scan PHPStan/PHPCS/deprecation issues and fix them in the files a change touches
+- `code-quality-auditor` agent - Scan PHPStan/PHPCS/deprecation issues and offer fixes (read-only)
 - 24 commands: `/backup-db`, `/cache-clear`, `/code-quality`, `/config-diff`, `/config-export`, `/config-import`, `/content-audit`, `/cron-status`, `/db-query`, `/db-update`, `/deploy-check`, `/drush`, `/feature-revert`, `/health-check`, `/logs`, `/maintenance`, `/module-status`, `/queue-status`, `/scaffold`, `/test-coverage`, `/test-create`, `/test-run`, `/translate-check`, `/user-info`
 - 8 skills: api-development, config-management, database-operations, drupal-drush, drupal-hooks, drupal-migrations, drupal-testing, performance-optimization
 - `hooks/validate-drush.sh` - Validates drush command execution context

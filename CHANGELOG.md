@@ -43,6 +43,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--filter=` is mandatory rather than preferred because it is fail-closed,
   whereas `phpcbf $(git diff --name-only ...)` is fail-open: an empty
   substitution leaves phpcbf with no path and it reformats the whole tree.
+- The `code-quality-auditor` agent is now **read-only**: `Edit` is removed from its
+  tool list and it is barred from running `phpcbf`, `composer lint-fix*` or any other
+  writing command. It shows the mechanical fixes with `phpcs --report=diff` and offers
+  the command instead of applying it. Testing the previous revision showed why: asked
+  to "clean up coding standards" in one module it rewrote all 11 files, because the
+  guardrail permitted `phpcbf` with "an explicit path" while a neighbouring rule said
+  only the files a change touches may be reformatted - a directory argument satisfied
+  the first and violated the second. Whether to reformat a whole module is the user's
+  call, so the agent now only ever proposes it.
 - Scope resolution no longer hardcodes `modules/custom`. A named argument
   resolves against `modules/custom/` then `themes/custom/`, and an unscoped
   run passes no path so each tool uses its own config — explicitly *not*
