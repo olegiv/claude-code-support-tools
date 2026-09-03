@@ -22,9 +22,16 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
    - Baseline-aware: `phpstan-baseline.neon` suppresses known debt; focus on NEW errors
 
 3. **Coding Standards (PHP_CodeSniffer)**
-   - `Drupal` + `DrupalPractice` standards (via `drupal/coder`)
+   - Uses the repo ruleset (`phpcs.xml.dist` / `phpcs.xml`) when there is one: it pins
+     the standard, the scope, the extensions and the exclusions in one place, so every
+     caller checks the same thing. Falls back to `Drupal` + `DrupalPractice` (via
+     `drupal/coder`) only when the repo has no ruleset.
    - Catches: formatting, docblocks, naming, array syntax, and Drupal best-practice
      smells (e.g. static `\Drupal::` calls that should use dependency injection)
+   - **No baseline.** PHPCS has no equivalent of `phpstan-baseline.neon`, so on a
+     project with accumulated drift the tree will never read clean and cannot be made
+     to. The gate is **changed files**; the tree-wide figure is debt to report, not a
+     task list.
 
 4. **Dependency Vulnerabilities**
    - `composer audit` against installed packages
@@ -33,8 +40,16 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
    - Leftover debug calls (`var_dump`, `kint`, `dpm`, `dd`, ...)
    - Unescaped Twig output (`|raw`)
    - Deprecated procedural API (`db_query`, `drupal_set_message`, ...)
-   - Static `\Drupal::` service access inside `src/` classes (DI smell - note: the repo
-     `phpstan.neon` intentionally ignores this, so the grep is the way to surface it)
+   - Static `\Drupal::` service access inside `src/` classes (DI smell). Two partial
+     detectors exist and neither is sufficient alone: the repo `phpstan.neon` usually
+     ignores `#Drupal calls should be avoided#`, and PHPCS's
+     `DrupalPractice.Objects.GlobalDrupal` only warns inside DI-capable classes - a
+     fixed list of 12 base classes (`ControllerBase`, `FormBase`, `BlockBase`, ...),
+     classes registered in a `*.services.yml`, or `ContainerInjectionInterface`
+     implementors - and it skips static methods and reads only the *immediate* parent
+     class. Plugins, event subscribers and indirect subclasses are missed. The grep is
+     the wider net; expect it to overlap with the PHPCS warning on the classes the
+     sniff does cover.
 
 6. **Heavy Security SAST** (referenced, not run inline)
    - For deep security scanning use `/security-scan` or `./bin/security/full-security-scan.sh`
@@ -43,21 +58,40 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
 1. **Validate and resolve scope:**
    ```bash
+   TARGET=
    if [ -n "${ARGUMENTS:-}" ] && [ "$ARGUMENTS" != "all" ]; then
      if [ ${#ARGUMENTS} -gt 128 ]; then
        echo "ERROR: Input too long (max 128 characters)"; exit 1
      fi
      if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
-       echo "ERROR: Invalid module name. Only alphanumeric and underscores allowed."; exit 1
+       echo "ERROR: Invalid name. Only alphanumeric and underscores allowed."; exit 1
      fi
-     TARGET="modules/custom/$ARGUMENTS"
-   else
-     TARGET="modules/custom"
+     for d in "modules/custom/$ARGUMENTS" "themes/custom/$ARGUMENTS"; do
+       [ -d "$d" ] && TARGET="$d"
+     done
+     [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGUMENTS or themes/custom/$ARGUMENTS"; exit 1; }
    fi
-   echo "Scope: $TARGET"
-   [ -e "$TARGET" ] || { echo "ERROR: $TARGET not found"; exit 1; }
+   if [ -n "$TARGET" ]; then
+     GREP_PATHS="$TARGET"
+   else
+     GREP_PATHS=
+     for d in modules/custom themes/custom; do
+       [ -d "$d" ] && GREP_PATHS="${GREP_PATHS:+$GREP_PATHS }$d"
+     done
+   fi
+   echo "Scope:      ${TARGET:-<per-tool config>}"
+   echo "Grep paths: $GREP_PATHS"
    ```
-   (To include themes, run the same checks against `themes/custom` separately.)
+   An **empty `$TARGET` means "whole project"** - and for the whole project every tool
+   already owns its scope, so pass it no path at all: `phpstan.neon` has `paths:`,
+   `phpcs.xml.dist` has `<file>`.
+
+   **Do not unify those two scopes.** They are routinely different: a PHPCS ruleset
+   typically covers `modules/custom` + `themes/custom`, while `phpstan.neon` often
+   covers only `modules/custom` - and `phpstan-baseline.neon` was generated against
+   exactly that set. Adding `themes/custom` to the PHPStan command line would report a
+   wall of un-baselined errors that are not new and are not yours. `$GREP_PATHS` exists
+   only for the greps in step 6, which have no config of their own.
 
 2. **PHP environment (informational):**
    ```bash
@@ -68,7 +102,8 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
 3. **PHPStan (primary):**
    ```bash
-   ./vendor/bin/phpstan analyse "$TARGET" --no-progress
+   # Scoped run passes the path; whole-project run passes none and uses phpstan.neon `paths`.
+   ./vendor/bin/phpstan analyse ${TARGET:+"$TARGET"} --no-progress
    ```
    If the binary is missing, run `composer install`.
    - Reads `phpstan.neon` automatically. The baseline still applies, so report only the
@@ -78,19 +113,81 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
      repo-wide ignore rules that simply do not apply to this subset - they are **benign**.
      Count only errors that cite a file inside `$TARGET`. For an accurate baseline-aware
      count, run against all of `modules/custom`.
+   - If the bare form errors with "no paths", this repo's `phpstan.neon` has no
+     `paths:`. Pass `$GREP_PATHS`, but treat any errors outside `modules/custom` with
+     suspicion - the baseline probably does not cover them.
 
 4. **Coding standards (PHPCS):**
+
+   **4a. Preflight - ask the project how it wants to be linted.** Run this once, then
+   use the invocation it prints verbatim:
    ```bash
-   ./vendor/bin/phpcs --standard=Drupal,DrupalPractice \
-     --extensions=php,module,inc,install,theme,profile,engine \
-     --report=summary "$TARGET"
+   RULESET=
+   for f in .phpcs.xml phpcs.xml .phpcs.xml.dist phpcs.xml.dist; do
+     [ -f "$f" ] && { RULESET="$f"; break; }
+   done
+   SCRIPTS=$(php -r '$s=json_decode(@file_get_contents("composer.json"),true)["scripts"]??[];
+     echo implode(" ", array_intersect(["lint","lint-changed","lint-fix","lint-fix-changed"], array_keys($s)));' 2>/dev/null)
+   if [ -n "$RULESET" ]; then
+     echo "ruleset:  $RULESET  -> do NOT pass --standard or --extensions"
+     echo "PHPCS:    ./vendor/bin/phpcs"
+     echo "PHPCBF:   ./vendor/bin/phpcbf"
+   else
+     echo "ruleset:  none  -> pass the standard explicitly"
+     echo "PHPCS:    ./vendor/bin/phpcs --standard=Drupal,DrupalPractice --extensions=php,module,inc,install,theme,profile,engine"
+     echo "PHPCBF:   ./vendor/bin/phpcbf --standard=Drupal,DrupalPractice --extensions=php,module,inc,install,theme,profile,engine"
+   fi
+   echo "composer: ${SCRIPTS:-none}"
    ```
-   - For full per-line detail, drop `--report=summary`.
-   - Most violations are auto-fixable - preview/apply with `phpcbf`:
-     ```bash
-     ./vendor/bin/phpcbf --standard=Drupal,DrupalPractice \
-       --extensions=php,module,inc,install,theme,profile,engine "$TARGET"
-     ```
+   Below, `$PHPCS` / `$PHPCBF` mean whatever the preflight printed.
+
+   - **Never add `--standard=` when a ruleset exists.** PHPCS only auto-discovers
+     `phpcs.xml*` when no standard is given - the search in `Config.php` is guarded by
+     `isset($this->overriddenDefaults['standards']) === false`. Passing `--standard=`
+     silently discards the ruleset's `<arg value="sp"/>` (findings then print with no
+     sniff code), its `<exclude-pattern>`s and its cache file. The totals may match by
+     coincidence and diverge the moment the ruleset changes.
+   - **Passing a path is fine.** A CLI path overrides only the ruleset's `<file>`
+     entries; standard, extensions, `-s`, cache and exclusions still apply.
+   - If the preflight found `composer` scripts, prefer them for an **unscoped** run -
+     they are the project's declared contract and may do more than bare `phpcs`. For a
+     **scoped** run call `./vendor/bin/phpcs <path>` directly.
+
+   **4b. The gate - changed files.**
+   ```bash
+   $PHPCS --filter=GitModified ${TARGET:+"$TARGET"}     # or: composer lint-changed
+   ```
+   These are the violations you are responsible for. Fix them.
+
+   - `GitModified` runs `git ls-files -o -m --exclude-standard`: modified-in-working-tree
+     plus untracked. It does **not** see a file you have already `git add`-ed - use
+     `--filter=GitStaged` for the index - and it does not mean "changed on this branch".
+   - Prefer `--filter=` over `$(git diff --name-only ...)`. The filter is fail-closed:
+     an empty match scans nothing. Command substitution is fail-open - if the list comes
+     out empty, phpcs receives no path, falls back to the ruleset's `<file>` scope, and
+     lints the entire tree.
+
+   **4c. The debt figure - informational.**
+   ```bash
+   $PHPCS --report=summary ${TARGET:+"$TARGET"}         # or: composer lint
+   ```
+   Report this number as pre-existing drift. Do not put it in the actionable total and
+   do not open it as work. PHPCS has no baseline file, so this is the only way to
+   express "known debt" - by labelling it.
+   - For per-line detail, drop `--report=summary`. With a ruleset in play that detail
+     now arrives **with sniff codes** (`-s` from `<arg value="sp"/>`), so each finding
+     can be looked up or excluded by name.
+
+   **4d. Auto-fix, scoped.** Most violations are mechanical:
+   ```bash
+   $PHPCBF --filter=GitModified ${TARGET:+"$TARGET"}    # or: composer lint-fix-changed
+   ```
+   Never run `$PHPCBF` or `composer lint-fix` without `--filter=` or an explicit path.
+   On a drifted repo that rewrites indentation, `array()`, trailing commas and comment
+   punctuation across every file in scope. If you reformat a legacy file, commit that
+   reformatting **separately** from your behavioural change, so the real diff stays
+   readable and `git blame` stays useful.
+
    - If the standards are not found, confirm `drupal/coder` is installed: `./vendor/bin/phpcs -i`.
 
 5. **Dependency audit:**
@@ -127,11 +224,12 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 ```
 Drupal Code Quality Report
 ==========================
-Scope: modules/custom/<module>
+Scope: modules/custom/<module>          (or: each tool's own config)
 PHP:   8.4.x (target 8.3) - notice
 
-PHPStan (level 1):         X new errors   (baseline: tracked separately)
-Coding standards (PHPCS):  X errors / Y warnings   (Z auto-fixable via phpcbf)
+PHPStan (level 1):         X new errors            (baseline: tracked separately)
+Coding standards (PHPCS):  X errors / Y warnings   (Z auto-fixable) - changed files
+  pre-existing drift:      N errors / M warnings   (in-scope tree; debt, NOT actionable)
 Deprecated API usage:      X   (PHPStan deprecation rules + greps)
 Dependency audit:          X advisories
 Anti-pattern checks:
@@ -140,7 +238,9 @@ Anti-pattern checks:
   Deprecated procedural:   X
   \Drupal:: in classes:    X
 
-Total: X issues
+Total actionable: X issues
+  (excludes the PHPStan baseline and the pre-existing PHPCS drift - both are tracked
+   debt, not findings from this change)
 ```
 
 ## If Issues Found
@@ -153,7 +253,7 @@ For each issue, provide:
 
 ## Common Fixes
 
-### Static service access -> dependency injection (PHPCS DrupalPractice / grep)
+### Static service access -> dependency injection (DrupalPractice.Objects.GlobalDrupal / grep)
 ```php
 // BAD: service located statically inside a class
 class TrackerService {
@@ -226,10 +326,17 @@ public function getCount(): int {
 1. **PHPStan is the primary analyzer** - it also enforces deprecation rules, so it covers
    much of the "deprecated API" surface; the greps catch the rest plus the DI smell the
    repo config deliberately ignores.
-2. **Baseline = tracked debt** - `phpstan-baseline.neon` holds known issues. Do not try to
-   clear the whole baseline; focus on the new errors your change introduces.
-3. **Auto-fix style first** - run `./vendor/bin/phpcbf ...` before hand-fixing PHPCS issues.
-4. **Verify after fixes** - run the module's tests:
+2. **PHPStan baseline = tracked debt** - `phpstan-baseline.neon` holds known issues. Do
+   not try to clear the whole baseline; focus on the new errors your change introduces.
+3. **PHPCS has no baseline** - PHP_CodeSniffer offers no baseline mechanism at all, so a
+   project with accumulated drift can never show a clean tree. The gate is therefore
+   **changed files** (`--filter=GitModified`), the same discipline the baseline gives
+   PHPStan. Report the tree-wide figure as debt; never as a to-do list.
+4. **Auto-fix style, but only what you touched** - run `phpcbf` against the files in
+   your change, then commit that reformatting as its **own** commit, separate from the
+   behavioural change. Never run `phpcbf` or `composer lint-fix` across the whole tree
+   as a side effect of another task.
+5. **Verify after fixes** - run the module's tests:
    `./vendor/bin/phpunit -c core/phpunit.xml.dist "modules/custom/<module>/tests/"` (or `/test-run`).
-5. **Never edit `vendor/` or `core/`** - scope all fixes to `modules/custom` / `themes/custom`.
-6. **Security** - this command does not run the heavy SAST suite; use `/security-scan` for that.
+6. **Never edit `vendor/` or `core/`** - scope all fixes to `modules/custom` / `themes/custom`.
+7. **Security** - this command does not run the heavy SAST suite; use `/security-scan` for that.

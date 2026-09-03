@@ -76,7 +76,7 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `agents/test-creator.md` - Generate PHPUnit tests for Drupal modules
     - `agents/api-developer.md` - REST/JSON:API development, external integrations
     - `agents/migration-expert.md` - Content migrations, CRM sync, data transformations
-    - `agents/code-quality-auditor.md` - Scan PHPStan/PHPCS/deprecation issues, fix warnings
+    - `agents/code-quality-auditor.md` - Scan PHPStan/PHPCS/deprecation issues, fix them in the files a change touches
     - `commands/cache-clear.md` - Clear all Drupal caches
     - `commands/code-quality.md` - Comprehensive code quality checks (PHPStan, PHPCS, deprecations)
     - `commands/config-diff.md` - Show configuration differences (database vs code)

@@ -22,6 +22,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release or create the git tag — those stay in the user's hands via
   the GitHub UI.
 
+### Changed
+
+- Drupal stack `commands/code-quality.md` and `agents/code-quality-auditor.md`
+  now detect the project's PHPCS ruleset instead of hardcoding
+  `--standard=Drupal,DrupalPractice --extensions=...`. Passing `--standard=`
+  disables PHPCS's `phpcs.xml*` auto-discovery — `Config.php` guards the
+  search on `overriddenDefaults['standards']` — which silently discarded the
+  ruleset's `<arg value="sp"/>` (findings lost their sniff codes), its
+  `<exclude-pattern>`s and its cache setting. A short preflight now prefers
+  `composer lint*` or bare `./vendor/bin/phpcs` when a ruleset exists, and
+  falls back to the explicit standard only when there is none.
+- PHPCS is now treated the way PHPStan's baseline already was. PHPCS has no
+  baseline mechanism, so both files declare **changed files**
+  (`--filter=GitModified`) the gate and report the tree-wide total as
+  pre-existing debt excluded from the actionable count. The auditor agent,
+  which holds `Edit`, is scoped to the files a change already touches, is
+  forbidden from running `phpcbf`/`composer lint-fix` unscoped, and must keep
+  any reformatting in a commit separate from the behavioural change.
+  `--filter=` is mandatory rather than preferred because it is fail-closed,
+  whereas `phpcbf $(git diff --name-only ...)` is fail-open: an empty
+  substitution leaves phpcbf with no path and it reformats the whole tree.
+- Scope resolution no longer hardcodes `modules/custom`. A named argument
+  resolves against `modules/custom/` then `themes/custom/`, and an unscoped
+  run passes no path so each tool uses its own config — explicitly *not*
+  unified, because `phpstan-baseline.neon` is generated against
+  `phpstan.neon` `paths:` only.
+
 ### Fixed
 
 - Status line `cwd` validation in `global/settings.json` no longer rejects
