@@ -67,7 +67,7 @@ jobs:
       - name: Run Claude Code Review
         id: claude-review
         # Security: Pin to commit SHA to prevent supply chain attacks (GHA-002)
-        uses: anthropics/claude-code-action@56cf60fde42f7b19c3abfd5c9c48b69a1288461f  # v1.0.222
+        uses: anthropics/claude-code-action@4036a180cf690f49529f5d8c79c998855287f590  # v1.0.230
         env:
           # Security: Use environment variables instead of direct expression interpolation
           # This prevents potential expression injection attacks
