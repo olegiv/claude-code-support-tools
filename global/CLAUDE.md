@@ -203,14 +203,35 @@ composer audit
 # Check latest version - ALWAYS do this
 go list -m -versions <module>
 
-# Check for vulnerabilities before adding
-govulncheck -mode=module <module>
-
 # Add the package
 go get <module>@<version>
 
-# Run vulnerability check on project
+# Check for vulnerabilities (symbol-level: reports only vulns your code reaches)
 govulncheck ./...
+
+# Coarse module-level check of every dependency. Faster, but reports advisories
+# your code may never call. Accepts no package patterns and must run from a
+# directory containing Go files, so use a package dir - not a repo root whose
+# code all lives in subdirectories.
+cd cmd/<binary> && govulncheck -scan=module
+```
+
+There is no documented govulncheck mode that scans a module you have not added
+yet, so the check happens after `go get`. If it reports something unfixable,
+back the dependency out with `go get <module>@none` and ask the user how to
+proceed.
+
+**Rebuild Go tools after upgrading Go.** `staticcheck`, `errcheck` and
+`govulncheck` embed the standard library of whatever Go built them, so a
+toolchain upgrade makes them fail on *every* package with
+`export data version N is greater than maximum supported version M`. That reads
+like a broken tool, but what it means is that the analysis gate is silently
+down - reinstall before trusting a clean result:
+
+```bash
+go install honnef.co/go/tools/cmd/staticcheck@latest
+go install github.com/kisielk/errcheck@latest
+go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
 ## Code Compilation Rules
