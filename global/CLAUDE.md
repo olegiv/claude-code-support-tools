@@ -218,11 +218,16 @@ cd cmd/<binary> && govulncheck -scan=module
 
 There is no documented govulncheck mode that scans a module you have not added
 yet, so the check happens after `go get`. If it reports something unfixable,
-restore `go.mod` and `go.sum` to exactly what they were before `go get` (e.g.
-`git restore go.mod go.sum` if neither had uncommitted changes) and ask the
-user how to proceed. `go get <module>@none` is not enough: it removes the
-module but keeps any dependency `go get` upgraded along the way, and that
-upgraded version may be the one govulncheck flagged.
+put `go.mod` and `go.sum` back exactly as they were before `go get`, then ask
+the user how to proceed. To put them back:
+
+- If both were committed and unchanged: `git restore go.mod go.sum`
+- If there was no `go.sum`: `git restore go.mod`, then delete the new `go.sum`.
+  Naming the untracked `go.sum` makes `git restore` fail and restore nothing.
+
+`go get <module>@none` is not enough: it removes the module but keeps any
+dependency `go get` upgraded along the way, and that upgraded version may be
+the one govulncheck flagged.
 
 **Rebuild Go tools after upgrading Go.** `staticcheck`, `errcheck` and
 `govulncheck` embed the standard library of whatever Go built them, so a
