@@ -184,11 +184,11 @@ tree_fingerprint() {
   rm -f "$tmp"
 }
 
-# Merge base of <commit> with the newer of local <base> and origin/<base>.
+# Merge base of <commit> with the newer of local <base> and <remote>/<base> (remote defaults to origin).
 merge_base_for() {
-  local commit=$1 base=$2 mb_local="" mb_remote=""
-  if git -C "$ROOT" rev-parse -q --verify "refs/remotes/origin/$base" >/dev/null 2>&1; then
-    mb_remote=$(git -C "$ROOT" merge-base "$commit" "refs/remotes/origin/$base" 2>/dev/null || true)
+  local commit=$1 base=$2 remote=${3:-origin} mb_local="" mb_remote=""
+  if git -C "$ROOT" rev-parse -q --verify "refs/remotes/$remote/$base" >/dev/null 2>&1; then
+    mb_remote=$(git -C "$ROOT" merge-base "$commit" "refs/remotes/$remote/$base" 2>/dev/null || true)
   fi
   if git -C "$ROOT" rev-parse -q --verify "refs/heads/$base" >/dev/null 2>&1; then
     mb_local=$(git -C "$ROOT" merge-base "$commit" "refs/heads/$base" 2>/dev/null || true)
@@ -202,6 +202,22 @@ merge_base_for() {
   else
     printf '%s' "${mb_remote:-$mb_local}"
   fi
+}
+
+# owner/name slug of a git remote URL: https://host/o/r(.git), ssh://user@host/o/r, user@host:o/r, host:o/r
+remote_slug_of() {
+  printf '%s' "$1" | sed -E 's#/+$##; s#\.git$##; s#^[a-z+]+://[^/]+/##; s#^[^@/]+@[^:/]+:##; s#^[^/:]+:##; s#^/##' \
+    | awk -F/ 'NF>=2 {print $(NF-1)"/"$NF}' | tr '[:upper:]' '[:lower:]'
+}
+
+# name of the remote whose URL matches the given owner/name slug; empty when none does
+remote_for_slug() {
+  local want r
+  want=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')
+  for r in $(git -C "$ROOT" remote 2>/dev/null); do
+    [[ $(remote_slug_of "$(git -C "$ROOT" remote get-url "$r" 2>/dev/null)") == "$want" ]] && { printf '%s' "$r"; return 0; }
+  done
+  return 1
 }
 
 default_base() {
@@ -500,9 +516,15 @@ cmd_review() {
     fi
   fi
 
-  if [[ $no_fetch -eq 0 && $dry_run -eq 0 ]]; then
-    git -C "$ROOT" fetch -q origin "$base" 2>/dev/null || log "warning: could not fetch origin/$base; using local refs"
+  local base_remote="origin" repo_slug=""
+  [[ $have_state -eq 0 ]] || repo_slug=$(state_get '.repo // ""')
+  if [[ -n $repo_slug ]]; then
+    base_remote=$(remote_for_slug "$repo_slug") || { log "warning: no remote matches the PR base repository $repo_slug; using origin"; base_remote="origin"; }
   fi
+  if [[ $no_fetch -eq 0 && $dry_run -eq 0 ]]; then
+    git -C "$ROOT" fetch -q "$base_remote" "$base" 2>/dev/null || log "warning: could not fetch $base_remote/$base; using local refs"
+  fi
+  [[ $have_state -eq 0 || $dry_run -eq 1 ]] || state_set '.base_remote = $r' --arg r "$base_remote"
 
   local untracked
   untracked=$(git -C "$ROOT" ls-files --others --exclude-standard)
@@ -531,8 +553,8 @@ cmd_review() {
   argv+=("$PRF_CODEX_BIN" -C "$ROOT" -s read-only -a never)
   [[ -n $CODEX_REVIEW_MODEL ]] && argv+=(-m "$CODEX_REVIEW_MODEL")
   argv+=(-c "model_reasoning_effort=\"$effort\"" -c "developer_instructions=\"$instructions\"")
-  local review_base=$base   # prefer the fetched remote ref so the gate reviews what GitHub sees
-  git -C "$ROOT" rev-parse -q --verify "refs/remotes/origin/$base" >/dev/null 2>&1 && review_base="origin/$base"
+  local review_base=$base   # prefer the fetched ref of the PR's base repository so the gate reviews what GitHub sees
+  git -C "$ROOT" rev-parse -q --verify "refs/remotes/$base_remote/$base" >/dev/null 2>&1 && review_base="$base_remote/$base"
   argv+=(exec review --base "$review_base" --ephemeral)
 
   mkdir -p "$AUDIT"; chmod 700 "$AUDIT" 2>/dev/null || true
@@ -544,7 +566,7 @@ cmd_review() {
   [[ $PRF_REVIEW_JSON == 1 ]] && argv+=(--json)
 
   if [[ $dry_run -eq 1 ]]; then
-    printf 'dry-run: base=%s effort=%s round=%s out=%s\n' "$base" "$effort" "$round" "$out"
+    printf 'dry-run: base=%s remote=%s review_base=%s effort=%s round=%s out=%s\n' "$base" "$base_remote" "$review_base" "$effort" "$round" "$out"
     printf 'env: PRF_CHILD=1 CODEX_FULL_BRANCH_AUDIT_CHILD=1 timeout=%ss\n' "$PRF_REVIEW_TIMEOUT"
     printf 'argv:\n'; printf '  %s\n' "${argv[@]}"
     return 0
@@ -565,7 +587,7 @@ cmd_review() {
 
   local tree mb started start_s rc=0 elapsed
   tree=$(tree_fingerprint)
-  mb=$(merge_base_for HEAD "$base")
+  mb=$(merge_base_for HEAD "$base" "$base_remote")
   started=$(now); start_s=$(date +%s)
   log "review: base=$base merge_base=${mb:0:8} tree=${tree:0:8} effort=$effort (timeout ${PRF_REVIEW_TIMEOUT}s)"
   if [[ $PRF_REVIEW_JSON == 1 ]]; then
@@ -637,7 +659,7 @@ status_compute() {
     last_mb=$(jq -r '.merge_base // ""' <<<"$last_review")
     leftovers=$(jq -r '.leftovers.kind // "null"' <<<"$last_review")
   fi
-  if [[ -z $mb ]]; then mb=$(merge_base_for HEAD "$(state_get '.base // ""')"); fi
+  if [[ -z $mb ]]; then mb=$(merge_base_for HEAD "$(state_get '.base // ""')" "$(state_get '.base_remote // "origin"')"); fi
 
   local maxp; maxp=$(max_pushes)
   if [[ $pushes -ge $maxp || $round -gt $maxp ]]; then
@@ -863,7 +885,7 @@ cmd_pre_push() {
     if [[ -n $remote_url ]]; then   # only the pull request's own repository counts as a fix push
       local repo_slug head_slug remote_slug
       repo_slug=$(state_get '.repo // ""' | tr '[:upper:]' '[:lower:]'); head_slug=$(state_get '.head_repo // .repo // ""' | tr '[:upper:]' '[:lower:]')
-      remote_slug=$(printf '%s' "$remote_url" | sed -E 's#/+$##; s#\.git$##; s#^[a-z+]+://[^/]+/##; s#^[^@]+@[^:]+:##; s#^/##' | awk -F/ 'NF>=2 {print $(NF-1)"/"$NF}' | tr '[:upper:]' '[:lower:]')
+      remote_slug=$(remote_slug_of "$remote_url")
       if [[ $remote_slug != "$repo_slug" && $remote_slug != "$head_slug" ]]; then
         log "push gate: ${remote_name:-remote} ($remote_slug) is neither $repo_slug nor $head_slug; not counted"; continue
       fi
@@ -871,7 +893,7 @@ cmd_pre_push() {
     local commit_tree base mb out
     commit_tree=$(git -C "$ROOT" rev-parse "$local_sha^{tree}" 2>/dev/null || true)
     base=$(state_get '.base // ""')
-    mb=$(merge_base_for "$local_sha" "$base")
+    mb=$(merge_base_for "$local_sha" "$base" "$(state_get '.base_remote // "origin"')")
     if out=$(status_compute "$commit_tree" "$mb"); then
       record_push "$local_sha" "$commit_tree"
       log "push gate: $branch (PR #$PR_NUMBER) reviewed tree ${commit_tree:0:8}; recorded push $(state_get '.pushes | length')/$(max_pushes)"

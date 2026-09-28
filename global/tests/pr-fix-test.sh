@@ -427,6 +427,17 @@ OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_S
 assert_eq "pre-push: ssh URL of the PR repository is gated (case-insensitive)" "$RC" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin https://github.com/acme/ocms-go/ 2>&1); RC=$?
 assert_eq "pre-push: trailing slash in the remote URL still matches" "$RC" 1
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push gh github:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: scp-style remote without a user is gated" "$RC" 1
+# the review base comes from the remote matching the PR base repository, not from origin
+git -C "$REPO" remote add upstream https://github.com/acme/ocms-go.git
+git -C "$REPO" remote set-url origin git@github.com:forker/ocms-go.git
+git -C "$REPO" update-ref refs/remotes/upstream/main main
+OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
+assert_contains "review: base ref taken from the PR base repository's remote" "$OUT" "remote=upstream review_base=upstream/main"
+git -C "$REPO" update-ref -d refs/remotes/upstream/main
+git -C "$REPO" remote set-url origin "$ORIGIN"
+git -C "$REPO" remote remove upstream
 assert_eq "pre-push: other remote not recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\nrefs/tags/v1 %s refs/tags/v1 %s\n' "$ZERO" "$HEAD_SHA" "$NEW_SHA" "$ZERO" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: delete and tag refs are skipped" "$RC" 0
