@@ -35,6 +35,10 @@ PRFIX="$SKILL_DIR/scripts/pr-fix.sh"
 "$PRFIX" help
 ```
 
+The local review targets the fetched base branch of the remote that matches the pull request's repository and
+host (SSH destinations are resolved with `ssh -G user@host`, no DNS; `git config prf.sshResolve false` disables
+that); set `git config prf.baseRemote <name>` when a repository's remotes cannot be matched automatically.
+
 State lives in `<repo>/.audit/pr-<N>/` (gitignored by policy; otherwise the runner falls back to a private
 `~/.local/state/pr-fix/<repo>-<hash>/` directory with a warning). Only review **threads** are collected; a bot that
 posts its result as a plain PR comment (for example this repository's Claude review workflow) is reported as a
