@@ -93,7 +93,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 
 **`global/tests/`** - Self-contained shell tests for global configuration
 - `statusline-cwd-test.sh` - Verifies the status line `cwd` validation: accepts paths with shell metacharacters and Unicode, rejects control-character injection attempts and missing paths
-- `pr-fix-test.sh` - 196 offline assertions for the `pr-fix` runner and the `pre-push` gate, using stub `gh`/`codex` binaries and fixtures in `fixtures/pr-fix/`
+- `pr-fix-test.sh` - 200 offline assertions for the `pr-fix` runner and the `pre-push` gate, using stub `gh`/`codex` binaries and fixtures in `fixtures/pr-fix/`
 - Run with `sh global/tests/statusline-cwd-test.sh` and `sh global/tests/pr-fix-test.sh` (require `jq` and `git`)
 
 ### 🔄 GitHub Actions Workflows

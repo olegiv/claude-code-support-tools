@@ -222,16 +222,20 @@ resolve_host() {
   local host=$1 real
   [[ -n $host ]] || return 0
   # aliases may contain dots too (`Host gh.work`), so always consult ssh's resolved config
-  real=$("$PRF_SSH_BIN" -G "$host" 2>/dev/null | awk '$1 == "hostname" {print $2; exit}' || true)
+  # CanonicalizeHostname=no keeps ssh -G to static Host/HostName expansion: no DNS, no network
+  real=$("$PRF_SSH_BIN" -G -o CanonicalizeHostname=no "$host" 2>/dev/null | awk '$1 == "hostname" {print $2; exit}' || true)
   printf '%s' "$(printf '%s' "${real:-$host}" | tr '[:upper:]' '[:lower:]')"
 }
 
 # does this remote URL name the pull request's repository (base or head) on the pull request's host?
 # remote_matches_pr URL PR_HOST SLUG [SLUG...]
 remote_matches_pr() {
-  local url=$1 pr_host=$2 slug host want; shift 2
-  slug=$(remote_slug_of "$url"); host=$(resolve_host "$(remote_host_of "$url")")
-  [[ -z $pr_host || $host == "$pr_host" ]] || return 1   # a host-less (local path) remote never matches a hosted PR
+  local url=$1 pr_host=$2 slug host resolved want; shift 2
+  slug=$(remote_slug_of "$url"); host=$(remote_host_of "$url"); resolved=$host
+  case $url in http://*|https://*) ;; *) resolved=$(resolve_host "$host") ;; esac   # aliases only apply to SSH-style URLs
+  # the raw host (github.com even when ssh config rewrites it to ssh.github.com) or the resolved alias must be the PR host;
+  # a host-less (local path) remote never matches a hosted PR
+  [[ -z $pr_host || $host == "$pr_host" || $resolved == "$pr_host" || $host == "ssh.$pr_host" || $resolved == "ssh.$pr_host" ]] || return 1   # ssh.<host> is GitHub's SSH-over-443 endpoint
   for want in "$@"; do
     [[ -n $want && $slug == "$(printf '%s' "$want" | tr '[:upper:]' '[:lower:]')" ]] && return 0
   done
@@ -934,7 +938,7 @@ cmd_pre_push() {
       if [[ -n $cfg && $cfg == "$remote_name" ]]; then
         :   # the configured pull-request remote is always gated
       elif ! remote_matches_pr "$remote_url" "$pr_host" "$repo_slug" "$head_slug"; then
-        log "push gate: ${remote_name:-remote} ($(remote_slug_of "$remote_url") on $(resolve_host "$(remote_host_of "$remote_url")")) is not $repo_slug on ${pr_host:-its host}; not counted"; continue
+        log "push gate: ${remote_name:-remote} ($(remote_slug_of "$remote_url") on $(remote_host_of "$remote_url")) is not $repo_slug on ${pr_host:-its host}; not counted"; continue
       fi
     fi
     local commit_tree base mb out

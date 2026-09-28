@@ -91,11 +91,14 @@ STUB
 cat > "$TMPROOT/bin/ssh" <<'STUB'
 #!/bin/bash
 # stub ssh -G <alias>: only the alias "github" resolves
-case "$1 $2" in "-G github"|"-G gh.work") printf 'hostname github.com\nuser git\n' ;; *) printf 'hostname %s\n' "$2" ;; esac
+# stub ssh -G [-o opt] <host>: "github"/"gh.work" are aliases; github.com is rewritten to ssh.github.com (port-443 setup)
+printf '%s\n' "$*" >> "${SSH_STUB_LOG:-/dev/null}"
+h=${@: -1}
+case "$h" in github|gh.work) printf 'hostname github.com\nuser git\n' ;; github.com) printf 'hostname ssh.github.com\n' ;; *) printf 'hostname %s\n' "$h" ;; esac
 STUB
 chmod +x "$TMPROOT/bin/gh" "$TMPROOT/bin/codex" "$TMPROOT/bin/ssh"
 
-export PRF_GH_BIN="$TMPROOT/bin/gh" PRF_CODEX_BIN="$TMPROOT/bin/codex" PRF_SSH_BIN="$TMPROOT/bin/ssh"
+export PRF_GH_BIN="$TMPROOT/bin/gh" PRF_CODEX_BIN="$TMPROOT/bin/codex" PRF_SSH_BIN="$TMPROOT/bin/ssh" SSH_STUB_LOG="$TMPROOT/ssh.log"
 export GH_STUB_LOG="$GH_LOG" CODEX_STUB_LOG="$CODEX_LOG" FIX
 export PRF_MAX_PUSHES=2 PRF_MAX_REVIEWS_PER_ROUND=2 PRF_REVIEW_TIMEOUT=60 PRF_CHECK_TIMEOUT=60
 unset PRF_PR CODEX_REVIEW_MODEL CODEX_REVIEW_EFFORT GH_REVIEWS GH_PR_LIST GH_FAIL_ID CODEX_FIXTURE CODEX_EXIT \
@@ -443,6 +446,13 @@ OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_S
 assert_eq "pre-push: a host-less local remote with the same slug is not gated" "$RC" 0
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push work gh.work:acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: dotted SSH alias resolves and is gated" "$RC" 1
+assert_contains "pre-push: ssh -G runs without hostname canonicalisation" "$(cat "$TMPROOT/ssh.log")" "CanonicalizeHostname=no"
+: > "$TMPROOT/ssh.log"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin https://github.com/acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: HTTPS remote is gated even when ssh config rewrites github.com" "$RC" 1
+assert_eq "pre-push: HTTPS host never consults ssh" "$(wc -l < "$TMPROOT/ssh.log" | tr -d ' ')" 0
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin ssh://git@ssh.github.com:443/acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: SSH-over-443 endpoint counts as the PR host" "$RC" 1
 git -C "$REPO" config prf.baseRemote mirror
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror git@gitlab.com:acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: prf.baseRemote names the gated remote explicitly" "$RC" 1
