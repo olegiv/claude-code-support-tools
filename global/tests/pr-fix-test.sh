@@ -432,9 +432,18 @@ assert_eq "pre-push: scp-style remote without a user is gated" "$RC" 1
 # the review base comes from the remote matching the PR base repository, not from origin
 git -C "$REPO" remote add upstream https://github.com/acme/ocms-go.git
 git -C "$REPO" remote set-url origin git@github.com:forker/ocms-go.git
+git -C "$REPO" remote add mirror git@gitlab.com:acme/ocms-go.git
 git -C "$REPO" update-ref refs/remotes/upstream/main main
+git -C "$REPO" update-ref refs/remotes/mirror/main main
 OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
 assert_contains "review: base ref taken from the PR base repository's remote" "$OUT" "remote=upstream review_base=upstream/main"
+git -C "$REPO" remote remove upstream
+OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
+assert_contains "review: same slug on another host is not the base repository" "$OUT" "remote=origin"
+assert_contains "review: warns when no remote matches the PR host" "$OUT" "no remote matches the PR base repository"
+git -C "$REPO" remote add upstream https://github.com/acme/ocms-go.git
+git -C "$REPO" update-ref -d refs/remotes/mirror/main
+git -C "$REPO" remote remove mirror
 git -C "$REPO" update-ref -d refs/remotes/upstream/main
 git -C "$REPO" remote set-url origin "$ORIGIN"
 git -C "$REPO" remote remove upstream
