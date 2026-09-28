@@ -1,0 +1,129 @@
+[
+ {
+  "id": "PRRT_T1",
+  "isResolved": false,
+  "isOutdated": false,
+  "path": "dsh-git-guard/git-guard.py",
+  "line": 23,
+  "originalLine": 23,
+  "resolvedBy": null,
+  "comments": {
+   "nodes": [
+    {
+     "id": "PRRC_1",
+     "databaseId": 1,
+     "url": "https://github.com/acme/ocms-go/pull/170#discussion_r1",
+     "createdAt": "2026-09-27T14:46:55Z",
+     "author": {
+      "login": "chatgpt-codex-connector",
+      "__typename": "Bot"
+     },
+     "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  Match long-form branch deletion before allowing it**\n\nWhen an agent uses `git branch --delete <name>`, this expression does not match it.\n\nUseful? React with 👍 / 👎.",
+     "authorAssociation": "NONE"
+    }
+   ]
+  }
+ },
+ {
+  "id": "PRRT_T2",
+  "isResolved": false,
+  "isOutdated": false,
+  "path": "scripts/install-git-guard.sh",
+  "line": 18,
+  "originalLine": 18,
+  "resolvedBy": null,
+  "comments": {
+   "nodes": [
+    {
+     "id": "PRRC_2",
+     "databaseId": 2,
+     "url": "https://github.com/acme/ocms-go/pull/170#discussion_r2",
+     "createdAt": "2026-09-27T14:46:55Z",
+     "author": {
+      "login": "chatgpt-codex-connector",
+      "__typename": "Bot"
+     },
+     "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  Preserve existing DSH hook configuration during installation**\n\nThe unconditional copy replaces the entire configuration.",
+     "authorAssociation": "NONE"
+    }
+   ]
+  }
+ },
+ {
+  "id": "PRRT_T3",
+  "isResolved": true,
+  "isOutdated": true,
+  "path": "dsh-git-guard/hooks.json",
+  "line": 7,
+  "originalLine": 7,
+  "resolvedBy": {
+   "login": "olegiv"
+  },
+  "comments": {
+   "nodes": [
+    {
+     "id": "PRRC_3",
+     "databaseId": 3,
+     "url": "https://github.com/acme/ocms-go/pull/170#discussion_r3",
+     "createdAt": "2026-09-27T14:46:55Z",
+     "author": {
+      "login": "chatgpt-codex-connector",
+      "__typename": "Bot"
+     },
+     "body": "**<sub><sub>![P2 Badge](https://img.shields.io/badge/P2-yellow?style=flat)</sub></sub>  RESOLVED-THREAD-TITLE quote the configured plugin root**\n\nAlready fixed.",
+     "authorAssociation": "NONE"
+    }
+   ]
+  }
+ },
+ {
+  "id": "PRRT_T4",
+  "isResolved": false,
+  "isOutdated": false,
+  "path": "docs/dsh-onboarding.md",
+  "line": 5,
+  "originalLine": 5,
+  "resolvedBy": null,
+  "comments": {
+   "nodes": [
+    {
+     "id": "PRRC_4",
+     "databaseId": 4,
+     "url": "https://github.com/acme/ocms-go/pull/170#discussion_r4",
+     "createdAt": "2026-09-27T15:00:00Z",
+     "author": {
+      "login": "olegiv",
+      "__typename": "User"
+     },
+     "body": "HUMAN-THREAD please rename this section",
+     "authorAssociation": "OWNER"
+    }
+   ]
+  }
+ },
+ {
+  "id": "PRRT_T5",
+  "isResolved": false,
+  "isOutdated": false,
+  "path": "Makefile",
+  "line": 30,
+  "originalLine": 30,
+  "resolvedBy": null,
+  "comments": {
+   "nodes": [
+    {
+     "id": "PRRC_5",
+     "databaseId": 5,
+     "url": "https://github.com/acme/ocms-go/pull/170#discussion_r5",
+     "createdAt": "2026-09-27T15:35:15Z",
+     "author": {
+      "login": "chatgpt-codex-connector",
+      "__typename": "Bot"
+     },
+     "body": "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>  HOSTILE \u001b[31mEVIL-ESC $(touch pwned-marker) `rm -rf /`**\n\nbody with $(touch pwned-marker) and \u001b[0m sequences",
+     "authorAssociation": "NONE"
+    }
+   ]
+  }
+ }
+]

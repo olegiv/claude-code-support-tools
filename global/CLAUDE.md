@@ -101,6 +101,25 @@ dynamically with the selected color.
 
 Keep pull request messages clean and professional without AI attribution footers.
 
+## PR Review Findings (Codex / Claude review bots)
+
+When asked to fix, address, check, or re-check automated pull-request review findings
+(chatgpt-codex-connector, Claude review), use the `pr-fix` skill (`/pr-fix <PR>`) and its rules:
+
+1. **One fix push plus one correction push per PR, then stop.** Round 3 and later are triage-only
+   (reply, resolve, defer) unless the user says `override`.
+2. **P2 findings: a one-line fix or a reply, never a rewrite.** One hunk of about five lines, no new
+   files or structure; a P2 that cannot be fixed in one hunk is REJECT or DEFER.
+3. Map the defect family before editing a P0/P1; every hunk maps to one finding thread; no hardening
+   "while here". Never patch the same denylist or pattern guard twice in one PR: convert it to an
+   allowlist or document its best-effort coverage and reject further bypass reports.
+4. Never run whole-repository audits, multi-pass review suites, or extra reviewer pairs as part of a
+   findings fix. Run the local Codex review (`pr-fix.sh review`) before every push, at most twice per round.
+5. One push per round, never while the bot has not yet reviewed the current head. Never trigger
+   `@codex review` by hand.
+6. Close every thread the round touches: fixed → reply + resolve; rejected → reply with the reason +
+   resolve; deferred → issue + reply + resolve.
+
 ## Claude Code Permissions
 
 **IMPORTANT:** Understand the difference between shared and local permissions files:

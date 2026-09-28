@@ -1,6 +1,6 @@
-# Git Pre-Commit Hook
+# Git Hooks
 
-This directory contains git hooks that prevent Claude Code from creating automated commits without explicit user approval.
+This directory contains git hooks that keep the human in control of commits and pushes: a `pre-commit` approval gate and a `pre-push` gate for the `pr-fix` review-repair workflow.
 
 ## Pre-Commit Hook
 
@@ -156,6 +156,70 @@ git config --global --unset core.hooksPath
 
 # Optionally delete the hooks directory
 rm -rf ~/.git-hooks
+```
+
+## Pre-Push Hook (pr-fix push gate)
+
+`pre-push` is a thin wrapper around the `pr-fix` skill's runner
+(`global/skills/pr-fix/scripts/pr-fix.sh pre-push`). It enforces the two-push
+repair workflow mechanically, for Claude Code, Codex and the human alike.
+
+### What It Does
+
+- **Armed only when a findings round has started**: it acts on a branch only if
+  `<repo>/.audit/pr-<N>/state.json` exists for that branch's pull request.
+  Ordinary pushes and repositories without `pr-fix` state are untouched.
+- **Refuses** a push when the commit's tree is not the tree the last local
+  Codex review saw, when the merge base moved since that review, when
+  `pr-fix.sh status` is not `ready`, or when the branch already has the
+  maximum number of fix pushes (`PRF_MAX_PUSHES`, default 2).
+- **Records** every allowed push in the state, so the round counter survives
+  tool switches even if the agent forgets to log it.
+- **Makes no network calls.** A pushed branch is matched against saved state by
+  branch name; branches without state are unarmed. Fails open with a notice when
+  `jq` or the runner is missing.
+- **Chains** to the repository's own `.git/hooks/pre-push` afterwards, feeding
+  it the same ref list, because `core.hooksPath` hides per-repository hooks.
+- Performs no AI review itself; the review happens earlier via
+  `pr-fix.sh review`.
+- Known limitation: git has no post-push hook, so the push is recorded when the
+  gate allows it. If git then fails to complete the push (remote rejection,
+  network error), run `pr-fix.sh record-push --undo` before retrying so the
+  attempt does not consume the two-push budget.
+
+### Bypasses
+
+```bash
+PRF_SKIP_PUSH_GATE=1 git push        # one push
+git config prf.pushGate false        # this repository
+git push --no-verify                 # git's own bypass
+```
+
+### Runner Lookup
+
+`$PRF_RUNNER`, then `git config prf.runner`, then
+`~/.claude/skills/pr-fix/scripts/pr-fix.sh`, then
+`~/.codex/skills/pr-fix/scripts/pr-fix.sh`.
+
+### Installation
+
+```bash
+mkdir -p ~/.git-hooks
+ln -s "$PWD/global/hooks/pre-push" ~/.git-hooks/pre-push
+git config --global core.hooksPath ~/.git-hooks
+```
+
+`core.hooksPath` makes git ignore each repository's `.git/hooks`; the wrapper's
+chain step restores them for `pre-push`. A repository that sets its own
+`core.hooksPath` (for example `make install-hooks` → `.githooks`) overrides the
+global one, so git will not run this wrapper there; copy or symlink it into that
+directory instead. Install the skill itself with the symlinks described in the
+README ("Using Global Skills") so the runner is found.
+
+### Tests
+
+```bash
+sh global/tests/pr-fix-test.sh
 ```
 
 ## Why Use This Hook?
