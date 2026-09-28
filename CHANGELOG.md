@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw, or that would exceed the two-push cap, records allowed pushes,
   fails open without gh/jq/runner, and chains to the repository's own
   pre-push hook that `core.hooksPath` would otherwise hide.
-- `global/tests/pr-fix-test.sh` — 205 offline assertions for the runner
+- `global/tests/pr-fix-test.sh` — 206 offline assertions for the runner
   and the hook using stub `gh`/`codex` binaries and fixtures under
   `global/tests/fixtures/pr-fix/`.
 - `global/commands/release-gh-prepare.md` — slash command
