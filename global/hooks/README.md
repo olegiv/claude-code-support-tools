@@ -175,8 +175,9 @@ repair workflow mechanically, for Claude Code, Codex and the human alike.
   maximum number of fix pushes (`PRF_MAX_PUSHES`, default 2).
 - **Records** every allowed push in the state, so the round counter survives
   tool switches even if the agent forgets to log it.
-- **Fails open** with a notice when `gh`, `jq` or the runner is missing, when
-  no open pull request is found, or when the state file is absent.
+- **Makes no network calls.** A pushed branch is matched against saved state by
+  branch name; branches without state are unarmed. Fails open with a notice when
+  `jq` or the runner is missing.
 - **Chains** to the repository's own `.git/hooks/pre-push` afterwards, feeding
   it the same ref list, because `core.hooksPath` hides per-repository hooks.
 - Performs no AI review itself; the review happens earlier via

@@ -45,6 +45,7 @@ assert_ne() {
   if [ "$2" != "$3" ]; then pass "$1"; else fail "$1" "expected a value other than: $3"; fi
 }
 assert_file() { if [ -e "$2" ]; then pass "$1"; else fail "$1" "missing file: $2"; fi; }
+perm_of() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null; }   # BSD, then GNU
 assert_no_file() { if [ ! -e "$2" ]; then pass "$1"; else fail "$1" "unexpected file: $2"; fi; }
 
 # ---------- stubs ----------
@@ -135,11 +136,18 @@ bash -n "$HOOK" && pass "hook: bash -n" || fail "hook: bash -n" "syntax error"
 mkinput reviews-pending 170 other-branch > "$TMPROOT/in170.json"
 OUT=$("$RUNNER" collect --from-file "$TMPROOT/in170.json" 2>&1); RC=$?
 assert_eq "collect: exit 0" "$RC" 0
-assert_contains "collect: passes=3" "$OUT" "passes=3"
+assert_contains "collect: passes=3 (distinct reviewed commits, not review objects)" "$OUT" "passes=3"
 assert_contains "collect: round=3 (passes win)" "$OUT" "round=3"
 assert_contains "collect: cap_reached=true" "$OUT" "cap_reached=true"
 assert_contains "collect: pending=true (latest connector commit != head)" "$OUT" "pending=true"
-assert_contains "collect: unresolved=5" "$OUT" "unresolved=5"
+assert_contains "collect: unresolved=6" "$OUT" "unresolved=6"
+assert_contains "collect: untrusted author body withheld" "$OUT" "[untrusted author drive-by-user (NONE); body withheld]"
+assert_not_contains "collect: untrusted title not printed" "$OUT" "UNTRUSTED-INJECTION"
+assert_not_contains "collect: untrusted body not printed" "$OUT" "UNTRUSTED-BODY"
+assert_contains "collect: untrusted thread demoted to [P?]" "$OUT" "[P?] README.md:1"
+OUT2=$("$RUNNER" collect --include-untrusted --from-file "$TMPROOT/in170.json" 2>&1)
+assert_contains "collect --include-untrusted: prints the body" "$OUT2" "UNTRUSTED-BODY"
+"$RUNNER" collect --from-file "$TMPROOT/in170.json" >/dev/null 2>&1
 assert_contains "collect: P1 line with clean title" "$OUT" "[P1] dsh-git-guard/git-guard.py:23 — Match long-form branch deletion before allowing it (thread PRRT_T1, chatgpt-codex-connector,"
 assert_not_contains "collect: no ** left in titles" "$OUT" "**"
 assert_not_contains "collect: no <sub> markup" "$OUT" "<sub>"
@@ -153,13 +161,16 @@ assert_no_file "collect: hostile \$(touch) not executed (repo)" "$REPO/pwned-mar
 assert_no_file "collect: hostile \$(touch) not executed (cwd)" "$TMPROOT/pwned-marker"
 assert_contains "collect: cap notice" "$OUT" "cap reached"
 assert_file "collect: state.json written" "$REPO/.audit/pr-170/state.json"
+OUT=$(PRF_PR=170 "$RUNNER" status 2>&1)
+assert_contains "status: computed round beyond the cap -> escalation-required" "$OUT" "status=escalation-required"
+assert_contains "status: pending connector review blocks readiness" "$OUT" "has not reviewed the current head"
 N=$(ls "$REPO/.audit/pr-170"/findings-*.json 2>/dev/null | wc -l | tr -d ' ')
 assert_eq "collect: findings snapshot written" "$N" 1
 
 OUT=$("$RUNNER" collect --json --from-file "$TMPROOT/in170.json" 2>/dev/null)
 assert_eq "collect --json: header.round" "$(printf '%s' "$OUT" | jq -r .header.round)" 3
 assert_eq "collect --json: header.cap_reached" "$(printf '%s' "$OUT" | jq -r .header.cap_reached)" true
-assert_eq "collect --json: findings count" "$(printf '%s' "$OUT" | jq -r '.findings | length')" 5
+assert_eq "collect --json: findings count" "$(printf '%s' "$OUT" | jq -r '.findings | length')" 6
 assert_eq "collect --json: sorted P1 first" "$(printf '%s' "$OUT" | jq -r '.findings[0].prio')" P1
 
 # ---------- 3. collect through stub gh (live path, fork-safe repo from URL) ----------
@@ -241,6 +252,8 @@ OUT=$(CODEX_REVIEW_MODEL=gpt-test PRF_PR=172 "$RUNNER" review --dry-run --base m
 assert_contains "review argv: model override" "$OUT" "gpt-test"
 OUT=$(PRF_PR=172 "$RUNNER" review --dry-run --base 'main;rm' 2>&1); RC=$?
 assert_eq "review: unsafe base ref rejected" "$RC" 1
+OUT=$(PRF_PR=172 "$RUNNER" review --dry-run --base origin/main 2>&1)
+assert_contains "review: origin/ prefix accepted and stripped" "$OUT" "base=main"
 
 # ---------- 9. review with stub codex ----------
 OUT=$(CODEX_FIXTURE="$FIX/codex-json.md" PRF_PR=172 "$RUNNER" review --base main --no-fetch 2>&1); RC=$?
@@ -257,6 +270,10 @@ assert_contains "review json: marker has tree=" "$(cat "$REPO/.audit/pr-172/last
 OUT=$(CODEX_FIXTURE="$FIX/codex-text.md" PRF_PR=172 "$RUNNER" review --base main --no-fetch 2>&1); RC=$?
 assert_eq "review text: exit 10" "$RC" 10
 assert_contains "review text: counts" "$OUT" "P0=0 P1=1 P2=2 P3=0 format=text"
+sleep 1
+OUT=$(CODEX_FIXTURE="$FIX/codex-json-title.md" PRF_PR=172 "$RUNNER" review --base main --no-fetch --force 2>&1); RC=$?
+assert_contains "review json: priority parsed from [P1] title when .priority is absent" "$OUT" "P0=0 P1=1 P2=0 P3=1 format=json"
+assert_eq "review json title: exit 10" "$RC" 10
 
 OUT=$(CODEX_FIXTURE="$FIX/codex-clean.md" PRF_PR=172 "$RUNNER" review --base main --no-fetch 2>&1); RC=$?
 assert_eq "review: third run in a round refused (exit 6)" "$RC" 6
@@ -304,7 +321,7 @@ mkinput reviews-current 173 feature > "$TMPROOT/in173.json"
 OUT=$("$RUNNER" status 2>&1); RC=$?
 assert_contains "status: incomplete while threads lack dispositions" "$OUT" "status=incomplete"
 assert_eq "status: non-zero when not ready" "$RC" 1
-for t in PRRT_T1 PRRT_T2 PRRT_T4 PRRT_T5 PRRT_T6; do "$RUNNER" triage "$t" REJECT --note "test" >/dev/null 2>&1; done
+for t in PRRT_T1 PRRT_T2 PRRT_T4 PRRT_T5 PRRT_T6 PRRT_T7; do "$RUNNER" triage "$t" REJECT --note "test" >/dev/null 2>&1; done
 OUT=$("$RUNNER" status 2>&1)
 assert_contains "status: incomplete without a check this round" "$OUT" "status=incomplete"
 assert_contains "status: reason names the missing check" "$OUT" "no deterministic check"
@@ -337,8 +354,8 @@ assert_contains "report: lists dispositions" "$(cat "$REPO/.audit/pr-173/round-1
 assert_contains "report: lists local reviews" "$(cat "$REPO/.audit/pr-173/round-1.md")" "effort=high"
 
 # P2 rule warning: a FIX on a P2 thread whose file has two hunks
-PRF_PR=171 "$RUNNER" triage PRRT_T2 FIX --file scripts/install-git-guard.sh >/dev/null 2>&1
-sed -i '' -e 's/^line 2$/line two/' -e 's/^line 28$/line twenty-eight/' "$REPO/scripts/install-git-guard.sh"
+PRF_PR=171 "$RUNNER" triage PRRT_T2 FIX >/dev/null 2>&1   # no --file: falls back to the thread path
+perl -pi -e 's/^line 2$/line two/; s/^line 28$/line twenty-eight/' "$REPO/scripts/install-git-guard.sh"   # portable in-place edit
 OUT=$(PRF_PR=171 "$RUNNER" status 2>&1)
 assert_contains "status: warns when a P2 fix spans two hunks" "$OUT" "warning: P2 fix in scripts/install-git-guard.sh spans 2 hunks"
 git -C "$REPO" checkout -q -- scripts/install-git-guard.sh
@@ -358,8 +375,9 @@ assert_eq "pre-push: unarmed repo allows" "$RC" 0
 assert_eq "pre-push: unarmed repo never calls gh" "$(gh_lines)" "$BEFORE"
 
 # armed, ready, matching tree
-OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$HEAD_SHA" "$OLD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
-assert_eq "pre-push: ready + reviewed tree allows" "$RC" 0
+OUT=$(printf 'HEAD %s refs/heads/feature %s\n' "$HEAD_SHA" "$OLD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
+assert_eq "pre-push: ready + reviewed tree allows (matched on the destination ref)" "$RC" 0
+assert_eq "pre-push: recorded push marks the head pending" "$(jq -r '.pending' "$REPO/.audit/pr-173/state.json")" true
 assert_eq "pre-push: push recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 assert_eq "pre-push: recorded sha" "$(jq -r '.pushes[0].sha' "$REPO/.audit/pr-173/state.json")" "$HEAD_SHA"
 
@@ -369,7 +387,7 @@ NEW_SHA=$(git -C "$REPO" rev-parse HEAD)
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: unreviewed tree blocked" "$RC" 1
 assert_contains "pre-push: refusal message" "$OUT" "refusing feature (PR #173)"
-assert_contains "pre-push: new round needs its own check and review" "$OUT" "status=incomplete"
+assert_contains "pre-push: after a push the new head awaits the connector (pending)" "$OUT" "has not reviewed the current head"
 assert_eq "pre-push: blocked push not recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | PRF_SKIP_PUSH_GATE=1 "$RUNNER" pre-push 2>&1); RC=$?
@@ -377,7 +395,8 @@ assert_eq "pre-push: PRF_SKIP_PUSH_GATE=1 bypasses" "$RC" 0
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\nrefs/tags/v1 %s refs/tags/v1 %s\n' "$ZERO" "$HEAD_SHA" "$NEW_SHA" "$ZERO" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: delete and tag refs are skipped" "$RC" 0
 
-# second round: check + review the new head, push, then the cap blocks
+# second round: a fresh collect clears pending (fixture head == latest reviewed), then check + review the new head
+"$RUNNER" collect --from-file "$TMPROOT/in173.json" >/dev/null 2>&1
 "$RUNNER" check --none "round 2" >/dev/null 2>&1
 CODEX_FIXTURE="$FIX/codex-clean.md" "$RUNNER" review --base main --no-fetch >/dev/null 2>&1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
@@ -391,7 +410,20 @@ assert_contains "collect: round=3 after two pushes" "$OUT" "round=3"
 CODEX_FIXTURE="$FIX/codex-clean.md" "$RUNNER" review --base main --no-fetch >/dev/null 2>&1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: third push blocked by the cap" "$RC" 1
-assert_contains "pre-push: cap reason" "$OUT" "reached the cap"
+assert_contains "pre-push: cap reason" "$OUT" "exceed the cap"
+
+# ---------- 13b. fallback state directory when .audit is not ignored ----------
+BEFORE=$(gh_lines)
+OUT=$(cd "$TMPROOT/repo2" && XDG_STATE_HOME="$TMPROOT/state" "$RUNNER" collect --from-file "$TMPROOT/in171.json" 2>&1)
+assert_contains "fallback: warns that .audit is not ignored" "$OUT" "not gitignored"
+FB=$(ls -d "$TMPROOT/state/pr-fix"/repo2-* 2>/dev/null | head -1)
+assert_ne "fallback: state dir under XDG_STATE_HOME with repo hash" "$FB" ""
+assert_eq "fallback: state dir is private (700)" "$(perm_of "$FB/pr-171")" 700
+assert_eq "fallback: state file is private (600)" "$(perm_of "$FB/pr-171/state.json")" 600
+assert_no_file "fallback: nothing written under the repo" "$TMPROOT/repo2/.audit"
+OUT=$(cd "$TMPROOT/repo2" && printf 'refs/heads/other %s refs/heads/other %s\n' "$(git rev-parse HEAD)" "$ZERO" | XDG_STATE_HOME="$TMPROOT/state" "$RUNNER" pre-push 2>&1); RC=$?
+assert_eq "pre-push: branch without matching state is unarmed" "$RC" 0
+assert_eq "pre-push: no gh lookup for unmatched branches" "$(gh_lines)" "$BEFORE"
 
 # ---------- 14. hook wrapper: runs the runner and chains the repo's own hook ----------
 cat > "$TMPROOT/repo2/.git/hooks/pre-push" <<'CHAIN'
@@ -425,6 +457,11 @@ assert_eq "close: real reply+resolve exit 0" "$RC" 0
 assert_contains "close: body passed as a file variable" "$(cat "$GH_LOG")" "-F body=@"
 assert_contains "close: thread id passed as a variable" "$(cat "$GH_LOG")" "-f threadId=PRRT_T1"
 assert_eq "close: state records closure" "$(jq -r '.threads.PRRT_T1.closed.resolved' "$REPO/.audit/pr-171/state.json")" true
+BEFORE=$(gh_lines)
+OUT=$(PRF_PR=171 "$RUNNER" close PRRT_T1 --reply-file "$TMPROOT/reply1.md" --resolve 2>&1); RC=$?
+assert_eq "close: retry of a closed thread is a no-op" "$RC" 0
+assert_contains "close: retry reports already closed" "$OUT" "already closed thread=PRRT_T1"
+assert_eq "close: retry posts nothing" "$(gh_lines)" "$BEFORE"
 printf '{"thread":"PRRT_BAD1","reply":"x","resolve":true}\n{"thread":"PRRT_T2","reply":"Not changing: test","resolve":true}\n' > "$TMPROOT/closes.jsonl"
 OUT=$(GH_FAIL_ID=PRRT_BAD1 PRF_PR=171 "$RUNNER" close --batch "$TMPROOT/closes.jsonl" 2>&1); RC=$?
 assert_eq "close --batch: exit 2 when one thread fails" "$RC" 2

@@ -1,7 +1,62 @@
 [
- {"id":1,"user":{"login":"chatgpt-codex-connector[bot]"},"state":"COMMENTED","submitted_at":"2026-09-27T14:46:55Z","commit_id":"c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1","body":"### Codex Review"},
- {"id":2,"user":{"login":"olegiv"},"state":"APPROVED","submitted_at":"2026-09-27T15:00:00Z","commit_id":"c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1","body":"LGTM"},
- {"id":3,"user":{"login":"chatgpt-codex-connector[bot]"},"state":"COMMENTED","submitted_at":"2026-09-27T15:35:15Z","commit_id":"c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2","body":"### Codex Review"},
- {"id":4,"user":{"login":"github-advanced-security[bot]"},"state":"COMMENTED","submitted_at":"2026-09-27T16:00:00Z","commit_id":"c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2","body":"alert"},
- {"id":5,"user":{"login":"chatgpt-codex-connector[bot]"},"state":"COMMENTED","submitted_at":"2026-09-27T17:11:09Z","commit_id":"c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3","body":"### Codex Review"}
+ {
+  "id": 1,
+  "user": {
+   "login": "chatgpt-codex-connector[bot]"
+  },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-27T14:46:55Z",
+  "commit_id": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+  "body": "### Codex Review"
+ },
+ {
+  "id": 2,
+  "user": {
+   "login": "olegiv"
+  },
+  "state": "APPROVED",
+  "submitted_at": "2026-09-27T15:00:00Z",
+  "commit_id": "c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1",
+  "body": "LGTM"
+ },
+ {
+  "id": 3,
+  "user": {
+   "login": "chatgpt-codex-connector[bot]"
+  },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-27T15:35:15Z",
+  "commit_id": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+  "body": "### Codex Review"
+ },
+ {
+  "id": 4,
+  "user": {
+   "login": "github-advanced-security[bot]"
+  },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-27T16:00:00Z",
+  "commit_id": "c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2c2",
+  "body": "alert"
+ },
+ {
+  "id": 5,
+  "user": {
+   "login": "chatgpt-codex-connector[bot]"
+  },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-27T17:11:09Z",
+  "commit_id": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+  "body": "### Codex Review"
+ },
+ {
+  "id": 6,
+  "user": {
+   "login": "chatgpt-codex-connector[bot]"
+  },
+  "state": "COMMENTED",
+  "submitted_at": "2026-09-27T17:11:30Z",
+  "commit_id": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3",
+  "body": "### Codex Security Review"
+ }
 ]

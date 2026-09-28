@@ -31,7 +31,7 @@ fi
 # core.hooksPath, `git rev-parse --git-path hooks` points back at this wrapper's
 # directory, so look at the repository-local hooksPath and $GIT_DIR/hooks directly.
 self="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
-git_dir=$(git rev-parse --git-dir 2>/dev/null || true)
+git_dir=$(git rev-parse --git-common-dir 2>/dev/null || true)   # common dir: works in linked worktrees
 local_hooks=$(git config --local --get core.hooksPath 2>/dev/null || true)
 for dir in "$local_hooks" "${git_dir:+$git_dir/hooks}"; do
   [[ -n $dir && -x "$dir/pre-push" ]] || continue
