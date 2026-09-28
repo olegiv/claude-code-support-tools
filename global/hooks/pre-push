@@ -36,7 +36,7 @@ local_hooks=$(git config --local --get core.hooksPath 2>/dev/null || true)
 for dir in "$local_hooks" "${git_dir:+$git_dir/hooks}"; do
   [[ -n $dir && -x "$dir/pre-push" ]] || continue
   repo_hook="$(cd "$dir" && pwd -P)/pre-push"
-  [[ $repo_hook != "$self" ]] || continue
+  [[ ! $repo_hook -ef $self ]] || continue   # same file through any symlink: never run the gate twice
   exec "$repo_hook" "$@" < "$buf"
 done
 exit 0

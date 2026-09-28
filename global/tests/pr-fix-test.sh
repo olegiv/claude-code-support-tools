@@ -217,6 +217,10 @@ assert_contains "collect 171 after 2 pushes: cap_reached=true" "$OUT" "cap_reach
 OUT=$(PRF_PR=171 "$RUNNER" record-push --undo 2>&1)
 assert_contains "record-push --undo: drops the last push" "$OUT" "1 remain"
 assert_eq "record-push --undo: head restored to the previous push" "$(jq -r '.head == .pushes[-1].sha' "$REPO/.audit/pr-171/state.json")" true
+jq '.latest_connector_commit = .head' "$REPO/.audit/pr-171/state.json" > "$TMPROOT/s.json" && mv "$TMPROOT/s.json" "$REPO/.audit/pr-171/state.json"
+PRF_PR=171 "$RUNNER" record-push >/dev/null 2>&1
+PRF_PR=171 "$RUNNER" record-push --undo >/dev/null 2>&1
+assert_eq "record-push --undo: pending cleared when the restored head was reviewed" "$(jq -r '.pending' "$REPO/.audit/pr-171/state.json")" false
 OUT=$(PRF_PR=171 "$RUNNER" override 2>&1)
 assert_contains "override: grants one more push" "$OUT" "may now use 3 fix pushes"
 PRF_PR=171 "$RUNNER" record-push >/dev/null 2>&1
@@ -263,6 +267,12 @@ OUT=$(PRF_PR=172 "$RUNNER" review --dry-run --base 'main;rm' 2>&1); RC=$?
 assert_eq "review: unsafe base ref rejected" "$RC" 1
 OUT=$(PRF_PR=172 "$RUNNER" review --dry-run --base origin/main 2>&1)
 assert_contains "review: origin/ prefix accepted and stripped" "$OUT" "base=main"
+assert_contains "review: codex is pointed at the fetched remote ref" "$OUT" "origin/main"
+printf 'tmp\n' > "$REPO/dry-untracked.txt"
+OUT=$(PRF_PR=172 "$RUNNER" review --dry-run --base main --include-untracked 2>&1)
+assert_contains "review --dry-run --include-untracked: only reports" "$OUT" "would run git add -N"
+assert_not_contains "review --dry-run: index untouched" "$(git -C "$REPO" diff --name-only)" "dry-untracked.txt"
+rm -f "$REPO/dry-untracked.txt"
 
 # ---------- 9. review with stub codex ----------
 OUT=$(CODEX_FIXTURE="$FIX/codex-json.md" PRF_PR=172 "$RUNNER" review --base main --no-fetch 2>&1); RC=$?
@@ -410,9 +420,20 @@ assert_eq "pre-push: a push to the fork head repository is gated" "$RC" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push backup git@github.com:someone/backup-mirror.git 2>&1); RC=$?
 assert_eq "pre-push: a push to another remote is not gated" "$RC" 0
 assert_contains "pre-push: other remote reported as not counted" "$OUT" "not counted"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror https://github.com/acme/ocms-go-mirror.git 2>&1); RC=$?
+assert_eq "pre-push: a remote whose name merely contains the slug is not gated" "$RC" 0
+assert_contains "pre-push: exact slug reported" "$OUT" "(acme/ocms-go-mirror)"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin ssh://git@github.com/Acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: ssh URL of the PR repository is gated (case-insensitive)" "$RC" 1
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin https://github.com/acme/ocms-go/ 2>&1); RC=$?
+assert_eq "pre-push: trailing slash in the remote URL still matches" "$RC" 1
 assert_eq "pre-push: other remote not recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\nrefs/tags/v1 %s refs/tags/v1 %s\n' "$ZERO" "$HEAD_SHA" "$NEW_SHA" "$ZERO" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: delete and tag refs are skipped" "$RC" 0
+ZERO256=0000000000000000000000000000000000000000000000000000000000000000
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$ZERO256" "$HEAD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
+assert_eq "pre-push: SHA-256 deletion object name is skipped" "$RC" 0
+assert_eq "pre-push: SHA-256 deletion not recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 
 # second round: a fresh collect clears pending (fixture head == latest reviewed), then check + review the new head
 "$RUNNER" collect --from-file "$TMPROOT/in173.json" >/dev/null 2>&1
@@ -460,6 +481,12 @@ assert_eq "hook wrapper: propagates a block" "$RC" 1
 OUT=$(cd "$TMPROOT/repo2" && printf 'refs/heads/main %s refs/heads/main %s\n' "$(git rev-parse HEAD)" "$ZERO" | PRF_RUNNER=/nonexistent/pr-fix.sh HOME="$TMPROOT/nohome" "$HOOK" origin x 2>&1); RC=$?
 assert_eq "hook wrapper: missing runner fails open" "$RC" 0
 assert_contains "hook wrapper: missing runner notice" "$OUT" "runner not found"
+
+# a repository hook that is a symlink to this very wrapper must not run the gate twice
+ln -sf "$HOOK" "$TMPROOT/repo2/.git/hooks/pre-push"
+OUT=$(cd "$TMPROOT/repo2" && printf 'refs/heads/main %s refs/heads/main %s\n' "$(git rev-parse HEAD)" "$ZERO" | PRF_RUNNER="$RUNNER" "$HOOK" origin x 2>&1); RC=$?
+assert_eq "hook wrapper: symlinked copy of itself is not chained" "$RC" 0
+assert_not_contains "hook wrapper: no recursion notice" "$OUT" "runner not found"
 
 # ---------- 15. close ----------
 BEFORE=$(gh_lines)

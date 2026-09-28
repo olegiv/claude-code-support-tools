@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw, or that would exceed the two-push cap, records allowed pushes,
   fails open without gh/jq/runner, and chains to the repository's own
   pre-push hook that `core.hooksPath` would otherwise hide.
-- `global/tests/pr-fix-test.sh` — 172 offline assertions for the runner
+- `global/tests/pr-fix-test.sh` — 184 offline assertions for the runner
   and the hook using stub `gh`/`codex` binaries and fixtures under
   `global/tests/fixtures/pr-fix/`.
 - `global/commands/release-gh-prepare.md` — slash command
@@ -51,6 +51,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   release title from the first bold bullet. Does not publish the
   release or create the git tag — those stay in the user's hands via
   the GitHub UI.
+
+### Fixed
+
+- `pr-fix` follow-ups from PR #53's third review pass (#55): the local
+  gate reviews against the fetched `origin/<base>` ref; `--dry-run`
+  never runs `git add -N`; `record-push --undo` derives `pending` from
+  the connector's latest reviewed commit; the push gate skips all-zero
+  object names of any length (SHA-256 repositories) and matches the
+  remote repository slug exactly; the hook wrapper compares file
+  identity (`-ef`) so a symlinked copy of itself is never chained.
 
 ### Changed
 

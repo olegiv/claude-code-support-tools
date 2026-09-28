@@ -507,7 +507,9 @@ cmd_review() {
   local untracked
   untracked=$(git -C "$ROOT" ls-files --others --exclude-standard)
   if [[ -n $untracked ]]; then
-    if [[ $include_untracked -eq 1 ]]; then
+    if [[ $include_untracked -eq 1 && $dry_run -eq 1 ]]; then
+      log "dry-run: would run git add -N on $(printf '%s\n' "$untracked" | wc -l | tr -d ' ') untracked file(s)"
+    elif [[ $include_untracked -eq 1 ]]; then
       git -C "$ROOT" ls-files -z --others --exclude-standard | xargs -0 git -C "$ROOT" add -N --
       log "intent-to-add applied to $(printf '%s\n' "$untracked" | wc -l | tr -d ' ') untracked file(s)"
     elif [[ $dry_run -eq 1 ]]; then
@@ -529,7 +531,9 @@ cmd_review() {
   argv+=("$PRF_CODEX_BIN" -C "$ROOT" -s read-only -a never)
   [[ -n $CODEX_REVIEW_MODEL ]] && argv+=(-m "$CODEX_REVIEW_MODEL")
   argv+=(-c "model_reasoning_effort=\"$effort\"" -c "developer_instructions=\"$instructions\"")
-  argv+=(exec review --base "$base" --ephemeral)
+  local review_base=$base   # prefer the fetched remote ref so the gate reviews what GitHub sees
+  git -C "$ROOT" rev-parse -q --verify "refs/remotes/origin/$base" >/dev/null 2>&1 && review_base="origin/$base"
+  argv+=(exec review --base "$review_base" --ephemeral)
 
   mkdir -p "$AUDIT"; chmod 700 "$AUDIT" 2>/dev/null || true
   umask 077
@@ -812,7 +816,8 @@ cmd_record_push() {
   if [[ ${1:-} == --undo ]]; then
     state_set '.pushes |= (if length > 0 then .[:-1] else . end)
                | .head = (if (.pushes | length) > 0 then .pushes[-1].sha else (.latest_connector_commit // .head) end)
-               | .pending = (if (.pushes | length) > 0 then "true" else "unknown" end)'
+               | .pending = (if (.latest_connector_commit // "") == "" then "unknown"
+                             elif .head == .latest_connector_commit then "false" else "true" end)'
     printf 'removed the last recorded push; %s remain\n' "$(state_get '.pushes | length')"
     return 0
   fi
@@ -841,7 +846,7 @@ cmd_pre_push() {
   input=$(cat)   # read the whole ref list first so inner commands cannot consume stdin
   while read -r local_ref local_sha remote_ref remote_sha <&3; do
     [[ -n ${local_ref:-} ]] || continue
-    case $local_sha in 0000000000000000000000000000000000000000) continue ;; esac
+    case $local_sha in *[!0]*) ;; *) continue ;; esac   # deletion: all-zero object name (SHA-1 or SHA-256)
     case $remote_ref in refs/tags/*) continue ;; esac
     branch=${remote_ref#refs/heads/}   # destination branch: `git push origin HEAD:feature` still matches
     PR_NUMBER=""; local best="" f_upd
@@ -856,8 +861,12 @@ cmd_pre_push() {
     AUDIT="$root/pr-$PR_NUMBER"; STATE="$AUDIT/state.json"
     [[ -f $STATE ]] || continue
     if [[ -n $remote_url ]]; then   # only the pull request's own repository counts as a fix push
-      local repo_slug head_slug; repo_slug=$(state_get '.repo // ""'); head_slug=$(state_get '.head_repo // .repo // ""')
-      case $remote_url in *"$repo_slug"*|*"$head_slug"*) ;; *) log "push gate: ${remote_name:-remote} is neither $repo_slug nor $head_slug; not counted"; continue ;; esac
+      local repo_slug head_slug remote_slug
+      repo_slug=$(state_get '.repo // ""' | tr '[:upper:]' '[:lower:]'); head_slug=$(state_get '.head_repo // .repo // ""' | tr '[:upper:]' '[:lower:]')
+      remote_slug=$(printf '%s' "$remote_url" | sed -E 's#/+$##; s#\.git$##; s#^[a-z+]+://[^/]+/##; s#^[^@]+@[^:]+:##; s#^/##' | awk -F/ 'NF>=2 {print $(NF-1)"/"$NF}' | tr '[:upper:]' '[:lower:]')
+      if [[ $remote_slug != "$repo_slug" && $remote_slug != "$head_slug" ]]; then
+        log "push gate: ${remote_name:-remote} ($remote_slug) is neither $repo_slug nor $head_slug; not counted"; continue
+      fi
     fi
     local commit_tree base mb out
     commit_tree=$(git -C "$ROOT" rev-parse "$local_sha^{tree}" 2>/dev/null || true)
