@@ -230,7 +230,7 @@ remote_user_of() {
 resolve_host() {
   local host=$1 user=${2:-} real target
   [[ -n $host ]] || return 0
-  if [[ $(git -C "$ROOT" config --get prf.sshResolve 2>/dev/null || echo true) == false ]]; then
+  if [[ $(git -C "$ROOT" config --bool --get prf.sshResolve 2>/dev/null || echo true) == false ]]; then
     printf '%s' "$host" | tr '[:upper:]' '[:lower:]'; return 0
   fi
   target=${user:+$user@}$host   # Match blocks may key on the user, so resolve the same destination ssh would
@@ -921,7 +921,7 @@ cmd_pre_push() {
   init_root
   local remote_name=${1:-} remote_url=${2:-}
   if [[ ${PRF_SKIP_PUSH_GATE:-0} == 1 ]]; then return 0; fi
-  if [[ $(git -C "$ROOT" config --get prf.pushGate 2>/dev/null || echo true) == false ]]; then return 0; fi
+  if [[ $(git -C "$ROOT" config --bool --get prf.pushGate 2>/dev/null || echo true) == false ]]; then return 0; fi
   local root; root=$(audit_root)
   local armed=0 f
   for f in "$root"/pr-*/state.json; do [[ -f $f ]] && armed=1 && break; done

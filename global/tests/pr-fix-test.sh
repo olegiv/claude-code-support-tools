@@ -422,6 +422,10 @@ assert_eq "pre-push: blocked push not recorded" "$(jq -r '.pushes | length' "$RE
 
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | PRF_SKIP_PUSH_GATE=1 "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: PRF_SKIP_PUSH_GATE=1 bypasses" "$RC" 0
+git -C "$REPO" config prf.pushGate no
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push 2>&1); RC=$?
+assert_eq "pre-push: prf.pushGate=no (Git boolean spelling) bypasses" "$RC" 0
+git -C "$REPO" config --unset prf.pushGate
 jq '.head_repo = "forker/ocms-go"' "$REPO/.audit/pr-173/state.json" > "$TMPROOT/s.json" && mv "$TMPROOT/s.json" "$REPO/.audit/pr-173/state.json"
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push fork git@github.com:forker/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: a push to the fork head repository is gated" "$RC" 1
@@ -458,7 +462,7 @@ assert_eq "pre-push: alias conditional on the ssh user resolves with user@host" 
 assert_contains "pre-push: ssh -G received user@host" "$(cat "$TMPROOT/ssh.log")" "git@gh"
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push redir git@redirected.example:acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: SSH host redirected elsewhere by ssh config is not the PR host" "$RC" 0
-git -C "$REPO" config prf.sshResolve false
+git -C "$REPO" config prf.sshResolve off   # any Git boolean spelling must work
 : > "$TMPROOT/ssh.log"
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push gh github:acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: prf.sshResolve=false compares hosts as written (alias not gated)" "$RC" 0
