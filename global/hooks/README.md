@@ -178,6 +178,11 @@ repair workflow mechanically, for Claude Code, Codex and the human alike.
 - **Makes no network calls.** A pushed branch is matched against saved state by
   branch name; branches without state are unarmed. Fails open with a notice when
   `jq` or the runner is missing.
+- **Gates only pushes to the pull request's repository.** The remote URL must name
+  the PR's base or head repository on the PR's host; SSH host aliases are resolved
+  with `ssh -G` (local config only). A same-named mirror on another host is neither
+  gated nor counted. `git config prf.baseRemote <name>` names the PR remote
+  explicitly when detection cannot.
 - **Chains** to the repository's own `.git/hooks/pre-push` afterwards, feeding
   it the same ref list, because `core.hooksPath` hides per-repository hooks.
 - Performs no AI review itself; the review happens earlier via

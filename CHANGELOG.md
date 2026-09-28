@@ -36,7 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   saw, or that would exceed the two-push cap, records allowed pushes,
   fails open without gh/jq/runner, and chains to the repository's own
   pre-push hook that `core.hooksPath` would otherwise hide.
-- `global/tests/pr-fix-test.sh` — 188 offline assertions for the runner
+- `global/tests/pr-fix-test.sh` — 196 offline assertions for the runner
   and the hook using stub `gh`/`codex` binaries and fixtures under
   `global/tests/fixtures/pr-fix/`.
 - `global/commands/release-gh-prepare.md` — slash command
@@ -54,6 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `pr-fix` remote matching (#57): SSH host aliases are resolved with
+  `ssh -G` before comparing hosts, the push gate uses the same host-aware
+  match as the review (a same-named mirror on another host is neither
+  gated nor counted), and `git config prf.baseRemote` names the pull
+  request's remote explicitly.
 - `pr-fix` follow-ups from PR #53's third review pass (#55): the local
   gate reviews against the fetched `origin/<base>` ref; `--dry-run`
   never runs `git add -N`; `record-push --undo` derives `pending` from

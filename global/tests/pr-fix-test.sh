@@ -88,9 +88,14 @@ if [[ -n $out && -n ${CODEX_FIXTURE:-} ]]; then cp "$CODEX_FIXTURE" "$out"; fi
 echo "stub codex: done"
 exit "${CODEX_EXIT:-0}"
 STUB
-chmod +x "$TMPROOT/bin/gh" "$TMPROOT/bin/codex"
+cat > "$TMPROOT/bin/ssh" <<'STUB'
+#!/bin/bash
+# stub ssh -G <alias>: only the alias "github" resolves
+case "$1 $2" in "-G github"|"-G gh.work") printf 'hostname github.com\nuser git\n' ;; *) printf 'hostname %s\n' "$2" ;; esac
+STUB
+chmod +x "$TMPROOT/bin/gh" "$TMPROOT/bin/codex" "$TMPROOT/bin/ssh"
 
-export PRF_GH_BIN="$TMPROOT/bin/gh" PRF_CODEX_BIN="$TMPROOT/bin/codex"
+export PRF_GH_BIN="$TMPROOT/bin/gh" PRF_CODEX_BIN="$TMPROOT/bin/codex" PRF_SSH_BIN="$TMPROOT/bin/ssh"
 export GH_STUB_LOG="$GH_LOG" CODEX_STUB_LOG="$CODEX_LOG" FIX
 export PRF_MAX_PUSHES=2 PRF_MAX_REVIEWS_PER_ROUND=2 PRF_REVIEW_TIMEOUT=60 PRF_CHECK_TIMEOUT=60
 unset PRF_PR CODEX_REVIEW_MODEL CODEX_REVIEW_EFFORT GH_REVIEWS GH_PR_LIST GH_FAIL_ID CODEX_FIXTURE CODEX_EXIT \
@@ -422,13 +427,26 @@ assert_eq "pre-push: a push to another remote is not gated" "$RC" 0
 assert_contains "pre-push: other remote reported as not counted" "$OUT" "not counted"
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror https://github.com/acme/ocms-go-mirror.git 2>&1); RC=$?
 assert_eq "pre-push: a remote whose name merely contains the slug is not gated" "$RC" 0
-assert_contains "pre-push: exact slug reported" "$OUT" "(acme/ocms-go-mirror)"
+assert_contains "pre-push: exact slug and host reported" "$OUT" "acme/ocms-go-mirror on github.com"
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin ssh://git@github.com/Acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: ssh URL of the PR repository is gated (case-insensitive)" "$RC" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin https://github.com/acme/ocms-go/ 2>&1); RC=$?
 assert_eq "pre-push: trailing slash in the remote URL still matches" "$RC" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push gh github:acme/ocms-go.git 2>&1); RC=$?
-assert_eq "pre-push: scp-style remote without a user is gated" "$RC" 1
+assert_eq "pre-push: SSH alias remote resolves to the PR host and is gated" "$RC" 1
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror git@gitlab.com:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: same slug on another host is not gated" "$RC" 0
+assert_contains "pre-push: other-host mirror reported" "$OUT" "gitlab.com"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push lab unknownalias:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: unresolvable alias is not treated as the PR host" "$RC" 0
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push local /srv/git/acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: a host-less local remote with the same slug is not gated" "$RC" 0
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push work gh.work:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: dotted SSH alias resolves and is gated" "$RC" 1
+git -C "$REPO" config prf.baseRemote mirror
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror git@gitlab.com:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: prf.baseRemote names the gated remote explicitly" "$RC" 1
+git -C "$REPO" config --unset prf.baseRemote
 # the review base comes from the remote matching the PR base repository, not from origin
 git -C "$REPO" remote add upstream https://github.com/acme/ocms-go.git
 git -C "$REPO" remote set-url origin git@github.com:forker/ocms-go.git
@@ -441,6 +459,16 @@ git -C "$REPO" remote remove upstream
 OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
 assert_contains "review: same slug on another host is not the base repository" "$OUT" "remote=origin"
 assert_contains "review: warns when no remote matches the PR host" "$OUT" "no remote matches the PR base repository"
+git -C "$REPO" remote add gh github:acme/ocms-go.git
+git -C "$REPO" update-ref refs/remotes/gh/main main
+OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
+assert_contains "review: SSH alias remote is recognised as the base repository" "$OUT" "remote=gh review_base=gh/main"
+git -C "$REPO" config prf.baseRemote mirror
+OUT=$(PRF_PR=173 "$RUNNER" review --dry-run --base main 2>&1)
+assert_contains "review: prf.baseRemote overrides the search" "$OUT" "remote=mirror review_base=mirror/main"
+git -C "$REPO" config --unset prf.baseRemote
+git -C "$REPO" update-ref -d refs/remotes/gh/main
+git -C "$REPO" remote remove gh
 git -C "$REPO" remote add upstream https://github.com/acme/ocms-go.git
 git -C "$REPO" update-ref -d refs/remotes/mirror/main
 git -C "$REPO" remote remove mirror

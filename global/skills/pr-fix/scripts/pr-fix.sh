@@ -23,6 +23,7 @@
 #   PRF_GH_BIN, PRF_CODEX_BIN, PRF_AUDIT_DIR (.audit), PRF_CONNECTOR (chatgpt-codex-connector),
 #   PRF_MAX_PUSHES (2), PRF_MAX_REVIEWS_PER_ROUND (2), PRF_REVIEW_TIMEOUT (1200 s),
 #   PRF_CHECK_TIMEOUT (900 s), PRF_REVIEW_JSON (0|1), PRF_PR (pull request number override),
+#   PRF_SSH_BIN (ssh, used to resolve host aliases), git config prf.baseRemote (remote of the PR repository),
 #   CODEX_REVIEW_EFFORT (high), CODEX_REVIEW_MODEL (unset = configured model).
 #
 # Review-thread text never reaches a shell: it is handled by jq only, control
@@ -38,6 +39,7 @@ PRF_MAX_REVIEWS_PER_ROUND="${PRF_MAX_REVIEWS_PER_ROUND:-2}"
 PRF_REVIEW_TIMEOUT="${PRF_REVIEW_TIMEOUT:-1200}"
 PRF_CHECK_TIMEOUT="${PRF_CHECK_TIMEOUT:-900}"
 PRF_REVIEW_JSON="${PRF_REVIEW_JSON:-0}"
+PRF_SSH_BIN="${PRF_SSH_BIN:-ssh}"
 CODEX_REVIEW_EFFORT="${CODEX_REVIEW_EFFORT:-high}"
 CODEX_REVIEW_MODEL="${CODEX_REVIEW_MODEL:-}"
 
@@ -215,14 +217,39 @@ remote_host_of() {
   printf '%s' "$1" | sed -E -n -e 's#^[a-z+]+://([^@/]+@)?([^/:]+).*#\2#p' -e t -e 's#^([^@/:]+@)?([^/:]+):[^/].*#\2#p' | tr '[:upper:]' '[:lower:]'
 }
 
-# name of the remote whose URL matches the given owner/name slug AND host; empty when none does
+# resolve an SSH host alias (no dot, e.g. `github` with `Host github` in ~/.ssh/config) to its real hostname
+resolve_host() {
+  local host=$1 real
+  [[ -n $host ]] || return 0
+  # aliases may contain dots too (`Host gh.work`), so always consult ssh's resolved config
+  real=$("$PRF_SSH_BIN" -G "$host" 2>/dev/null | awk '$1 == "hostname" {print $2; exit}' || true)
+  printf '%s' "$(printf '%s' "${real:-$host}" | tr '[:upper:]' '[:lower:]')"
+}
+
+# does this remote URL name the pull request's repository (base or head) on the pull request's host?
+# remote_matches_pr URL PR_HOST SLUG [SLUG...]
+remote_matches_pr() {
+  local url=$1 pr_host=$2 slug host want; shift 2
+  slug=$(remote_slug_of "$url"); host=$(resolve_host "$(remote_host_of "$url")")
+  [[ -z $pr_host || $host == "$pr_host" ]] || return 1   # a host-less (local path) remote never matches a hosted PR
+  for want in "$@"; do
+    [[ -n $want && $slug == "$(printf '%s' "$want" | tr '[:upper:]' '[:lower:]')" ]] && return 0
+  done
+  return 1
+}
+
+# name of the remote whose URL matches the given owner/name slug AND host; empty when none does.
+# `git config prf.baseRemote <name>` overrides the search.
 remote_for_slug() {
-  local want host r url
-  want=$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]'); host=$(printf '%s' "${2:-}" | tr '[:upper:]' '[:lower:]')
+  local r url cfg
+  cfg=$(git -C "$ROOT" config --get prf.baseRemote 2>/dev/null || true)
+  if [[ -n $cfg ]]; then
+    git -C "$ROOT" remote get-url "$cfg" >/dev/null 2>&1 && { printf '%s' "$cfg"; return 0; }
+    log "warning: prf.baseRemote=$cfg is not a remote of this repository"
+  fi
   for r in $(git -C "$ROOT" remote 2>/dev/null); do
     url=$(git -C "$ROOT" remote get-url "$r" 2>/dev/null) || continue
-    [[ $(remote_slug_of "$url") == "$want" ]] || continue
-    [[ -z $host || $(remote_host_of "$url") == "$host" ]] || continue
+    remote_matches_pr "$url" "${2:-}" "$1" || continue
     printf '%s' "$r"; return 0
   done
   return 1
@@ -900,11 +927,14 @@ cmd_pre_push() {
     AUDIT="$root/pr-$PR_NUMBER"; STATE="$AUDIT/state.json"
     [[ -f $STATE ]] || continue
     if [[ -n $remote_url ]]; then   # only the pull request's own repository counts as a fix push
-      local repo_slug head_slug remote_slug
-      repo_slug=$(state_get '.repo // ""' | tr '[:upper:]' '[:lower:]'); head_slug=$(state_get '.head_repo // .repo // ""' | tr '[:upper:]' '[:lower:]')
-      remote_slug=$(remote_slug_of "$remote_url")
-      if [[ $remote_slug != "$repo_slug" && $remote_slug != "$head_slug" ]]; then
-        log "push gate: ${remote_name:-remote} ($remote_slug) is neither $repo_slug nor $head_slug; not counted"; continue
+      local repo_slug head_slug pr_host cfg
+      repo_slug=$(state_get '.repo // ""'); head_slug=$(state_get '.head_repo // .repo // ""')
+      pr_host=$(remote_host_of "$(state_get '.url // ""')")
+      cfg=$(git -C "$ROOT" config --get prf.baseRemote 2>/dev/null || true)
+      if [[ -n $cfg && $cfg == "$remote_name" ]]; then
+        :   # the configured pull-request remote is always gated
+      elif ! remote_matches_pr "$remote_url" "$pr_host" "$repo_slug" "$head_slug"; then
+        log "push gate: ${remote_name:-remote} ($(remote_slug_of "$remote_url") on $(resolve_host "$(remote_host_of "$remote_url")")) is not $repo_slug on ${pr_host:-its host}; not counted"; continue
       fi
     fi
     local commit_tree base mb out
