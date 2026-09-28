@@ -22,7 +22,7 @@ runner="${PRF_RUNNER:-}"
 [[ -x $runner ]] || runner="$HOME/.codex/skills/pr-fix/scripts/pr-fix.sh"
 
 if [[ -x $runner ]]; then
-  "$runner" pre-push < "$buf" || exit 1
+  "$runner" pre-push "$@" < "$buf" || exit 1   # remote name and URL: only the PR's repository is gated
 else
   printf 'pre-push: pr-fix runner not found; push gate skipped\n' >&2
 fi

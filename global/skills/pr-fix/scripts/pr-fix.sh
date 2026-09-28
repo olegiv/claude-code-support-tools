@@ -16,6 +16,7 @@
 #   status   [--report]                             ready | needs-fix | incomplete | stale | escalation-required
 #   close    (--batch FILE.jsonl | THREAD (--reply-file F | --reply-stdin) [--resolve]) [--dry-run]
 #   record-push [SHA|--undo]                        log a push made without the hook / drop the last one
+#   override                                        grant one more fix push to this PR (the user said "override")
 #   pre-push                                        git pre-push hook body (refs on stdin)
 #
 # Environment (all optional):
@@ -54,6 +55,7 @@ PR_REPO=""
 PR_HEAD=""
 PR_BASE=""
 PR_HEADREF=""
+PR_HEADREPO=""
 PRF_CLOSE_TMP=""
 PRF_LOCK=""
 
@@ -123,6 +125,16 @@ state_init_if_missing() {
 
 current_round() {
   state_get '[(.connector_passes // 0), ((.pushes | length) + 1)] | max'
+}
+
+# cap for this PR: PRF_MAX_PUSHES plus rounds granted with `pr-fix.sh override`
+max_pushes() { echo $(( PRF_MAX_PUSHES + $(state_get '.extra_pushes // 0') )); }
+
+cmd_override() {
+  init_root
+  require_state
+  state_set '.extra_pushes = ((.extra_pushes // 0) + 1) | .override_ts = $ts' --arg ts "$(now)"
+  printf 'override granted: this PR may now use %s fix pushes\n' "$(max_pushes)"
 }
 
 # Locate the state for the active pull request: PRF_PR, then a state whose
@@ -214,10 +226,10 @@ resolve_pr() {
     parse_pr_url "$arg" || die 1 "not a pull request number or URL: $arg"
   fi
   if [[ -n $arg ]]; then
-    json=$("$PRF_GH_BIN" pr view "$arg" --json number,url,headRefOid,baseRefName,headRefName 2>/dev/null) \
+    json=$("$PRF_GH_BIN" pr view "$arg" --json number,url,headRefOid,baseRefName,headRefName,headRepository,headRepositoryOwner 2>/dev/null) \
       || die 3 "gh could not load pull request $arg"
   else
-    json=$("$PRF_GH_BIN" pr view --json number,url,headRefOid,baseRefName,headRefName 2>/dev/null) \
+    json=$("$PRF_GH_BIN" pr view --json number,url,headRefOid,baseRefName,headRefName,headRepository,headRepositoryOwner 2>/dev/null) \
       || die 3 "no open pull request for the current branch (pass a number or URL)"
   fi
   PR_NUMBER=$(jq -r '.number' <<<"$json")
@@ -225,6 +237,7 @@ resolve_pr() {
   PR_HEAD=$(jq -r '.headRefOid' <<<"$json")
   PR_BASE=$(jq -r '.baseRefName' <<<"$json")
   PR_HEADREF=$(jq -r '.headRefName' <<<"$json")
+  PR_HEADREPO=$(jq -r '(.headRepositoryOwner.login // "") + "/" + (.headRepository.name // "")' <<<"$json")
   parse_pr_url "$PR_URL" || die 2 "cannot parse owner/repo from $PR_URL"
 }
 
@@ -272,10 +285,12 @@ def is_trusted: ((.author.login // "") | is_connector) or ((.authorAssociation /
 MERGE_JQ='
 ($n.threads | map({key: .id, value: .}) | from_entries) as $new
 | .head = $n.pr.head | .base = $n.pr.base | .head_ref = ($n.pr.head_ref // .head_ref) | .url = ($n.pr.url // .url)
+| .head_repo = (if ($n.pr.head_repo // "") != "" and ($n.pr.head_repo != "/") then $n.pr.head_repo else (.head_repo // .repo) end)
 | .connector_passes = $n.passes | .pending = $n.pending | .latest_connector_commit = $n.latest_commit | .updated = $ts
 | .threads = ((.threads // {}) | with_entries(.value.unresolved = false))
 | .threads = (reduce ($new | to_entries[]) as $e (.threads;
-    .[$e.key] = ((.[$e.key] // {first_seen_round: $round}) + $e.value + {unresolved: true} | del(.closed))))'
+    .[$e.key] = ((.[$e.key] // {first_seen_round: $round}) + $e.value + {unresolved: true}
+                 | if .closed.resolved == true then del(.closed) else . end)))'
 
 PRIO_ORDER_JQ='def prio_rank: if . == "P0" then 0 elif . == "P1" then 1 elif . == "P2" then 2 elif . == "P3" then 3 else 4 end;'
 
@@ -314,8 +329,8 @@ cmd_collect() {
       || die 2 "gh api graphql failed while listing review threads"
     raw=$(jq -n --argjson r "$reviews" --argjson t "$threads" \
       --argjson number "$PR_NUMBER" --arg url "$PR_URL" --arg owner "$PR_OWNER" --arg repo "$PR_REPO" \
-      --arg head "$PR_HEAD" --arg base "$PR_BASE" --arg head_ref "$PR_HEADREF" \
-      '{pr: {number: $number, url: $url, owner: $owner, repo: $repo, head: $head, base: $base, head_ref: $head_ref},
+      --arg head "$PR_HEAD" --arg base "$PR_BASE" --arg head_ref "$PR_HEADREF" --arg head_repo "$PR_HEADREPO" \
+      '{pr: {number: $number, url: $url, owner: $owner, repo: $repo, head: $head, base: $base, head_ref: $head_ref, head_repo: $head_repo},
         reviews: [$r[][]],
         threads: [$t[].data.repository.pullRequest.reviewThreads.nodes[]]}')
   fi
@@ -336,27 +351,28 @@ cmd_collect() {
     normalized=$(jq --arg connector "$PRF_CONNECTOR" "$NORMALIZE_JQ" <<<"$raw")
   fi
   ts=$(now)
-  ( umask 077; printf '%s\n' "$normalized" > "$AUDIT/findings-$(date -u +%Y%m%dT%H%M%SZ).json" )
+  ( umask 077; printf '%s\n' "$normalized" > "$AUDIT/findings-$(date -u +%Y%m%dT%H%M%SZ)-$$.json" )
   round=$(current_round)
   state_set "$MERGE_JQ" --argjson n "$normalized" --argjson round "$round" --arg ts "$ts"
   round=$(current_round)
-  local cap="false"
-  [[ $round -gt $PRF_MAX_PUSHES ]] && cap="true"
+  local cap="false" maxp
+  maxp=$(max_pushes)
+  [[ $round -gt $maxp ]] && cap="true"
   if [[ $as_json -eq 1 ]]; then
-    jq --argjson round "$round" --arg cap "$cap" --argjson max "$PRF_MAX_PUSHES" "$PRIO_ORDER_JQ"'
+    jq --argjson round "$round" --arg cap "$cap" --argjson max "$maxp" "$PRIO_ORDER_JQ"'
       {header: {pr: .pr, repo: .repo, head: .head, base: .base, passes: .connector_passes,
                 logged_pushes: (.pushes | length), round: $round, cap_reached: ($cap == "true"),
                 max_pushes: $max, pending: .pending,
                 unresolved: ([.threads[] | select(.unresolved)] | length)},
        findings: ([.threads[] | select(.unresolved)] | sort_by((.prio | prio_rank), .path, .line))}' "$STATE"
   else
-    state_get --argjson round "$round" --arg cap "$cap" --argjson max "$PRF_MAX_PUSHES" "$PRIO_ORDER_JQ"'
+    state_get --argjson round "$round" --arg cap "$cap" --argjson max "$maxp" "$PRIO_ORDER_JQ"'
       "pr=\(.pr) repo=\(.repo) head=\(.head[0:8]) base=\(.base) passes=\(.connector_passes) logged_pushes=\(.pushes | length) round=\($round) cap_reached=\($cap) max_pushes=\($max) pending=\(.pending) unresolved=\([.threads[] | select(.unresolved)] | length)",
       ([.threads[] | select(.unresolved)] | sort_by((.prio | prio_rank), .path, .line) | to_entries[]
         | "\(.key + 1). [\(.value.prio)] \(.value.path):\(.value.line) — \(.value.title) (thread \(.value.id), \(.value.author), \(.value.url))\(if .value.outdated then " [outdated]" else "" end)\(if .value.disposition then " [\(if .value.disposition.kind == "FIX" then "FIXED" else .value.disposition.kind end) r\(.value.disposition.round)]" else "" end)\n   \(.value.body | gsub("\n"; "\n   "))\n")'
   fi
   if [[ $cap == "true" ]]; then
-    log "cap reached: round $round exceeds $PRF_MAX_PUSHES fix pushes; triage-only unless the user says override"
+    log "cap reached: round $round exceeds $maxp fix pushes; triage-only unless the user says override (pr-fix.sh override)"
   fi
 }
 
@@ -423,7 +439,7 @@ cmd_check() {
   local cmd start rc secs
   for cmd in "${cmds[@]}"; do
     start=$(date +%s)
-    if perl -e 'alarm shift; exec @ARGV' "$PRF_CHECK_TIMEOUT" bash -c "$cmd"; then rc=0; else rc=$?; fi
+    if ( cd "$ROOT" && perl -e 'alarm shift; exec @ARGV' "$PRF_CHECK_TIMEOUT" bash -c "$cmd" ); then rc=0; else rc=$?; fi
     secs=$(( $(date +%s) - start ))
     state_set '.checks += [{round: $round, cmd: $cmd, exit: $rc, seconds: $secs, note: $note, tree: $tree, ts: $ts}]' \
       --argjson round "$round" --arg cmd "$cmd" --argjson rc "$rc" --argjson secs "$secs" \
@@ -519,7 +535,7 @@ cmd_review() {
   umask 077
   local stamp out
   stamp=$(date -u +%Y%m%dT%H%M%SZ)
-  out="$AUDIT/local-review-$stamp.md"
+  out="$AUDIT/local-review-$stamp-$$.md"
   argv+=(-o "$out")
   [[ $PRF_REVIEW_JSON == 1 ]] && argv+=(--json)
 
@@ -568,6 +584,9 @@ cmd_review() {
   elif [[ -s $out ]]; then
     p0=$(count_prio_text P0 "$out"); p1=$(count_prio_text P1 "$out")
     p2=$(count_prio_text P2 "$out"); p3=$(count_prio_text P3 "$out")
+  else
+    [[ $rc -ne 0 ]] || rc=4   # codex exited 0 but produced no review text: not a usable review
+    format="none"
   fi
   if [[ -f $out.jsonl ]]; then
     tokens=$(grep -oE '"total_tokens":[0-9]+' "$out.jsonl" | tail -1 | grep -oE '[0-9]+' || true)
@@ -616,8 +635,9 @@ status_compute() {
   fi
   if [[ -z $mb ]]; then mb=$(merge_base_for HEAD "$(state_get '.base // ""')"); fi
 
-  if [[ $pushes -ge $PRF_MAX_PUSHES || $round -gt $PRF_MAX_PUSHES ]]; then
-    state="escalation-required"; reasons+=("round $round / pushes=$pushes exceed the cap of $PRF_MAX_PUSHES fix pushes; triage-only unless the user says override")
+  local maxp; maxp=$(max_pushes)
+  if [[ $pushes -ge $maxp || $round -gt $maxp ]]; then
+    state="escalation-required"; reasons+=("round $round / pushes=$pushes exceed the cap of $maxp fix pushes; triage-only unless the user says override (pr-fix.sh override)")
   fi
   if [[ $(state_get '.pending // "unknown"') == "true" ]]; then
     state="escalation-required"; reasons+=("the connector has not reviewed the current head yet (pending=true); wait for its review, then re-run collect")
@@ -700,8 +720,13 @@ RESOLVE_MUTATION='mutation($threadId:ID!){ resolveReviewThread(input:{threadId:$
 close_one() {  # close_one THREAD REPLY_FILE RESOLVE(0|1) DRY(0|1)
   local id=$1 reply_file=$2 resolve=$3 dry=$4 url=""
   [[ $id =~ ^PRRT_[A-Za-z0-9_-]+$ ]] || { log "invalid thread id: $id"; return 1; }
-  if [[ $dry -eq 0 && -n $STATE && -f $STATE && $(state_get --arg id "$id" '.threads[$id].closed.resolved // false') == true ]]; then
+  local have_state=0
+  [[ $dry -eq 0 && -n $STATE && -f $STATE && $(state_get --arg id "$id" '.threads[$id] != null') == true ]] && have_state=1
+  if [[ $have_state -eq 1 && $(state_get --arg id "$id" '.threads[$id].closed.resolved // false') == true ]]; then
     printf 'already closed thread=%s (skipped)\n' "$id"; return 0
+  fi
+  if [[ $have_state -eq 1 && -n $reply_file && $(state_get --arg id "$id" '.threads[$id].closed.reply_url // ""') != "" ]]; then
+    printf 'reply already posted thread=%s (skipped)\n' "$id"; reply_file=""
   fi
   if [[ -n $reply_file ]]; then
     [[ -s $reply_file ]] || { log "reply file is empty or missing: $reply_file"; return 1; }
@@ -711,6 +736,8 @@ close_one() {  # close_one THREAD REPLY_FILE RESOLVE(0|1) DRY(0|1)
       url=$("$PRF_GH_BIN" api graphql -f query="$REPLY_MUTATION" -f threadId="$id" -F body=@"$reply_file" \
         --jq '.data.addPullRequestReviewThreadReply.comment.url') || { log "reply failed for $id"; return 1; }
       printf 'replied thread=%s %s\n' "$id" "$url"
+      [[ $have_state -eq 0 ]] || state_set '.threads[$id].closed = ((.threads[$id].closed // {}) + {reply_url: $url, replied_ts: $ts})' \
+        --arg id "$id" --arg url "$url" --arg ts "$(now)"
     fi
   fi
   if [[ $resolve -eq 1 ]]; then
@@ -722,9 +749,9 @@ close_one() {  # close_one THREAD REPLY_FILE RESOLVE(0|1) DRY(0|1)
       printf 'resolved thread=%s\n' "$id"
     fi
   fi
-  if [[ $dry -eq 0 && -n $STATE && -f $STATE && $(state_get --arg id "$id" '.threads[$id] != null') == true ]]; then
-    state_set '.threads[$id].closed = {ts: $ts, reply_url: $url, resolved: ($resolve == "1")}' \
-      --arg id "$id" --arg ts "$(now)" --arg url "$url" --arg resolve "$resolve"
+  if [[ $have_state -eq 1 ]]; then
+    state_set '.threads[$id].closed = ((.threads[$id].closed // {}) + {ts: $ts, resolved: ($resolve == "1")})' \
+      --arg id "$id" --arg ts "$(now)" --arg resolve "$resolve"
   fi
   return 0
 }
@@ -783,7 +810,9 @@ cmd_record_push() {
   init_root
   require_state
   if [[ ${1:-} == --undo ]]; then
-    state_set '.pushes |= (if length > 0 then .[:-1] else . end)'
+    state_set '.pushes |= (if length > 0 then .[:-1] else . end)
+               | .head = (if (.pushes | length) > 0 then .pushes[-1].sha else (.latest_connector_commit // .head) end)
+               | .pending = (if (.pushes | length) > 0 then "true" else "unknown" end)'
     printf 'removed the last recorded push; %s remain\n' "$(state_get '.pushes | length')"
     return 0
   fi
@@ -798,6 +827,7 @@ cmd_record_push() {
 
 cmd_pre_push() {
   init_root
+  local remote_name=${1:-} remote_url=${2:-}
   if [[ ${PRF_SKIP_PUSH_GATE:-0} == 1 ]]; then return 0; fi
   if [[ $(git -C "$ROOT" config --get prf.pushGate 2>/dev/null || echo true) == false ]]; then return 0; fi
   local root; root=$(audit_root)
@@ -825,13 +855,17 @@ cmd_pre_push() {
     [[ -n $PR_NUMBER ]] || continue   # no pr-fix state for this branch: unarmed, no network
     AUDIT="$root/pr-$PR_NUMBER"; STATE="$AUDIT/state.json"
     [[ -f $STATE ]] || continue
+    if [[ -n $remote_url ]]; then   # only the pull request's own repository counts as a fix push
+      local repo_slug head_slug; repo_slug=$(state_get '.repo // ""'); head_slug=$(state_get '.head_repo // .repo // ""')
+      case $remote_url in *"$repo_slug"*|*"$head_slug"*) ;; *) log "push gate: ${remote_name:-remote} is neither $repo_slug nor $head_slug; not counted"; continue ;; esac
+    fi
     local commit_tree base mb out
     commit_tree=$(git -C "$ROOT" rev-parse "$local_sha^{tree}" 2>/dev/null || true)
     base=$(state_get '.base // ""')
     mb=$(merge_base_for "$local_sha" "$base")
     if out=$(status_compute "$commit_tree" "$mb"); then
       record_push "$local_sha" "$commit_tree"
-      log "push gate: $branch (PR #$PR_NUMBER) reviewed tree ${commit_tree:0:8}; recorded push $(state_get '.pushes | length')/$PRF_MAX_PUSHES"
+      log "push gate: $branch (PR #$PR_NUMBER) reviewed tree ${commit_tree:0:8}; recorded push $(state_get '.pushes | length')/$(max_pushes)"
     else
       printf 'pr-fix push gate: refusing %s (PR #%s), commit %s\n' "$branch" "$PR_NUMBER" "${local_sha:0:8}" >&2
       printf '%s\n' "$out" | sed 's/^/  /' >&2
@@ -857,6 +891,7 @@ main() {
     status) cmd_status "$@" ;;
     close) cmd_close "$@" ;;
     record-push) cmd_record_push "$@" ;;
+    override) cmd_override "$@" ;;
     pre-push) cmd_pre_push "$@" ;;
     help|-h|--help) usage ;;
     *) die 1 "unknown subcommand: $cmd (try: pr-fix.sh help)" ;;

@@ -45,7 +45,10 @@ assert_ne() {
   if [ "$2" != "$3" ]; then pass "$1"; else fail "$1" "expected a value other than: $3"; fi
 }
 assert_file() { if [ -e "$2" ]; then pass "$1"; else fail "$1" "missing file: $2"; fi; }
-perm_of() { stat -f '%Lp' "$1" 2>/dev/null || stat -c '%a' "$1" 2>/dev/null; }   # BSD, then GNU
+perm_of() {  # BSD stat first; on GNU `-f` means filesystem mode, so validate the output before trusting it
+  _p=$(stat -f '%Lp' "$1" 2>/dev/null)
+  case "$_p" in [0-7][0-7][0-7]|[0-7][0-7][0-7][0-7]) printf '%s' "$_p" ;; *) stat -c '%a' "$1" 2>/dev/null ;; esac
+}
 assert_no_file() { if [ ! -e "$2" ]; then pass "$1"; else fail "$1" "unexpected file: $2"; fi; }
 
 # ---------- stubs ----------
@@ -141,6 +144,8 @@ assert_contains "collect: round=3 (passes win)" "$OUT" "round=3"
 assert_contains "collect: cap_reached=true" "$OUT" "cap_reached=true"
 assert_contains "collect: pending=true (latest connector commit != head)" "$OUT" "pending=true"
 assert_contains "collect: unresolved=6" "$OUT" "unresolved=6"
+N=$(ls "$REPO/.audit/pr-170"/findings-*.json 2>/dev/null | wc -l | tr -d ' ')
+assert_eq "collect: findings snapshot written" "$N" 1
 assert_contains "collect: untrusted author body withheld" "$OUT" "[untrusted author drive-by-user (NONE); body withheld]"
 assert_not_contains "collect: untrusted title not printed" "$OUT" "UNTRUSTED-INJECTION"
 assert_not_contains "collect: untrusted body not printed" "$OUT" "UNTRUSTED-BODY"
@@ -164,8 +169,6 @@ assert_file "collect: state.json written" "$REPO/.audit/pr-170/state.json"
 OUT=$(PRF_PR=170 "$RUNNER" status 2>&1)
 assert_contains "status: computed round beyond the cap -> escalation-required" "$OUT" "status=escalation-required"
 assert_contains "status: pending connector review blocks readiness" "$OUT" "has not reviewed the current head"
-N=$(ls "$REPO/.audit/pr-170"/findings-*.json 2>/dev/null | wc -l | tr -d ' ')
-assert_eq "collect: findings snapshot written" "$N" 1
 
 OUT=$("$RUNNER" collect --json --from-file "$TMPROOT/in170.json" 2>/dev/null)
 assert_eq "collect --json: header.round" "$(printf '%s' "$OUT" | jq -r .header.round)" 3
@@ -213,6 +216,12 @@ assert_contains "collect 171 after 2 pushes: round=3 (pushes win over passes=1)"
 assert_contains "collect 171 after 2 pushes: cap_reached=true" "$OUT" "cap_reached=true"
 OUT=$(PRF_PR=171 "$RUNNER" record-push --undo 2>&1)
 assert_contains "record-push --undo: drops the last push" "$OUT" "1 remain"
+assert_eq "record-push --undo: head restored to the previous push" "$(jq -r '.head == .pushes[-1].sha' "$REPO/.audit/pr-171/state.json")" true
+OUT=$(PRF_PR=171 "$RUNNER" override 2>&1)
+assert_contains "override: grants one more push" "$OUT" "may now use 3 fix pushes"
+PRF_PR=171 "$RUNNER" record-push >/dev/null 2>&1
+OUT=$("$RUNNER" collect --from-file "$TMPROOT/in171.json" 2>&1)
+assert_contains "collect: override raises the cap (round 3 of 3 not capped)" "$OUT" "cap_reached=false"
 PRF_PR=171 "$RUNNER" record-push >/dev/null 2>&1
 
 # ---------- 7. check ----------
@@ -283,6 +292,9 @@ assert_contains "review clean: counts" "$OUT" "P0=0 P1=0"
 
 OUT=$(CODEX_FIXTURE="$FIX/codex-clean.md" CODEX_EXIT=3 PRF_PR=172 "$RUNNER" review --base main --no-fetch --force 2>&1); RC=$?
 assert_eq "review: codex failure surfaces as exit 4" "$RC" 4
+OUT=$(CODEX_FIXTURE="" PRF_PR=172 "$RUNNER" review --base main --no-fetch --force 2>&1); RC=$?
+assert_eq "review: empty output is a failed review (exit 4)" "$RC" 4
+assert_contains "review: empty output recorded as format=none" "$OUT" "format=none"
 
 # ---------- 10. review guards: child refusal, lock, untracked ----------
 BEFORE=$(codex_lines)
@@ -392,6 +404,13 @@ assert_eq "pre-push: blocked push not recorded" "$(jq -r '.pushes | length' "$RE
 
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | PRF_SKIP_PUSH_GATE=1 "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: PRF_SKIP_PUSH_GATE=1 bypasses" "$RC" 0
+jq '.head_repo = "forker/ocms-go"' "$REPO/.audit/pr-173/state.json" > "$TMPROOT/s.json" && mv "$TMPROOT/s.json" "$REPO/.audit/pr-173/state.json"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push fork git@github.com:forker/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: a push to the fork head repository is gated" "$RC" 1
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push backup git@github.com:someone/backup-mirror.git 2>&1); RC=$?
+assert_eq "pre-push: a push to another remote is not gated" "$RC" 0
+assert_contains "pre-push: other remote reported as not counted" "$OUT" "not counted"
+assert_eq "pre-push: other remote not recorded" "$(jq -r '.pushes | length' "$REPO/.audit/pr-173/state.json")" 1
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\nrefs/tags/v1 %s refs/tags/v1 %s\n' "$ZERO" "$HEAD_SHA" "$NEW_SHA" "$ZERO" | "$RUNNER" pre-push 2>&1); RC=$?
 assert_eq "pre-push: delete and tag refs are skipped" "$RC" 0
 
@@ -436,7 +455,7 @@ export CHAIN_LOG="$TMPROOT/chain.log"
 OUT=$(cd "$TMPROOT/repo2" && printf 'refs/heads/main %s refs/heads/main %s\n' "$(git rev-parse HEAD)" "$ZERO" | PRF_RUNNER="$RUNNER" "$HOOK" origin file:///dev/null 2>&1); RC=$?
 assert_eq "hook wrapper: allows in an unarmed repo" "$RC" 0
 assert_contains "hook wrapper: chained hook received the same stdin" "$(cat "$CHAIN_LOG" 2>/dev/null)" "refs/heads/main"
-OUT=$(cd "$REPO" && printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | PRF_RUNNER="$RUNNER" "$HOOK" origin "$ORIGIN" 2>&1); RC=$?
+OUT=$(cd "$REPO" && printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | PRF_RUNNER="$RUNNER" "$HOOK" origin https://github.com/acme/ocms-go.git 2>&1); RC=$?
 assert_eq "hook wrapper: propagates a block" "$RC" 1
 OUT=$(cd "$TMPROOT/repo2" && printf 'refs/heads/main %s refs/heads/main %s\n' "$(git rev-parse HEAD)" "$ZERO" | PRF_RUNNER=/nonexistent/pr-fix.sh HOME="$TMPROOT/nohome" "$HOOK" origin x 2>&1); RC=$?
 assert_eq "hook wrapper: missing runner fails open" "$RC" 0
@@ -461,6 +480,11 @@ BEFORE=$(gh_lines)
 OUT=$(PRF_PR=171 "$RUNNER" close PRRT_T1 --reply-file "$TMPROOT/reply1.md" --resolve 2>&1); RC=$?
 assert_eq "close: retry of a closed thread is a no-op" "$RC" 0
 assert_contains "close: retry reports already closed" "$OUT" "already closed thread=PRRT_T1"
+assert_ne "close: reply url persisted" "$(jq -r '.threads.PRRT_T1.closed.reply_url // ""' "$REPO/.audit/pr-171/state.json")" ""
+jq '.threads.PRRT_T2.closed = {reply_url: "https://x/r", replied_ts: "t"}' "$REPO/.audit/pr-171/state.json" > "$TMPROOT/s.json" && mv "$TMPROOT/s.json" "$REPO/.audit/pr-171/state.json"
+"$RUNNER" collect --from-file "$TMPROOT/in171.json" >/dev/null 2>&1
+assert_eq "collect: unresolved reply bookkeeping survives a refresh" "$(jq -r '.threads.PRRT_T2.closed.reply_url // ""' "$REPO/.audit/pr-171/state.json")" "https://x/r"
+assert_eq "collect: a resolved-then-reopened thread drops its closure" "$(jq -r '.threads.PRRT_T1.closed // "gone"' "$REPO/.audit/pr-171/state.json")" "gone"
 assert_eq "close: retry posts nothing" "$(gh_lines)" "$BEFORE"
 printf '{"thread":"PRRT_BAD1","reply":"x","resolve":true}\n{"thread":"PRRT_T2","reply":"Not changing: test","resolve":true}\n' > "$TMPROOT/closes.jsonl"
 OUT=$(GH_FAIL_ID=PRRT_BAD1 PRF_PR=171 "$RUNNER" close --batch "$TMPROOT/closes.jsonl" 2>&1); RC=$?
