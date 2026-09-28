@@ -94,7 +94,7 @@ cat > "$TMPROOT/bin/ssh" <<'STUB'
 # stub ssh -G [-o opt] <host>: "github"/"gh.work" are aliases; github.com is rewritten to ssh.github.com (port-443 setup)
 printf '%s\n' "$*" >> "${SSH_STUB_LOG:-/dev/null}"
 h=${@: -1}
-case "$h" in github|gh.work) printf 'hostname github.com\nuser git\n' ;; github.com) printf 'hostname ssh.github.com\n' ;; *) printf 'hostname %s\n' "$h" ;; esac
+case "$h" in github|gh.work|git@github|git@gh.work) printf 'hostname github.com\nuser git\n' ;; git@gh) printf 'hostname github.com\n' ;; gh) printf 'hostname gh\n' ;; github.com|git@github.com) printf 'hostname ssh.github.com\n' ;; redirected.example|git@redirected.example) printf 'hostname mirror.example.com\n' ;; *) printf 'hostname %s\n' "${h#*@}" ;; esac
 STUB
 chmod +x "$TMPROOT/bin/gh" "$TMPROOT/bin/codex" "$TMPROOT/bin/ssh"
 
@@ -453,6 +453,17 @@ assert_eq "pre-push: HTTPS remote is gated even when ssh config rewrites github.
 assert_eq "pre-push: HTTPS host never consults ssh" "$(wc -l < "$TMPROOT/ssh.log" | tr -d ' ')" 0
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push origin ssh://git@ssh.github.com:443/acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: SSH-over-443 endpoint counts as the PR host" "$RC" 1
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push gh git@gh:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: alias conditional on the ssh user resolves with user@host" "$RC" 1
+assert_contains "pre-push: ssh -G received user@host" "$(cat "$TMPROOT/ssh.log")" "git@gh"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push redir git@redirected.example:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: SSH host redirected elsewhere by ssh config is not the PR host" "$RC" 0
+git -C "$REPO" config prf.sshResolve false
+: > "$TMPROOT/ssh.log"
+OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push gh github:acme/ocms-go.git 2>&1); RC=$?
+assert_eq "pre-push: prf.sshResolve=false compares hosts as written (alias not gated)" "$RC" 0
+assert_eq "pre-push: prf.sshResolve=false never runs ssh" "$(wc -l < "$TMPROOT/ssh.log" | tr -d ' ')" 0
+git -C "$REPO" config --unset prf.sshResolve
 git -C "$REPO" config prf.baseRemote mirror
 OUT=$(printf 'refs/heads/feature %s refs/heads/feature %s\n' "$NEW_SHA" "$HEAD_SHA" | "$RUNNER" pre-push mirror git@gitlab.com:acme/ocms-go.git 2>&1); RC=$?
 assert_eq "pre-push: prf.baseRemote names the gated remote explicitly" "$RC" 1

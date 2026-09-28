@@ -124,7 +124,7 @@ This repository contains Claude Code support tools including autonomous agents, 
   - `hooks/` - Git hooks: `pre-commit` approval gate and `pre-push` wrapper for the `pr-fix` push gate
   - `tests/` - Self-contained POSIX shell tests for global configuration
     - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
-    - `pr-fix-test.sh` - 200 offline assertions for the `pr-fix` runner and `pre-push` gate (stub `gh`/`codex`, fixtures in `tests/fixtures/pr-fix/`)
+    - `pr-fix-test.sh` - 205 offline assertions for the `pr-fix` runner and `pre-push` gate (stub `gh`/`codex`, fixtures in `tests/fixtures/pr-fix/`)
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
   - `claude.yml` - Responds to @claude mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code

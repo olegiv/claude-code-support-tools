@@ -179,8 +179,11 @@ repair workflow mechanically, for Claude Code, Codex and the human alike.
   branch name; branches without state are unarmed. Fails open with a notice when
   `jq` or the runner is missing.
 - **Gates only pushes to the pull request's repository.** The remote URL must name
-  the PR's base or head repository on the PR's host; SSH host aliases are resolved
-  with `ssh -G` (local config only). A same-named mirror on another host is neither
+  the PR's base or head repository on the PR's host. For SSH URLs the destination
+  is resolved with `ssh -G user@host` (`CanonicalizeHostname=no`, so no DNS), which
+  evaluates your own `~/.ssh/config`, including any `Match exec` you wrote; set
+  `git config prf.sshResolve false` to compare hosts as written instead. HTTP(S)
+  hosts are compared as written. A same-named mirror on another host is neither
   gated nor counted. `git config prf.baseRemote <name>` names the PR remote
   explicitly when detection cannot.
 - **Chains** to the repository's own `.git/hooks/pre-push` afterwards, feeding

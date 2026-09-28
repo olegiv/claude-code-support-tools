@@ -24,6 +24,7 @@
 #   PRF_MAX_PUSHES (2), PRF_MAX_REVIEWS_PER_ROUND (2), PRF_REVIEW_TIMEOUT (1200 s),
 #   PRF_CHECK_TIMEOUT (900 s), PRF_REVIEW_JSON (0|1), PRF_PR (pull request number override),
 #   PRF_SSH_BIN (ssh, used to resolve host aliases), git config prf.baseRemote (remote of the PR repository),
+#   git config prf.sshResolve false (compare SSH hosts as written; skips ssh -G),
 #   CODEX_REVIEW_EFFORT (high), CODEX_REVIEW_MODEL (unset = configured model).
 #
 # Review-thread text never reaches a shell: it is handled by jq only, control
@@ -217,13 +218,24 @@ remote_host_of() {
   printf '%s' "$1" | sed -E -n -e 's#^[a-z+]+://([^@/]+@)?([^/:]+).*#\2#p' -e t -e 's#^([^@/:]+@)?([^/:]+):[^/].*#\2#p' | tr '[:upper:]' '[:lower:]'
 }
 
-# resolve an SSH host alias (no dot, e.g. `github` with `Host github` in ~/.ssh/config) to its real hostname
+# ssh user of a git remote URL ([user@]host:path or ssh://user@host/...); empty when none
+remote_user_of() {
+  printf '%s' "$1" | sed -E -n -e 's#^[a-z+]+://([^@/]+)@[^/]+.*#\1#p' -e t -e 's#^([^@/:]+)@[^/:]+:[^/].*#\1#p'
+}
+
+# resolve an SSH host alias (`Host github` or `Host gh.work` in ~/.ssh/config) to its real hostname.
+# ssh -G evaluates the user's own ssh config, including any `Match exec` stanza they wrote; set
+# `git config prf.sshResolve false` to skip resolution and compare hosts as written.
+# resolve_host HOST [USER]
 resolve_host() {
-  local host=$1 real
+  local host=$1 user=${2:-} real target
   [[ -n $host ]] || return 0
-  # aliases may contain dots too (`Host gh.work`), so always consult ssh's resolved config
-  # CanonicalizeHostname=no keeps ssh -G to static Host/HostName expansion: no DNS, no network
-  real=$("$PRF_SSH_BIN" -G -o CanonicalizeHostname=no "$host" 2>/dev/null | awk '$1 == "hostname" {print $2; exit}' || true)
+  if [[ $(git -C "$ROOT" config --get prf.sshResolve 2>/dev/null || echo true) == false ]]; then
+    printf '%s' "$host" | tr '[:upper:]' '[:lower:]'; return 0
+  fi
+  target=${user:+$user@}$host   # Match blocks may key on the user, so resolve the same destination ssh would
+  # CanonicalizeHostname=no keeps ssh -G to static Host/HostName expansion: no DNS
+  real=$("$PRF_SSH_BIN" -G -o CanonicalizeHostname=no "$target" 2>/dev/null | awk '$1 == "hostname" {print $2; exit}' || true)
   printf '%s' "$(printf '%s' "${real:-$host}" | tr '[:upper:]' '[:lower:]')"
 }
 
@@ -231,11 +243,16 @@ resolve_host() {
 # remote_matches_pr URL PR_HOST SLUG [SLUG...]
 remote_matches_pr() {
   local url=$1 pr_host=$2 slug host resolved want; shift 2
-  slug=$(remote_slug_of "$url"); host=$(remote_host_of "$url"); resolved=$host
-  case $url in http://*|https://*) ;; *) resolved=$(resolve_host "$host") ;; esac   # aliases only apply to SSH-style URLs
-  # the raw host (github.com even when ssh config rewrites it to ssh.github.com) or the resolved alias must be the PR host;
-  # a host-less (local path) remote never matches a hosted PR
-  [[ -z $pr_host || $host == "$pr_host" || $resolved == "$pr_host" || $host == "ssh.$pr_host" || $resolved == "ssh.$pr_host" ]] || return 1   # ssh.<host> is GitHub's SSH-over-443 endpoint
+  slug=$(remote_slug_of "$url"); host=$(remote_host_of "$url")
+  if [[ -n $pr_host ]]; then
+    case $url in
+      http://*|https://*)   # HTTP(S): compare the host as written
+        [[ $host == "$pr_host" ]] || return 1 ;;
+      *)                    # SSH-style: the destination ssh would actually use must be the PR host
+        resolved=$(resolve_host "$host" "$(remote_user_of "$url")")
+        [[ $resolved == "$pr_host" || $resolved == "ssh.$pr_host" ]] || return 1 ;;   # ssh.<host>: GitHub's SSH-over-443 endpoint
+    esac
+  fi
   for want in "$@"; do
     [[ -n $want && $slug == "$(printf '%s' "$want" | tr '[:upper:]' '[:lower:]')" ]] && return 0
   done
