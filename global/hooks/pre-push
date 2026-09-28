@@ -1,0 +1,42 @@
+#!/bin/bash
+# pr-fix push gate (git pre-push hook wrapper).
+#
+# Buffers the ref list git passes on stdin, runs `pr-fix.sh pre-push` from the
+# installed pr-fix skill, and, when the gate allows the push, chains to the
+# repository's own pre-push hook (which core.hooksPath would otherwise hide).
+# The gate is armed only for branches that have a pr-fix state under
+# <repo>/.audit/pr-<N>/ and fails open when gh, jq or the runner is missing.
+#
+# Runner lookup order: $PRF_RUNNER, `git config prf.runner`,
+# ~/.claude/skills/pr-fix/scripts/pr-fix.sh, ~/.codex/skills/pr-fix/scripts/pr-fix.sh.
+# Bypass: PRF_SKIP_PUSH_GATE=1, `git config prf.pushGate false`, or git push --no-verify.
+set -uo pipefail
+
+buf=$(mktemp "${TMPDIR:-/tmp}/prf-prepush.XXXXXX") || exit 0
+trap 'rm -f "$buf"' EXIT
+cat > "$buf"
+
+runner="${PRF_RUNNER:-}"
+[[ -n $runner && -x $runner ]] || runner=$(git config --get prf.runner 2>/dev/null || true)
+[[ -n $runner && -x $runner ]] || runner="$HOME/.claude/skills/pr-fix/scripts/pr-fix.sh"
+[[ -x $runner ]] || runner="$HOME/.codex/skills/pr-fix/scripts/pr-fix.sh"
+
+if [[ -x $runner ]]; then
+  "$runner" pre-push < "$buf" || exit 1
+else
+  printf 'pre-push: pr-fix runner not found; push gate skipped\n' >&2
+fi
+
+# Chain to the repository's own hook when it is a different file. With a global
+# core.hooksPath, `git rev-parse --git-path hooks` points back at this wrapper's
+# directory, so look at the repository-local hooksPath and $GIT_DIR/hooks directly.
+self="$(cd "$(dirname "$0")" && pwd -P)/$(basename "$0")"
+git_dir=$(git rev-parse --git-dir 2>/dev/null || true)
+local_hooks=$(git config --local --get core.hooksPath 2>/dev/null || true)
+for dir in "$local_hooks" "${git_dir:+$git_dir/hooks}"; do
+  [[ -n $dir && -x "$dir/pre-push" ]] || continue
+  repo_hook="$(cd "$dir" && pwd -P)/pre-push"
+  [[ $repo_hook != "$self" ]] || continue
+  exec "$repo_hook" "$@" < "$buf"
+done
+exit 0

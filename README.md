@@ -77,16 +77,24 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - `finalize.md` - Review session changes and run quality actions (tests, translations, docs)
 - `release-gh-prepare.md` - Cut a new version: update CHANGELOG, commit, push, and create a GitHub draft release
 
-**`global/hooks/`** - Git hooks for commit protection
+**`global/skills/`** - Skills in the shared Agent Skills format, usable by Claude Code **and** Codex from one directory
+- `pr-fix/` - Repair automated pull-request review findings (chatgpt-codex-connector, Claude review) in at most two fix pushes: collect unresolved threads, triage each (FIX / REJECT / DEFER / DUP), apply minimal fixes, run the same Codex reviewer locally before pushing, push once, close every thread. `/pr-fix <PR>` in Claude Code, `$pr-fix <PR>` in Codex.
+- The P2 rule: a P2 finding gets a one-line fix or a reply, never a rewrite
+- `scripts/pr-fix.sh` - runner with `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
+- `references/` - triage rules and reply templates, developer instructions for the local reviewer, a `## Code Review Rules` block for a target repository's AGENTS.md, and a paragraph for `~/.codex/AGENTS.md`
+
+**`global/hooks/`** - Git hooks for commit and push protection
 - `pre-commit` - Prevents Claude Code from committing without explicit user approval
 - Blocks all automated commits in non-interactive mode
 - Requires typing "YES" to approve commits in interactive mode
+- `pre-push` - The `pr-fix` push gate: armed once a findings round has started, refuses a push whose commit was not the tree the local review saw or that would exceed two fix pushes, records allowed pushes, fails open, chains to the repository's own hook
 - Can be installed per-repo, globally, or across all existing repos
 - See `global/hooks/README.md` for installation instructions
 
 **`global/tests/`** - Self-contained shell tests for global configuration
 - `statusline-cwd-test.sh` - Verifies the status line `cwd` validation: accepts paths with shell metacharacters and Unicode, rejects control-character injection attempts and missing paths
-- Run with `sh global/tests/statusline-cwd-test.sh` (requires `jq` and `git`)
+- `pr-fix-test.sh` - 139 offline assertions for the `pr-fix` runner and the `pre-push` gate, using stub `gh`/`codex` binaries and fixtures in `fixtures/pr-fix/`
+- Run with `sh global/tests/statusline-cwd-test.sh` and `sh global/tests/pr-fix-test.sh` (require `jq` and `git`)
 
 ### 🔄 GitHub Actions Workflows
 
@@ -232,9 +240,21 @@ cp global/commands/finalize.md ~/.claude/commands/
 
 These commands will be available as slash commands in all Claude Code sessions.
 
+### Using Global Skills
+
+Skills follow the Agent Skills format that both Claude Code and Codex read, so one checkout serves both tools. Symlink instead of copying so updates to this repository apply immediately:
+
+```bash
+mkdir -p ~/.claude/skills ~/.codex/skills
+ln -s "$PWD/global/skills/pr-fix" ~/.claude/skills/pr-fix
+ln -s "$PWD/global/skills/pr-fix" ~/.codex/skills/pr-fix
+```
+
+Claude Code then offers `/pr-fix <PR>`; Codex offers `$pr-fix <PR>`. The runner needs `gh` (authenticated), `jq`, `git` and the `codex` CLI on PATH. Add the paragraph from `global/skills/pr-fix/references/codex-agents-md-snippet.md` to `~/.codex/AGENTS.md` so Codex routes findings work to the skill.
+
 ### Using Git Hooks
 
-Install the pre-commit hook to prevent Claude Code from committing without your approval:
+Install the pre-commit hook to prevent Claude Code from committing without your approval, and the pre-push hook to enforce the `pr-fix` two-push workflow:
 
 ```bash
 # Option 1: Install to current repository only
@@ -245,10 +265,11 @@ chmod +x .git/hooks/pre-commit
 mkdir -p ~/.git-hooks
 cp global/hooks/pre-commit ~/.git-hooks/pre-commit
 chmod +x ~/.git-hooks/pre-commit
+ln -s "$PWD/global/hooks/pre-push" ~/.git-hooks/pre-push
 git config --global core.hooksPath ~/.git-hooks
 ```
 
-See `global/hooks/README.md` for detailed installation instructions and additional options.
+`core.hooksPath` makes git skip each repository's `.git/hooks`; the `pre-push` wrapper chains to a repository's own `pre-push` hook so nothing is lost. See `global/hooks/README.md` for detailed installation instructions and additional options.
 
 ### Using Stack-Specific Configurations
 
@@ -369,11 +390,25 @@ The agent will generate multiple markdown reports:
 /commit-do
 ```
 
+### Fixing PR Review Findings
+
+When a review bot (chatgpt-codex-connector, Claude review) leaves findings on a pull request:
+
+```bash
+# In Claude Code
+/pr-fix 170
+
+# In Codex
+$pr-fix 170
+```
+
+The skill collects the unresolved threads, triages each one (FIX / REJECT / DEFER / DUP), applies minimal fixes (a P2 gets a one-line fix or a reply, never a rewrite), runs `codex exec review --base` locally before pushing, commits and pushes once after your approval, replies to and resolves every thread, and stops after two fix pushes. Round three and later are triage-only unless you say `override`. State and reports live in `.audit/pr-<N>/` (gitignored).
+
 ### GitHub Actions PR Review
 
-Simply open a PR and the security-auditor will automatically:
-1. Analyze the changes
-2. Check for bugs, security issues, and code quality
+Simply open a PR and the review workflow will automatically:
+1. Analyze the changed lines
+2. Report high-confidence correctness and security problems with `file:line` and a failing scenario
 3. Post a review comment with findings
 
 ### @claude Mentions
@@ -502,9 +537,19 @@ Claude will respond and complete the task with full repository access.
 │   ├── commands/                  # Global slash command templates
 │   │   ├── finalize.md            # Session finalization command
 │   │   └── release-gh-prepare.md  # Draft GitHub release with CHANGELOG update
-│   └── hooks/                     # Git hooks for commit protection
-│       ├── README.md              # Installation instructions
-│       └── pre-commit             # Prevents automated commits
+│   ├── skills/                    # Shared Claude Code + Codex skills
+│   │   └── pr-fix/                # Repair PR review findings in ≤ 2 pushes
+│   │       ├── SKILL.md
+│   │       ├── scripts/pr-fix.sh  # collect/triage/check/review/status/close/pre-push
+│   │       └── references/        # triage rules, reviewer instructions, AGENTS.md blocks
+│   ├── hooks/                     # Git hooks for commit and push protection
+│   │   ├── README.md              # Installation instructions
+│   │   ├── pre-commit             # Prevents automated commits
+│   │   └── pre-push               # pr-fix push gate
+│   └── tests/                     # POSIX shell tests
+│       ├── statusline-cwd-test.sh
+│       ├── pr-fix-test.sh
+│       └── fixtures/pr-fix/       # stub gh/codex data
 ├── .github/
 │   ├── workflows/                 # GitHub Actions workflows
 │   │   ├── claude.yml

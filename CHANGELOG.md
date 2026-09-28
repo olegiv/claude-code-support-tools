@@ -9,6 +9,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `global/skills/pr-fix/` — a shared skill for Claude Code and Codex
+  (`/pr-fix <PR>` / `$pr-fix <PR>`) that repairs automated pull-request
+  review findings in at most two fix pushes. One bash+jq runner,
+  `scripts/pr-fix.sh`, exposes `collect` (paginated unresolved review
+  threads with badge priority, round counter and pending detection),
+  `triage` (FIX / REJECT / DEFER / DUP dispositions), `check`
+  (deterministic checks recorded with exit codes), `review` (the local
+  gate: `codex exec review --base` in an ephemeral read-only process with
+  a working-tree fingerprint, review lock and per-round limit), `status`
+  (`ready` / `needs-fix` / `incomplete` / `stale` /
+  `escalation-required`), `close` (reply and resolve threads through
+  GraphQL variables, batch mode) and `pre-push` (the gate body). State
+  lives in `.audit/pr-<N>/` so both tools share counters. References
+  cover the triage rules with the P2 rule (one-line fix or reply, never
+  a rewrite), reply templates, the state schema, the developer
+  instructions handed to the local reviewer, a `## Code Review Rules`
+  block for a target repository's AGENTS.md, and a paragraph for
+  `~/.codex/AGENTS.md`. Motivated by ocms-go PR 170, where five pushes
+  produced 5 → 3 → 1 → 2 → 2 connector findings; a measured local review
+  of its first commit caught 3 of the 5 findings of the pass it replaced
+  in 105 seconds.
+- `global/hooks/pre-push` — git pre-push wrapper that runs
+  `pr-fix.sh pre-push`, armed only for branches with a `pr-fix` state.
+  It refuses a push whose commit tree was not the one the local review
+  saw, or that would exceed the two-push cap, records allowed pushes,
+  fails open without gh/jq/runner, and chains to the repository's own
+  pre-push hook that `core.hooksPath` would otherwise hide.
+- `global/tests/pr-fix-test.sh` — 139 offline assertions for the runner
+  and the hook using stub `gh`/`codex` binaries and fixtures under
+  `global/tests/fixtures/pr-fix/`.
 - `global/commands/release-gh-prepare.md` — slash command
   (`/release-gh-prepare`) that cuts a new version of the host project:
   updates `CHANGELOG.md` (moves `[Unreleased]` → `[X.Y.Z] - DATE`, adds
@@ -24,6 +54,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `global/CLAUDE.md` gains a `## PR Review Findings` section: use `pr-fix`,
+  two fix pushes then triage-only, the P2 rule, defect-family mapping, no
+  whole-repository audits during a findings fix, one push per round, close
+  every thread.
+- `.github/workflows/claude-code-review.yml` prompt now asks for
+  high-confidence correctness/security problems in changed lines only,
+  with `file:line` and a failing scenario, no style or speculative
+  hardening, and no repetition of existing review comments.
 - Drupal stack `commands/code-quality.md` and `agents/code-quality-auditor.md`
   now detect the project's PHPCS ruleset instead of hardcoding
   `--standard=Drupal,DrupalPractice --extensions=...`. Passing `--standard=`

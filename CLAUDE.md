@@ -111,14 +111,20 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `skills/performance-optimization/` - Redis, caching, PostgreSQL tuning
     - `templates/phpunit.xml.dist` - Standard PHPUnit configuration for custom module testing
     - `templates/phpstan.neon` - Base PHPStan configuration for Drupal projects
-- **`global/`** - Global configuration files meant to be copied to user's `~/.claude/` directory
+- **`global/`** - Global configuration files meant to be copied or symlinked into the user's `~/.claude/` directory (skills also into `~/.codex/skills/`)
   - `CLAUDE.md` - Global development rules applied to all projects
   - `settings.json` - Global settings including custom status line and alwaysThinking mode
   - `commands/` - Global slash command templates
     - `finalize.md` - Reviews session changes and runs tests, translations, or docs updates
     - `release-gh-prepare.md` - Cuts a new version: updates CHANGELOG.md, commits, pushes, and creates a GitHub draft release. Mandatory user approval of the proposed version.
+  - `skills/` - Skills in the shared Agent Skills format, symlinked into both `~/.claude/skills/` and `~/.codex/skills/`
+    - `pr-fix/SKILL.md` - Repairs automated PR review findings in at most two fix pushes (collect, triage, minimal fix, local Codex review gate, one push, close every thread)
+    - `pr-fix/scripts/pr-fix.sh` - Runner: `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
+    - `pr-fix/references/` - Triage rules and reply templates, local reviewer instructions, `## Code Review Rules` block for target repos, `~/.codex/AGENTS.md` paragraph
+  - `hooks/` - Git hooks: `pre-commit` approval gate and `pre-push` wrapper for the `pr-fix` push gate
   - `tests/` - Self-contained POSIX shell tests for global configuration
     - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
+    - `pr-fix-test.sh` - 139 offline assertions for the `pr-fix` runner and `pre-push` gate (stub `gh`/`codex`, fixtures in `tests/fixtures/pr-fix/`)
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
   - `claude.yml` - Responds to @claude mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code
@@ -327,6 +333,16 @@ Commands for maintaining this Claude Code support tools repository:
 - Commits, pushes to `origin/<default-branch>`, and creates a `gh release create --draft` targeting the commit SHA
 - Does NOT publish the release or create the git tag — user does that from the GitHub UI
 
+### PR Repair Skill
+
+**`/pr-fix <PR>`** (Claude Code) / **`$pr-fix <PR>`** (Codex) - Repair automated PR review findings in at most two fix pushes
+- One skill directory (`global/skills/pr-fix/`) in the shared Agent Skills format serves both tools; state in `.audit/pr-<N>/` (`state.json`, `findings-*.json`, `local-review-*.md`, `round-<k>.md`) is shared across sessions and tools
+- Runner `scripts/pr-fix.sh`: `collect` (paginated unresolved threads with badge priority, `round = max(connector passes, logged pushes + 1)`, `pending` when the bot has not reviewed the current head), `triage` (FIX / REJECT / DEFER / DUP), `check` (deterministic checks recorded with exit codes, `--none` waivers, `--note` baselines), `review` (`codex exec review --base` in an ephemeral read-only process with `developer_instructions`, working-tree fingerprint, review lock, at most two runs per round), `status` (`ready` / `needs-fix` / `incomplete` / `stale` / `escalation-required`), `close` (reply + resolve via GraphQL variables, batch mode, dry run), `record-push`, `pre-push`
+- Hard rules: two fix pushes then triage-only unless `override`; **P2 findings get a one-line fix or a reply, never a rewrite**; every hunk maps to one thread; never patch the same denylist guard twice; no whole-repository audits; one push per round; close every thread; commits, pushes and replies only after approval
+- Review-thread text never reaches a shell: jq only, control characters stripped, `gh api -f/-F` variables
+- Tests: `sh global/tests/pr-fix-test.sh`
+- Background: ocms-go PR 170 went 5 → 3 → 1 → 2 → 2 findings over five pushes; a measured local review of its first commit caught 3 of the 5 findings of the pass it replaced in 105 s. The gate reduces rounds; the cap, the triage rules and the documented contract terminate them
+
 ### Commit Workflow Commands
 
 Two-step commit workflow enforcing the repository's strict git policies:
@@ -440,9 +456,13 @@ Run from the repository root:
 sh global/tests/statusline-cwd-test.sh
 ```
 
+### global/skills/
+
+Skills in the shared Agent Skills format (`SKILL.md` with `name`, `description`, `allowed-tools`; supporting `scripts/` and `references/`). Install by symlinking the skill directory into both `~/.claude/skills/<name>` and `~/.codex/skills/<name>`. Keep frontmatter to portable keys; Codex does not expand `${CLAUDE_SKILL_DIR}` or `$ARGUMENTS`, so SKILL.md tells the agent to resolve the skill directory itself. Currently: `pr-fix/` (see "PR Repair Skill" above).
+
 ### global/hooks/
 
-Git hooks that protect against unsolicited automated commits:
+Git hooks that protect against unsolicited automated commits and pushes:
 
 **pre-commit hook:**
 - Blocks automated commits in non-interactive mode (e.g., Claude Code committing on its own)
@@ -453,6 +473,12 @@ Git hooks that protect against unsolicited automated commits:
 1. **Single repository**: Copy to `.git/hooks/pre-commit` in specific project
 2. **Global (all new repos)**: Set `git config --global core.hooksPath ~/.git-hooks`
 3. **All existing repos**: Use installation script (see `global/hooks/README.md`)
+
+**pre-push hook (pr-fix push gate):**
+- Wrapper that buffers git's ref list, runs `pr-fix.sh pre-push`, then chains to the repository's own `pre-push` hook (which `core.hooksPath` would hide)
+- Armed only for branches whose pull request has `.audit/pr-<N>/state.json`; unarmed repositories are untouched and no network call is made
+- Refuses a push when the commit tree differs from the last local review's fingerprint, the merge base moved, `status` is not `ready`, or the two-push cap is reached; records allowed pushes; fails open without gh/jq/runner
+- Bypass: `PRF_SKIP_PUSH_GATE=1`, `git config prf.pushGate false`, or `git push --no-verify`
 
 See `global/hooks/README.md` for detailed installation instructions and usage examples.
 
