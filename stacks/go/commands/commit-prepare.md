@@ -6,11 +6,22 @@ Review changes and prepare a commit message.
 
 **Parameter:** `$ARGUMENTS` - Set to `quality` or `q` to run code quality checks first (default: skip quality checks)
 
-## Step 1: Code Quality Checks (Optional)
+## Step 1: Run the Test Gate (Mandatory)
+
+Run the project's full test suite before anything else: the test-gate command its `CLAUDE.md` names, or `go test -count=1 ./...` if it names none. `-count=1` disables Go's test cache, so every test actually runs instead of reporting an earlier cached pass.
+
+- **If any test fails:**
+  1. List every failing test with its output
+  2. Do NOT draft a commit message
+  3. Stop and report. A test that fails once is a failure even if a re-run passes: report it as a flake instead of re-running until it passes
+
+- **If all tests pass:** Continue to Step 2.
+
+## Step 2: Code Quality Checks (Optional)
 
 **If `$ARGUMENTS` contains "quality" or "q":**
 
-Run `/code-quality` command first.
+Run the `/code-quality` command.
 
 - **If any warnings or errors are found:**
   1. List all warnings/errors clearly
@@ -18,17 +29,17 @@ Run `/code-quality` command first.
   3. Wait for user confirmation before continuing
   4. If user declines, stop and suggest fixes
 
-- **If no warnings:** Continue to Step 2.
+- **If no warnings:** Continue to Step 3.
 
-**If `$ARGUMENTS` is empty or doesn't contain "quality"/"q":** Skip to Step 2.
+**If `$ARGUMENTS` is empty or doesn't contain "quality"/"q":** Skip to Step 3.
 
-## Step 2: Review Changes
+## Step 3: Review Changes
 
 1. Run `git status` to see all changed files
 2. Run `git diff` to see the changes
 3. Run `git log -5 --oneline` to see recent commit style
 
-## Step 3: Prepare Commit Message
+## Step 4: Prepare Commit Message
 
 Analyze all changes and draft a commit message following these rules:
 - Subject line format: `Brief description`
@@ -41,8 +52,8 @@ Analyze all changes and draft a commit message following these rules:
 - Never include "Bump module version" in commit messages
 - Never add AI attribution footers
 
-## Step 4: Present for Approval
+## Step 5: Present for Approval
 
-Present the draft commit message to the user for approval.
+Present the draft commit message to the user for approval, together with the test gate result (for example: "Tests: `go test ./...` passed").
 
 **IMPORTANT:** Do NOT create the commit yet - just prepare the message.

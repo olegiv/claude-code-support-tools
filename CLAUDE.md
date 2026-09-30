@@ -39,7 +39,7 @@ This repository contains Claude Code support tools including autonomous agents, 
     - `hooks/validate-go-test.sh` - Recommends race detection for tests
     - `agents/code-quality-auditor.md` - Comprehensive code quality scanning
     - `commands/code-quality.md` - Run quality checks command
-    - `commands/commit-prepare.md` - Commit with quality integration
+    - `commands/commit-prepare.md` - Commit with a mandatory test gate and optional quality checks
     - `commands/fly-deploy.md` - Deploy Go app to Fly.io
   - `swift/` - Swift/Xcode project tools
     - `settings.json` - Hook configuration for xcodebuild validation
@@ -430,6 +430,7 @@ Enforces strict git workflow rules across all projects:
 - Never commit or push unless explicitly instructed
 - No automatic commits after completing tasks
 - User controls when and what to commit
+- Full test suite passes before any commit or push; any failure stops the flow
 - Clean commit messages without AI attribution
 - Separate `.claude/settings.json` (team, committed) from `.claude/settings.local.json` (personal, gitignored)
 
