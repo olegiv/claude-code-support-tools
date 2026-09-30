@@ -457,7 +457,7 @@ Claude will respond and complete the task with full repository access.
 │   │   │   └── code-quality-auditor.md   # Code quality scanning agent
 │   │   └── commands/
 │   │       ├── code-quality.md    # Run quality checks
-│   │       ├── commit-prepare.md  # Commit with quality integration
+│   │       ├── commit-prepare.md  # Commit with test gate + quality checks
 │   │       └── fly-deploy.md      # Deploy Go app to Fly.io
 │   ├── swift/                     # Swift/Xcode project tools
 │   │   ├── settings.json          # Hook configuration for xcodebuild

@@ -42,6 +42,16 @@ Claude: *now executes `git commit`*
 
 ---
 
+## MANDATORY: Tests Pass Before Commit and Push
+
+**Before presenting ANY commit message**, run the project's full test suite: the test-gate command its `CLAUDE.md` names, or the stack default (`go test ./...` for Go). Show the result next to the draft message.
+
+- **Any failing test → STOP.** Report the failures with their output. No commit, no push, no PR.
+- **A test that fails once is a failure**, even if a re-run passes. Report it as a flake; never re-run until it passes and carry on.
+- **Never bypass a push hook.** No `git push --no-verify`: a blocked push is reported to the user, not worked around.
+
+---
+
 ## Commit & PR Formatting
 
 ### Commit Message Formatting
