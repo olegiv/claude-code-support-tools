@@ -8,7 +8,7 @@ Review changes and prepare a commit message.
 
 ## Step 1: Run the Test Gate (Mandatory)
 
-Run the project's full test suite before anything else: the test-gate command its `CLAUDE.md` names, or `go test ./...` if it names none. Go's test cache re-runs only the packages the change affects, so this is usually fast.
+Run the project's full test suite before anything else: the test-gate command its `CLAUDE.md` names, or `go test -count=1 ./...` if it names none. `-count=1` disables Go's test cache, so every test actually runs instead of reporting an earlier cached pass.
 
 - **If any test fails:**
   1. List every failing test with its output
