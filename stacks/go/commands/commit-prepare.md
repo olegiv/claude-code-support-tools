@@ -8,12 +8,17 @@ Review changes and prepare a commit message.
 
 ## Step 1: Run the Test Gate (Mandatory)
 
-Run the project's full test suite before anything else: the test-gate command its `CLAUDE.md` names, or `go test -count=1 ./...` if it names none. `-count=1` disables Go's test cache, so every test actually runs instead of reporting an earlier cached pass.
+Before drafting a message, prepare and run the project's full test gate:
+
+1. Inspect the intended diff, test command, and code it executes before running it. For an untrusted checkout, select and show the exact command and obtain explicit approval unless the user already authorized that command and code. Run it only in an isolated environment without host credentials, unrelated host files, or network access; if that is unavailable, stop. This also applies to default Go tests.
+2. Stage only the intended paths and record `git write-tree`. Run tests with no unstaged tracked changes or non-ignored untracked files; preserve unrelated work and use an isolated copy of the index tree if needed. Verify the test checkout still matches that tree after testing. Recheck the index immediately before committing and verify the resulting commit tree; changes from later quality tools, edits, or hooks invalidate the pass and require a fresh gate.
+3. Use the test-gate command the project's `CLAUDE.md` names. Disable Go test-result caching even for a project-defined script or Make target: use `-count=1` on each `go test`, or run `go clean -testcache` immediately before the gate in the same Go environment/cache it uses. Disable any wrapper-level result cache too; if fresh execution cannot be established, stop.
+4. If no gate is named, check `go env GOWORK`. For an active workspace, enumerate all main modules with `go list -m -json` and run `go test -count=1 ./...` from every module's `Dir`, preserving spaces in paths. Otherwise run it from the module root. A discovery error, unavailable module, or failed module run blocks the gate; never silently skip a module. Without a usable module/workspace, ask for the project's test command instead of claiming a pass.
 
 - **If any test fails:**
   1. List every failing test with its output
   2. Do NOT draft a commit message
-  3. Stop and report. A test that fails once is a failure even if a re-run passes: report it as a flake instead of re-running until it passes
+  3. Stop and preserve the failure output. A later pass without a relevant code, test, or environment correction is a flake, not a passing gate. After fixing the cause, explain the correction and restart Step 1 against the corrected tree; a fresh full pass can unblock preparation
 
 - **If all tests pass:** Continue to Step 2.
 
@@ -54,6 +59,6 @@ Analyze all changes and draft a commit message following these rules:
 
 ## Step 5: Present for Approval
 
-Present the draft commit message to the user for approval, together with the test gate result (for example: "Tests: `go test ./...` passed").
+Present the draft commit message to the user for approval, together with the actual test command(s), tested tree hash, and result (for a single-module fallback: "Tests: `go test -count=1 ./...` passed for tree `<hash>`"). If Step 2 or later edits changed the tested tree, rerun Step 1 first.
 
 **IMPORTANT:** Do NOT create the commit yet - just prepare the message.

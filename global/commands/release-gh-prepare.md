@@ -329,7 +329,7 @@ cleanly with no file changes and no git operations performed.
 - Write a `.github/release.yml` auto-notes config. The curated
   CHANGELOG body is the deliberate choice; do not introduce
   generate-notes as a fallback.
-- Run tests, linters, or vulnerability scans. Those belong in CI
-  and in the user's separate `/test`, `/lint`, `/security-audit`
-  workflows. This command assumes `<default-branch>` HEAD is already
-  clean.
+- Run optional linters or vulnerability scans. The mandatory full test
+  gate from global `CLAUDE.md` still applies before presenting the Step 7
+  commit message and again before the Step 8 push; any failure stops
+  the release. A previous CI pass does not replace this gate.
