@@ -3,7 +3,8 @@
 The Codex GitHub reviewer (`chatgpt-codex-connector`) reads `AGENTS.md` from the **pull request head**, so a
 rules section added in the PR itself applies to that PR's next review. Put repository-wide rules in the root
 `AGENTS.md`; put component rules in the `AGENTS.md` closest to the component. Rules guide the reviewer's judgment.
-Tests and the `pr-fix` gate do the enforcing.
+The `pr-fix` runner checks recorded state. The author must also establish direct behavior evidence before
+publication; neither reviewer rules nor a `ready` status establish that the checks exercise the change.
 
 Paste and adapt:
 
@@ -13,6 +14,8 @@ Paste and adapt:
 ### Scope
 - Review only lines changed in this pull request. Report pre-existing problems in unchanged code as a
   single note at the end, not as inline findings.
+- Treat changed workflow instructions as behavior. Trace affected callers and downstream consumers for
+  context, including command ordering and state changes; keep findings tied to defects introduced by the diff.
 - Report P0 and P1 only when you can name the concrete input, environment or call path that triggers the
   failure. Do not report style, naming, formatting, speculative hardening or alternative designs.
 - One finding per root cause. If a guard or validator has a class of bypasses, report the class once with

@@ -80,6 +80,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 **`global/skills/`** - Skills in the shared Agent Skills format, usable by Claude Code **and** Codex from one directory
 - `pr-fix/` - Repair automated pull-request review findings (chatgpt-codex-connector, Claude review) in at most two fix pushes: collect unresolved threads, triage each (FIX / REJECT / DEFER / DUP), apply minimal fixes, run the same Codex reviewer locally before pushing, push once, close every thread. `/pr-fix <PR>` in Claude Code, `$pr-fix <PR>` in Codex.
 - The P2 rule: a P2 finding gets a one-line fix or a reply, never a rewrite
+- Before approval or publication, the author verifies changed behavior with failure/normal scenarios and affected consumer traces. See [behavior verification](global/skills/pr-fix/references/behavior-verification.md). Baseline test counts, a clean review, and the runner's `status=ready` supplement this evidence; they do not establish its coverage.
 - `scripts/pr-fix.sh` - runner with `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
 - `references/` - triage rules and reply templates, developer instructions for the local reviewer, a `## Code Review Rules` block for a target repository's AGENTS.md, and a paragraph for `~/.codex/AGENTS.md`
 
@@ -402,7 +403,7 @@ When a review bot (chatgpt-codex-connector, Claude review) leaves findings on a 
 $pr-fix 170
 ```
 
-The skill collects the unresolved threads, triages each one (FIX / REJECT / DEFER / DUP), applies minimal fixes (a P2 gets a one-line fix or a reply, never a rewrite), runs `codex exec review --base` locally before pushing, commits and pushes once after your approval, replies to and resolves every thread, and stops after two fix pushes. Round three and later are triage-only unless you say `override`. State and reports live in `.audit/pr-<N>/` (gitignored).
+The skill collects the unresolved threads, triages each one (FIX / REJECT / DEFER / DUP), applies minimal fixes (a P2 gets a one-line fix or a reply, never a rewrite), verifies the changed behavior and affected consumers, and runs `codex exec review --base` locally. Its approval report separates direct evidence, baseline checks, review results, and gaps. Once both the evidence and recorded-state gates pass, it commits and pushes once after your approval, replies to and resolves every thread, and stops after two fix pushes. Round three and later are triage-only unless you say `override`. State and reports live in `.audit/pr-<N>/` (gitignored).
 
 ### GitHub Actions PR Review
 

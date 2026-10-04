@@ -69,6 +69,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `AGENTS.md` and `pr-fix` require direct behavior evidence before approval
+  or publication: failure and normal cases, affected consumer traces, and
+  results bound to the tested tree and review base. Markdown workflow
+  instructions count as behavior. Baseline suites and review results are
+  reported separately; runner readiness does not assess evidence quality.
 - `global/CLAUDE.md` gains a `## MANDATORY: Tests Pass Before Commit and
   Push` section: run the project's full test suite before presenting any
   commit message and again before any push, bind passing results to the

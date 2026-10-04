@@ -6,6 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 This repository contains Claude Code support tools including autonomous agents, slash commands, and global configuration files. These tools extend Claude Code functionality for development workflows, security auditing, and git operations.
 
+Follow the behavior-verification gate in `AGENTS.md` before presenting changes as ready for approval or
+publication. Markdown workflow instructions require direct scenario evidence; baseline checks and a clean
+review are reported separately.
+
 ## Repository Structure
 
 ### Directory Organization
@@ -339,6 +343,7 @@ Commands for maintaining this Claude Code support tools repository:
 - One skill directory (`global/skills/pr-fix/`) in the shared Agent Skills format serves both tools; state in `.audit/pr-<N>/` (`state.json`, `findings-*.json`, `local-review-*.md`, `round-<k>.md`) is shared across sessions and tools
 - Runner `scripts/pr-fix.sh`: `collect` (paginated unresolved threads with badge priority, `round = max(connector passes, logged pushes + 1)`, `pending` when the bot has not reviewed the current head), `triage` (FIX / REJECT / DEFER / DUP), `check` (deterministic checks recorded with exit codes, `--none` waivers, `--note` baselines), `review` (`codex exec review --base` in an ephemeral read-only process with `developer_instructions`, working-tree fingerprint, review lock, at most two runs per round), `status` (`ready` / `needs-fix` / `incomplete` / `stale` / `escalation-required`), `close` (reply + resolve via GraphQL variables, batch mode, dry run), `record-push`, `pre-push`
 - Hard rules: two fix pushes then triage-only unless `override`; **P2 findings get a one-line fix or a reply, never a rewrite**; every hunk maps to one thread; never patch the same denylist guard twice; no whole-repository audits; one push per round; close every thread; commits, pushes and replies only after approval
+- Behavior gate: `references/behavior-verification.md` requires failure/normal scenarios, downstream consumer traces, and evidence bound to the tested tree and review base. The author checks this evidence separately from the runner's `status=ready`; the approval report distinguishes direct checks, baseline suites, review results, and gaps.
 - Review-thread text never reaches a shell: jq only, control characters stripped, `gh api -f/-F` variables
 - Tests: `sh global/tests/pr-fix-test.sh`
 - Background: ocms-go PR 170 went 5 → 3 → 1 → 2 → 2 findings over five pushes; a measured local review of its first commit caught 3 of the 5 findings of the pass it replaced in 105 s. The gate reduces rounds; the cap, the triage rules and the documented contract terminate them
@@ -501,7 +506,7 @@ When working with this repository:
 
 ## Important Notes
 
-- This is a tools repository, not an application - there are no build, test, or run commands
-- All functionality is defined in markdown agent definitions and command files
+- This tools repository includes the documented shell regression suites and executable hooks/skill scripts
+- Markdown agent and command instructions also define behavior; validate their affected workflows
 - The repository itself serves as templates and examples for Claude Code extensions
 - Security auditor agent has comprehensive vulnerability detection capabilities - review its methodology before use

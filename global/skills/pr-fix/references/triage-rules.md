@@ -33,10 +33,12 @@ path does not exist and REJECT with that reason.
    closed), or document its best-effort coverage next to the code and REJECT further bypass reports against that
    contract. A blocklist over an open-ended input language has no finite finished state; reviewers will always
    find one more spelling.
-5. Tests: only where a harness already exists for that component; at most one focused test per fixed thread; never
-   new test infrastructure inside a findings fix.
-6. Checks: run only the project's declared test and lint commands, scoped to the touched code. Pre-existing failures
-   are recorded with `pr-fix.sh check --note "<baseline reason>"`, never silenced and never "cleaned up" in this PR.
+5. Add repository tests only where a harness already exists for that component; at most one focused regression
+   test per fixed thread; never new test infrastructure inside a findings fix. Disposable failure/normal-case
+   fixtures and workflow traces are allowed for the required [behavior evidence](behavior-verification.md).
+6. Run the project's declared test/lint commands and focused behavior checks, scoped to the affected workflow.
+   Report baseline regression results separately from direct verification. Pre-existing failures may be recorded
+   with `pr-fix.sh check --note "<baseline reason>"`; a note must not conceal a failure caused by this patch.
 
 ## Reply templates
 
@@ -61,8 +63,10 @@ unresolved work to meet the target.
 
 ## Local review leftovers
 
-After the second local review of a round nothing more is fixed. Remaining P0/P1 from that review are recorded with
-`pr-fix.sh triage local REJECT|DEFER --note "<why>"`, which is what lets `status` reach `ready`.
+After the second local review of a round nothing more is fixed. Record remaining findings with
+`pr-fix.sh triage local REJECT|DEFER --note "<why>"` and follow the skill's user-confirmation rules. This may make
+the runner print `ready`, but a confirmed in-scope P0/P1 blocker still prevents publication. A disposition is
+not evidence that a defect was fixed. Report the blocker and the required scope/round decision.
 
 ## State schema (`.audit/pr-<N>/state.json`)
 
@@ -83,7 +87,7 @@ After the second local review of a round nothing more is fixed. Remaining P0/P1 
                  "p0": 0, "p1": 1, "p2": 2, "p3": 0, "format": "text", "file": "…", "tokens": null,
                  "leftovers": { "kind": "REJECT", "note": "…", "ts": "…" } } ],
   "checks":  [ { "round": 1, "cmd": "make test", "exit": 0, "seconds": 42, "note": "", "tree": "…", "ts": "…" },
-               { "round": 1, "cmd": null, "waived": "docs-only change", "tree": "…", "ts": "…" } ]
+               { "round": 1, "cmd": null, "waived": "wording only; behavior unchanged", "tree": "…", "ts": "…" } ]
 }
 ```
 
@@ -98,7 +102,9 @@ checks, local reviews (model, effort, seconds, priorities, tokens when available
 | `incomplete` | a thread lacks a disposition, no check recorded this round, or a check failed without a baseline note | triage, run checks |
 | `needs-fix` | no local review this round, or its P0/P1 are neither fixed nor recorded as leftovers | fix, re-run review, or `triage local` |
 | `stale` | the working tree (or the merge base) differs from what the last review saw | re-run review |
-| `ready` | everything above holds | commit, push once |
+| `ready` | the runner's recorded-state checks hold | inspect behavior evidence and identities, then follow approval gates |
 | `escalation-required` | pushes reached the cap, or both local reviews are used and P0/P1 remain | stop; report the defect family; ask for `override` |
 
-A successful reviewer exit alone never yields `ready`.
+A successful reviewer exit alone never yields `ready`. The runner does not inspect the behavior-verification
+record. Its `ready` result and generated report must be accompanied by the author-side evidence/readiness
+report in [behavior-verification.md](behavior-verification.md) before approval or publication.
