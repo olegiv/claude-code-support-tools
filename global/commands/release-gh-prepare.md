@@ -217,9 +217,10 @@ NOT auto-edit those files).
 
 Ask: "Should I proceed with this commit?" Wait for explicit "yes".
 
-When committing, use `git commit --no-verify` per the user-explicit-
-commit convention (projects with a pre-commit hook that blocks
-automated commits allow them when the user explicitly requests it).
+When committing, use `git commit` with hooks enabled, following the
+hook checks in global `CLAUDE.md`. The explicit-commit `--no-verify`
+convention applies only when it bypasses approval-only hooks and no
+required tree guard; if that cannot be verified, stop.
 
 ## Step 8 — push gate
 
