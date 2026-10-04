@@ -164,6 +164,11 @@ rm -rf ~/.git-hooks
 (`global/skills/pr-fix/scripts/pr-fix.sh pre-push`). It enforces the two-push
 repair workflow mechanically, for Claude Code, Codex and the human alike.
 
+It validates recorded state and fingerprints; it does not assess whether checks
+exercise the changed behavior. Before approval or publication, the author must
+also complete the skill's [behavior verification](../skills/pr-fix/references/behavior-verification.md)
+and report direct evidence separately from baseline checks and review results.
+
 ### What It Does
 
 - **Armed only when a findings round has started**: it acts on a branch only if
