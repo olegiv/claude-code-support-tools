@@ -27,5 +27,6 @@ or disposable fixtures and trace the affected workflow; label manual traces and 
 Report baseline checks separately from direct verification. A clean review and `pr-fix`'s `status=ready`
 supplement this evidence. Bind it to the tested tree and review base, refresh it after relevant changes, and
 disclose dispositions and gaps. Confirmed blockers or missing required evidence prevent publication.
-Use the skill's `references/behavior-verification.md` for the evidence record and approval report.
+Use the installed `pr-fix` skill's `references/behavior-verification.md` (normally
+`$HOME/.codex/skills/pr-fix/references/behavior-verification.md`) for the evidence record and approval report.
 ```
