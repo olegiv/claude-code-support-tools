@@ -7,145 +7,80 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-04
+
 ### Added
 
-- `global/skills/pr-fix/` — a shared skill for Claude Code and Codex
-  (`/pr-fix <PR>` / `$pr-fix <PR>`) that repairs automated pull-request
-  review findings in at most two fix pushes. One bash+jq runner,
-  `scripts/pr-fix.sh`, exposes `collect` (paginated unresolved review
-  threads with badge priority, round counter and pending detection),
-  `triage` (FIX / REJECT / DEFER / DUP dispositions), `check`
-  (deterministic checks recorded with exit codes), `review` (the local
-  gate: `codex exec review --base` in an ephemeral read-only process with
-  a working-tree fingerprint, review lock and per-round limit), `status`
-  (`ready` / `needs-fix` / `incomplete` / `stale` /
-  `escalation-required`), `close` (reply and resolve threads through
-  GraphQL variables, batch mode) and `pre-push` (the gate body). State
-  lives in `.audit/pr-<N>/` so both tools share counters. References
-  cover the triage rules with the P2 rule (one-line fix or reply, never
-  a rewrite), reply templates, the state schema, the developer
-  instructions handed to the local reviewer, a `## Code Review Rules`
-  block for a target repository's AGENTS.md, and a paragraph for
-  `~/.codex/AGENTS.md`. Motivated by ocms-go PR 170, where five pushes
-  produced 5 → 3 → 1 → 2 → 2 connector findings; a measured local review
-  of its first commit caught 3 of the 5 findings of the pass it replaced
-  in 105 seconds.
-- `global/hooks/pre-push` — git pre-push wrapper that runs
-  `pr-fix.sh pre-push`, armed only for branches with a `pr-fix` state.
-  It refuses a push whose commit tree was not the one the local review
-  saw, or that would exceed the two-push cap, records allowed pushes,
-  fails open without gh/jq/runner, and chains to the repository's own
-  pre-push hook that `core.hooksPath` would otherwise hide.
-- `global/tests/pr-fix-test.sh` — 206 offline assertions for the runner
-  and the hook using stub `gh`/`codex` binaries and fixtures under
-  `global/tests/fixtures/pr-fix/`.
-- `global/commands/release-gh-prepare.md` — slash command
-  (`/release-gh-prepare`) that cuts a new version of the host project:
-  updates `CHANGELOG.md` (moves `[Unreleased]` → `[X.Y.Z] - DATE`, adds
-  the compare link), commits, pushes to `origin/master`, and creates a
-  GitHub draft release via `gh`. Hard preconditions on branch, clean
-  tree, origin-sync, and CHANGELOG shape; mandatory user-approval gate
-  on the proposed version before any edit or git operation. Auto-infers
-  the version via semver from the `[Unreleased]` section
-  (BREAKING → major, `### Added` → minor, otherwise patch) and the
-  release title from the first bold bullet. Does not publish the
-  release or create the git tag — those stay in the user's hands via
-  the GitHub UI.
+#### Shared workflows
 
-### Fixed
-
-- `pr-fix` remote matching (#57): SSH host aliases are resolved with
-  `ssh -G` before comparing hosts, the push gate uses the same host-aware
-  match as the review (a same-named mirror on another host is neither
-  gated nor counted), and `git config prf.baseRemote` names the pull
-  request's remote explicitly.
-- `pr-fix` follow-ups from PR #53's third review pass (#55): the local
-  gate reviews against the fetched `origin/<base>` ref; `--dry-run`
-  never runs `git add -N`; `record-push --undo` derives `pending` from
-  the connector's latest reviewed commit; the push gate skips all-zero
-  object names of any length (SHA-256 repositories) and matches the
-  remote repository slug exactly; the hook wrapper compares file
-  identity (`-ef`) so a symlinked copy of itself is never chained.
+- Shared `pr-fix` skill for Claude Code and Codex, with review-thread triage,
+  focused repairs, local Codex diff review, and a two-push repair policy.
+  An optional pre-push hook checks recorded readiness, the reviewed tree,
+  base freshness, and push count for branches with active skill state.
+- `/release-gh-prepare` creates curated GitHub draft releases from the
+  default branch, with explicit version, content, commit, and push approvals.
+- `/finalize` coordinates tests, translations, and documentation updates.
+- Drupal 11 / PHP 8.4 `/code-quality` command and read-only auditor for
+  PHPStan, PHPCS, dependency advisories, and deprecated APIs.
 
 ### Changed
 
-- `AGENTS.md` and `pr-fix` require direct behavior evidence before approval
-  or publication: failure and normal cases, affected consumer traces, and
-  results bound to the tested tree and review base. Markdown workflow
-  instructions count as behavior. Baseline suites and review results are
-  reported separately; runner readiness does not assess evidence quality.
-- `global/CLAUDE.md` gains a `## MANDATORY: Tests Pass Before Commit and
-  Push` section: run the project's full test suite before presenting any
-  commit message and again before any push, bind passing results to the
-  candidate or pushed tree in a fresh snapshot, preserve review inputs,
-  guard each index-mutating commit hook before returning to Git, inspect commands,
-  and require authorization plus isolation for untrusted code. Stop on
-  failures and unchanged flaky retries; allow a fresh gate after a real
-  correction. Never `git push --no-verify` unless explicitly asked.
-- Go stack `commands/commit-prepare.md` runs the project's test gate as a
-  mandatory Step 1 with uncached results for custom gates and defaults.
-  The fallback runs `go test -count=1 ./...` only for a single repository
-  module or a workspace covering all repository modules; other layouts
-  require a project-wide gate. It drafts no message on failure.
-- `global/CLAUDE.md` gains a `## PR Review Findings` section: use `pr-fix`,
-  two fix pushes then triage-only, the P2 rule, defect-family mapping, no
-  whole-repository audits during a findings fix, one push per round, close
-  every thread.
-- `.github/workflows/claude-code-review.yml` prompt now asks for
-  high-confidence correctness/security problems in changed lines only,
-  with `file:line` and a failing scenario, no style or speculative
-  hardening, and no repetition of existing review comments.
-- Drupal stack `commands/code-quality.md` and `agents/code-quality-auditor.md`
-  now detect the project's PHPCS ruleset instead of hardcoding
-  `--standard=Drupal,DrupalPractice --extensions=...`. Passing `--standard=`
-  disables PHPCS's `phpcs.xml*` auto-discovery — `Config.php` guards the
-  search on `overriddenDefaults['standards']` — which silently discarded the
-  ruleset's `<arg value="sp"/>` (findings lost their sniff codes), its
-  `<exclude-pattern>`s and its cache setting. A short preflight now prefers
-  `composer lint*` or bare `./vendor/bin/phpcs` when a ruleset exists, and
-  falls back to the explicit standard only when there is none.
-- PHPCS is now treated the way PHPStan's baseline already was. PHPCS has no
-  baseline mechanism, so both files declare **changed files**
-  (`--filter=GitModified`) the gate and report the tree-wide total as
-  pre-existing debt excluded from the actionable count. The auditor agent,
-  which holds `Edit`, is scoped to the files a change already touches, is
-  forbidden from running `phpcbf`/`composer lint-fix` unscoped, and must keep
-  any reformatting in a commit separate from the behavioural change.
-  `--filter=` is mandatory rather than preferred because it is fail-closed,
-  whereas `phpcbf $(git diff --name-only ...)` is fail-open: an empty
-  substitution leaves phpcbf with no path and it reformats the whole tree.
-- The `code-quality-auditor` agent is now **read-only**: `Edit` is removed from its
-  tool list and it is barred from running `phpcbf`, `composer lint-fix*` or any other
-  writing command. It shows the mechanical fixes with `phpcs --report=diff` and offers
-  the command instead of applying it. Testing the previous revision showed why: asked
-  to "clean up coding standards" in one module it rewrote all 11 files, because the
-  guardrail permitted `phpcbf` with "an explicit path" while a neighbouring rule said
-  only the files a change touches may be reformatted - a directory argument satisfied
-  the first and violated the second. Whether to reformat a whole module is the user's
-  call, so the agent now only ever proposes it.
-- Scope resolution no longer hardcodes `modules/custom`. A named argument
-  resolves against `modules/custom/` then `themes/custom/`, and an unscoped
-  run passes no path so each tool uses its own config — explicitly *not*
-  unified, because `phpstan-baseline.neon` is generated against
-  `phpstan.neon` `paths:` only.
+#### Verification and quality guidance
+
+- Require fresh full-suite results tied to the intended Git tree before
+  commits and pushes, preserve review inputs, and guard commit hooks that
+  may change the index. Go preparation requires uncached tests and complete
+  module/workspace coverage.
+- Require direct behavior evidence, including failure and normal cases and
+  affected consumers, before publication. Untrusted PR commands require
+  authorization and verified isolation. These are workflow requirements;
+  the `pr-fix` runner does not provide a sandbox or assess evidence quality.
+- Honor project PHPCS rulesets and analyzer scopes, separate changed-file
+  findings from existing debt, and preview Drupal coding-standard fixes.
+- Expand Go quality guidance with error-handling, test-helper, import-order,
+  CSS, JSON-schema, CSP, and DOM-XSS checks.
+- Focus automated Claude PR reviews on concrete correctness/security issues
+  in changed lines, without repeating existing findings.
+- Respect plan mode's prohibition on edits and commits, and clear Chrome's
+  cache before visual verification.
 
 ### Fixed
 
-- Status line `cwd` validation in `global/settings.json` no longer rejects
-  legitimate paths containing `(`, `)`, `+`, `@`, `,`, spaces, or Unicode.
-  PR #24 introduced an overly narrow allowlist regex
-  (`^[[:alnum:]_./~ -]+$`) that caused such paths to fall back to `unknown`
-  and lose the git branch/status indicators. Replaced with a control-character
-  denylist (`tr -d '[:cntrl:]'`) that preserves the anti-injection hardening
-  while accepting all real-world filesystem paths. Resolves the regression
-  flagged in PR #24 review.
+#### Tooling
 
-### Added
+- Match `pr-fix` remotes by host and repository, fetch the correct PR base,
+  and handle SSH aliases, narrow fetch refspecs, mirror remotes, Git boolean
+  values, SHA-256 deletion refs, and symlinked hooks. `prf.baseRemote`
+  selects a remote explicitly; `prf.sshResolve=false` disables SSH resolution.
+- Correct `govulncheck` guidance, restore the previous `go.mod`/`go.sum`
+  state when backing out dependencies, and handle toolchain paths with spaces.
+- Repair command frontmatter, tool permissions, and Fly.io health checks
+  (AGT-017–018, AGT-020).
 
-- `global/tests/statusline-cwd-test.sh` — POSIX shell regression suite for
-  the status line `cwd` validation. 16 assertions covering shell
-  metacharacters, Unicode paths, raw and JSON-escaped ANSI/control-character
-  injection attempts, missing paths, and empty input.
+### Security
+
+#### Commands and automation
+
+- Block terminal-control injection in status-line paths while preserving
+  Unicode and punctuation; includes a 22-assertion regression suite.
+- Write approved commit messages to unique temporary files, handle failures
+  and cleanup, and stage only intended paths. Validate release versions,
+  sanitize titles, use unique release-notes files, retain notes for retries,
+  require tag/release approval, and preserve required commit hooks
+  (AGT-006–008, AGT-011, AGT-015).
+- Validate each `@claude` event's own actor association; includes 13
+  structural regression assertions (GHA-NEW-001).
+- Correct shell and SQL validation, reject absolute paths in Drupal/PHP
+  commands, and block executable SQL comments. Reject arbitrary SQL/PHP
+  execution and automatic-confirmation flags in the generic Drush wrapper
+  (AGT-001–005, AGT-009–010).
+- Preserve dangerous-mode confirmation by default, pass Go-check filenames
+  safely to Python, and quote iOS auditor command placeholders.
+- Monitor `OAUTH_TOKEN_ROTATED_AT`: warn after 75 days, fail after 90 days,
+  and reject invalid or future dates. Remove unused usage-report write
+  permission (SEC-NEW-001, GHA-NEW-002).
+- Update SHA-pinned GitHub Actions to `actions/checkout` 7.0.1 and
+  `anthropics/claude-code-action` 1.0.235.
 
 ## [0.2.0] - 2026-02-11
 
@@ -269,6 +204,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened GitHub Actions against prompt injection
 - Pinned GitHub Actions to commit SHAs
 
+[Unreleased]: https://github.com/olegiv/claude-code-support-tools/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/olegiv/claude-code-support-tools/releases/tag/v0.0.0
