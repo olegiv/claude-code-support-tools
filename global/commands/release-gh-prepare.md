@@ -217,9 +217,10 @@ NOT auto-edit those files).
 
 Ask: "Should I proceed with this commit?" Wait for explicit "yes".
 
-When committing, use `git commit --no-verify` per the user-explicit-
-commit convention (projects with a pre-commit hook that blocks
-automated commits allow them when the user explicitly requests it).
+When committing, use `git commit` with hooks enabled, following the
+hook checks in global `CLAUDE.md`. The explicit-commit `--no-verify`
+convention applies only when it bypasses approval-only hooks and no
+required tree guard; if that cannot be verified, stop.
 
 ## Step 8 — push gate
 
@@ -329,7 +330,7 @@ cleanly with no file changes and no git operations performed.
 - Write a `.github/release.yml` auto-notes config. The curated
   CHANGELOG body is the deliberate choice; do not introduce
   generate-notes as a fallback.
-- Run tests, linters, or vulnerability scans. Those belong in CI
-  and in the user's separate `/test`, `/lint`, `/security-audit`
-  workflows. This command assumes `<default-branch>` HEAD is already
-  clean.
+- Run optional linters or vulnerability scans. The mandatory full test
+  gate from global `CLAUDE.md` still applies before presenting the Step 7
+  commit message and again before the Step 8 push; any failure stops
+  the release. A previous CI pass does not replace this gate.

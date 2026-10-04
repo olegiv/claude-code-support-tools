@@ -69,6 +69,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `global/CLAUDE.md` gains a `## MANDATORY: Tests Pass Before Commit and
+  Push` section: run the project's full test suite before presenting any
+  commit message and again before any push, bind passing results to the
+  candidate or pushed tree in a fresh snapshot, preserve review inputs,
+  guard each index-mutating commit hook before returning to Git, inspect commands,
+  and require authorization plus isolation for untrusted code. Stop on
+  failures and unchanged flaky retries; allow a fresh gate after a real
+  correction. Never `git push --no-verify` unless explicitly asked.
+- Go stack `commands/commit-prepare.md` runs the project's test gate as a
+  mandatory Step 1 with uncached results for custom gates and defaults.
+  The fallback runs `go test -count=1 ./...` only for a single repository
+  module or a workspace covering all repository modules; other layouts
+  require a project-wide gate. It drafts no message on failure.
 - `global/CLAUDE.md` gains a `## PR Review Findings` section: use `pr-fix`,
   two fix pushes then triage-only, the P2 rule, defect-family mapping, no
   whole-repository audits during a findings fix, one push per round, close
