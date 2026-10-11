@@ -1,5 +1,6 @@
 ---
 description: "Review changes and prepare a commit message"
+argument-hint: "[quality|q]"
 ---
 
 Review changes and prepare a commit message.

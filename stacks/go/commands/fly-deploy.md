@@ -63,30 +63,24 @@ Report app status, machine state, and health check results.
 
 **If a deploy script exists** (`.fly/scripts/deploy.sh`):
 
-Validate and use the project's deploy script with any flags from `$ARGUMENTS`:
-```bash
-# Cap argument length
-if [ ${#ARGUMENTS} -gt 100 ]; then
-  echo "ERROR: Arguments too long (max 100 characters)"
-  exit 1
-fi
-# Validate arguments contain only safe characters
-if printf '%s' "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
-  echo "ERROR: Arguments contain forbidden shell characters"
-  exit 1
-fi
-# Block quote characters (prevent string escaping attacks)
-if printf '%s' "$ARGUMENTS" | grep -qF '"' || printf '%s' "$ARGUMENTS" | grep -qF "'"; then
-  echo "ERROR: Arguments contain forbidden quote characters"
-  exit 1
-fi
-# Block newlines
-if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
-  echo "ERROR: Arguments must be single-line"
-  exit 1
-fi
-./.fly/scripts/deploy.sh "$ARGUMENTS"
-```
+Run the project's deploy script with only the flags recognised from
+`$ARGUMENTS`. `$ARGUMENTS` is substituted into this prompt before any shell
+runs, so a shell-side check cannot protect the command that contains it.
+Instead, decide the flags here, in prose, and type a fixed command:
+
+1. Split `$ARGUMENTS` on whitespace. The only accepted tokens are `--reset`,
+   `--logs` and `status`.
+2. If any other token is present, stop and report
+   `Unrecognised argument: <token>`; do not run the deploy script.
+3. Compose the command from the recognised tokens only. The possible forms
+   are:
+   ```bash
+   ./.fly/scripts/deploy.sh
+   ./.fly/scripts/deploy.sh --reset
+   ./.fly/scripts/deploy.sh --logs
+   ./.fly/scripts/deploy.sh --reset --logs
+   ```
+   Never paste the raw `$ARGUMENTS` text into a command.
 
 **If no deploy script exists**, deploy directly:
 
