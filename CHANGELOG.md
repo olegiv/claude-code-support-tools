@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Scope `allowed-tools` in the Go `/fly-deploy` and `/code-quality` commands
+  to the commands they run instead of unrestricted `Bash`, so text a command
+  reads (deploy logs, scan output) cannot steer it into another shell command
+  without a permission prompt.
+
+### Fixed
+
+- `/fly-deploy` health check no longer builds its URL from an empty app name
+  when `fly.toml` quotes the name with `'`.
+- `/finalize` argument hint shows that areas are comma-separated.
+
 ## [0.3.0] - 2026-10-04
 
 ### Added

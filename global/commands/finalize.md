@@ -1,6 +1,6 @@
 ---
 description: "Review the session's changes and finish tests, translations and docs"
-argument-hint: "[all|tests|translations|docs]"
+argument-hint: "[all | tests,translations,docs]"
 ---
 
 Review all changes in this session and perform the requested actions.

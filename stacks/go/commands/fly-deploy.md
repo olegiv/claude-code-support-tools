@@ -1,7 +1,7 @@
 ---
 description: "Deploy a Go application to Fly.io (--reset, --logs, or status)"
 argument-hint: "[--reset | --logs | status]"
-allowed-tools: Bash
+allowed-tools: Bash(fly *), Bash(docker info*), Bash(git status*), Bash(grep *), Bash(./.fly/scripts/deploy.sh*), Bash(curl -s -o /dev/null -w *), Bash(tail *)
 ---
 
 Deploy a Go application to Fly.io.
@@ -112,10 +112,10 @@ Instead, decide the flags here, in prose, and type a fixed command:
    fly checks list
    ```
 
-3. Extract the app URL and verify it responds:
+3. Verify the app responds. Take the app name from the `app` line read in
+   Step 1 (`fly.toml` may quote it with `'` or `"`) and type it into the URL:
    ```bash
-   url="https://$(grep '^app ' fly.toml | awk -F'"' '{print $2}').fly.dev/health"
-   curl -s -o /dev/null -w "%{http_code}" "$url"
+   curl -s -o /dev/null -w "%{http_code}" "https://<app-name>.fly.dev/health"
    ```
 
 ## Step 4: Report Results
