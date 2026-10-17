@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- Narrow the `/code-quality` and `/fly-deploy` auto-approvals to exact
+  commands for everything that runs code, deploys or writes. Prefix rules
+  such as `go vet*`, `go env*`, `rg *`, `sed -n*` and `fly *` still allowed
+  flags that run other programs (`-vettool`, `go env -w`, `rg --pre`, GNU
+  `sed` `e`) or destructive Fly commands. The `/fly-deploy` health-check
+  `curl` now asks first: its prefix also allowed `-T <file>` uploads and
+  `-o <path>` writes. Read-only prefixes (`grep`, `git status`,
+  `docker info`) remain.
+
 - Scope `allowed-tools` in the Go `/fly-deploy` and `/code-quality` commands
   to the commands they run instead of unrestricted `Bash`, so text a command
   reads (deploy logs, scan output) cannot steer it into another shell command

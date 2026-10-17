@@ -1,7 +1,7 @@
 ---
 description: "Deploy a Go application to Fly.io (--reset, --logs, or status)"
 argument-hint: "[--reset | --logs | status]"
-allowed-tools: Bash(fly *), Bash(docker info*), Bash(git status*), Bash(grep *), Bash(./.fly/scripts/deploy.sh*), Bash(curl -s -o /dev/null -w *), Bash(tail *)
+allowed-tools: Bash(fly version), Bash(fly auth whoami), Bash(fly status), Bash(fly checks list), Bash(fly deploy), Bash(fly deploy --local-only), Bash(fly logs --no-tail), Bash(fly volumes list), Bash(fly secrets list), Bash(fly machines restart), Bash(fly ssh console -C "/app/scripts/reset-demo.sh"), Bash(docker info*), Bash(git status*), Bash(grep *), Bash(./.fly/scripts/deploy.sh), Bash(./.fly/scripts/deploy.sh --reset), Bash(./.fly/scripts/deploy.sh --logs), Bash(./.fly/scripts/deploy.sh --reset --logs), Bash(tail -30), Bash(tail -50)
 ---
 
 Deploy a Go application to Fly.io.
