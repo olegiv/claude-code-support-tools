@@ -6,11 +6,19 @@ set -euo pipefail
 # Read JSON input from stdin
 INPUT=$(cat)
 
-# Extract the command from tool_input
+# Extract the command from tool_input. Without jq the check cannot run: say
+# so (exit 1 is shown to the user and does not block the command).
+if ! command -v jq >/dev/null 2>&1; then
+    echo "validate-go-toolchain: jq is not installed, so the Go toolchain check is skipped." >&2
+    exit 1
+fi
 COMMAND=$(printf '%s' "$INPUT" | jq -r '.tool_input.command // ""' 2>/dev/null) || COMMAND=""
 
-# Only validate go commands (build, test, run, install)
-if [[ "$COMMAND" != go\ build* ]] && [[ "$COMMAND" != go\ test* ]] && [[ "$COMMAND" != go\ run* ]] && [[ "$COMMAND" != go\ install* ]]; then
+# Only validate commands that compile Go: go build, test, run, install or vet
+# anywhere in the command line (also after VAR=value, cd ... && or ;), make,
+# or a test-gate script.
+GO_COMMAND='(^|[;&|(]|[[:space:]])(go[[:space:]]+(build|test|run|install|vet)|make|[^[:space:]]*test-gate\.sh)([;&|)]|[[:space:]]|$)'
+if [[ ! "$COMMAND" =~ $GO_COMMAND ]]; then
     exit 0
 fi
 

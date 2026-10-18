@@ -25,6 +25,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `validate-go-toolchain.sh` now checks Go builds and tests wherever they
+  appear in the command line (after `VAR=value`, `cd ... &&` or `;`), plus
+  `go vet`, `make` and test-gate scripts; it used to check only commands
+  that start with `go build`, `test`, `run` or `install`. Without `jq` it
+  reports that the check is skipped instead of passing silently.
+- The Go `/code-quality` command allows `errcheck -ignoregenerated ./...`,
+  the form that skips sqlc and templ output, instead of `errcheck ./...`.
 - `/fly-deploy` health check no longer builds its URL from an empty app name
   when `fly.toml` quotes the name with `'`.
 - `/finalize` argument hint shows that areas are comma-separated.

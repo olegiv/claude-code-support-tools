@@ -1,6 +1,6 @@
 ---
 description: "Scan the Go project for code quality issues and warnings"
-allowed-tools: Bash(go version), Bash(go vet ./...), Bash(golangci-lint run ./...), Bash(nilaway ./...), Bash(staticcheck ./...), Bash(errcheck ./...), Bash(goimports -l *), Bash(gofmt -l *), Bash(grep *), Bash(make templ)
+allowed-tools: Bash(go version), Bash(go vet ./...), Bash(golangci-lint run ./...), Bash(nilaway ./...), Bash(staticcheck ./...), Bash(errcheck -ignoregenerated ./...), Bash(goimports -l *), Bash(gofmt -l *), Bash(grep *), Bash(make templ)
 ---
 
 Scan the project for code quality issues and warnings.
