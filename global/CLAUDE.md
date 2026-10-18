@@ -131,14 +131,18 @@ Every PR you create gets labels from the repository's own label set:
    `security`, `documentation`) plus every area or cross-cutting label that applies
    (e.g. `area: admin-ui`, `i18n`, `breaking-change`).
 2. Show the chosen labels with the PR title and body in the approval request, and pass
-   them with `gh pr create --label` (or `gh pr edit --add-label` afterwards).
+   them with `gh pr create --label` (or `gh pr edit --add-label` afterwards). Without
+   triage access (`gh repo view <base repo> --json viewerPermission` shows `READ`, e.g.
+   a fork contribution), name the proposed labels in the PR body instead.
 3. If no label fits a clear aspect of the change, propose one (name, color, one-line
    description in the style of the existing ones) and ask before `gh label create`:
    labels are repository-wide. Without approval, use existing labels only.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
    author or tool actually produced the change.
 
-GitLab merge requests follow the same rule with `glab label list` and `glab mr create --label`.
+GitLab merge requests follow the same rule with `glab label list --output json --per-page 100`
+(read every `--page`: the default is 30 labels) and `glab mr create --label`.
+Pass only exact names from that list: GitLab creates any unknown `--label` name.
 
 ## PR Review Findings (Codex / Claude review bots)
 
