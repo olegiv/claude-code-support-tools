@@ -124,7 +124,11 @@ Keep pull request messages clean and professional without AI attribution footers
 
 ### Pull Request Labels
 
-Every PR you create gets labels from the repository's own label set:
+Every PR you create gets labels from the base repository's own label set. Name that
+repository in every command (`--repo <base repo>`). This applies only when it is on
+github.com and `gh repo view <base repo> --json viewerPermission` shows `WRITE`, `MAINTAIN`
+or `ADMIN`. In any other case (a fork without access, triage-only access, another host),
+apply and create nothing: name the proposed labels in the PR body instead.
 
 1. Before `gh pr create`, list every label of the base repository:
    `gh api --paginate 'repos/<base repo>/labels?per_page=100' --jq '.[] | {name, description}'`.
@@ -133,19 +137,19 @@ Every PR you create gets labels from the repository's own label set:
    `security`, `documentation`) plus every area or cross-cutting label that applies
    (e.g. `area: admin-ui`, `i18n`, `breaking-change`).
 2. Show the chosen labels with the PR title and body in the approval request, and pass
-   them with `gh pr create --label` (or `gh pr edit --add-label` afterwards). Without
-   triage access (`gh repo view <base repo> --json viewerPermission` shows `READ`, e.g.
-   a fork contribution), name the proposed labels in the PR body instead.
+   them with `gh pr create --label` (or `gh pr edit --add-label` afterwards).
 3. If no label fits a clear aspect of the change, propose one (name, color, one-line
    description in the style of the existing ones) and ask before `gh label create`:
    labels are repository-wide. Without approval, use existing labels only.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
    author or tool actually produced the change.
 
-GitLab merge requests follow the same rule against the MR's target project:
-`glab label list --repo <target project> --output json --per-page 100` (read every `--page`:
-the default is 30 labels), `glab label create --repo <target project>` for approved new labels,
-and `glab mr create --repo <target project> --label`.
+GitLab merge requests follow the same rule in the MR's target project, naming it in every
+command (`--repo <target project>`). It applies only with Developer access or higher there
+(`glab api projects/<url-encoded target project>` shows a `permissions` access level of 30
+or more); otherwise name the proposed labels in the MR description. List labels with
+`glab label list --output json --per-page 100` (read every `--page`: the default is 30),
+create approved ones with `glab label create`, and pass them with `glab mr create --label`.
 Pass only exact names from that list: GitLab creates any unknown `--label` name.
 
 ## PR Review Findings (Codex / Claude review bots)
