@@ -122,6 +122,24 @@ dynamically with the selected color.
 
 Keep pull request messages clean and professional without AI attribution footers.
 
+### Pull Request Labels
+
+Every PR you create gets labels from the repository's own label set:
+
+1. Before `gh pr create`, list them: `gh label list --limit 200 --json name,description`.
+   Choose by description: one type label (e.g. `bug`, `enhancement`, `maintenance`,
+   `security`, `documentation`) plus every area or cross-cutting label that applies
+   (e.g. `area: admin-ui`, `i18n`, `breaking-change`).
+2. Show the chosen labels with the PR title and body in the approval request, and pass
+   them with `gh pr create --label` (or `gh pr edit --add-label` afterwards).
+3. If no label fits a clear aspect of the change, propose one (name, color, one-line
+   description in the style of the existing ones) and ask before `gh label create`:
+   labels are repository-wide. Without approval, use existing labels only.
+4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
+   author or tool actually produced the change.
+
+GitLab merge requests follow the same rule with `glab label list` and `glab mr create --label`.
+
 ## PR Review Findings (Codex / Claude review bots)
 
 When asked to fix, address, check, or re-check automated pull-request review findings
