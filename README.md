@@ -65,6 +65,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 **`global/CLAUDE.md`**
 - Strict git workflow rules (no automatic commits/pushes)
 - Commit message formatting standards
+- Pull request labels from each repository's label set (new labels only with approval)
 - Platform-specific command compatibility (macOS/Linux)
 - Permission file management guidelines
 
