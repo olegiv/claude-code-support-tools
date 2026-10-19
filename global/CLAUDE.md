@@ -145,7 +145,8 @@ create nothing: name the proposed labels in the PR body instead. Write `<base re
    them with `gh pr create --repo <base repo> --label` (or
    `gh pr edit --repo <base repo> --add-label` afterwards).
 3. If no label fits a clear aspect of the change, propose one (name, color, one-line
-   description in the style of the existing ones) and ask before
+   description in the style of the existing ones, with no quote characters in the name or
+   description, so the single-quoted values below stay intact) and ask before
    `gh label create --repo <base repo> '<name>' --color <hex> --description '<text>'`:
    labels are repository-wide. Without approval, use existing labels only.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
