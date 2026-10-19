@@ -146,7 +146,7 @@ create nothing: name the proposed labels in the PR body instead. Write `<base re
    `gh pr edit --repo <base repo> --add-label` afterwards).
 3. If no label fits a clear aspect of the change, propose one (name, color, one-line
    description in the style of the existing ones) and ask before
-   `gh label create --repo <base repo>`:
+   `gh label create --repo <base repo> '<name>' --color <hex> --description '<text>'`:
    labels are repository-wide. Without approval, use existing labels only.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
    author or tool actually produced the change.
@@ -154,13 +154,16 @@ create nothing: name the proposed labels in the PR body instead. Write `<base re
 GitLab merge requests follow the same rule in the MR's target project; write
 `<target project>` as its full URL so `GITLAB_HOST` cannot redirect a command. It applies
 only with Developer access or higher there
-(`glab api --hostname <host> projects/<url-encoded project path>` shows a `permissions`
-access level of 30 or more); otherwise name the proposed labels in the MR description.
+(`glab api --hostname <host> projects/<url-encoded project path>` shows
+`.permissions.project_access.access_level` or `.permissions.group_access.access_level` of 30
+or more); otherwise name the proposed labels in the MR description.
 List labels with
 `glab label list --repo <target project> --output json --per-page 100`
 (read every `--page`: the default is 30; skip labels with `archived: true`), choose at most
-one label per scope (`scope::value`: GitLab keeps only one per scope), create approved ones with
-`glab label create --repo <target project>`, and pass them with
+one label per scope (the scope is everything before the last `::`, so `a::b::c` and
+`a::b::d` conflict but `a::x::c` does not: GitLab keeps only one per scope), create approved ones with
+`glab label create --repo <target project> --name '<name>' --color '#<hex>' --description '<text>'`,
+and pass them with
 `glab mr create --repo <target project> --label`. Pass only exact names from that list or
 created after approval: GitLab creates any unknown `--label` name.
 
