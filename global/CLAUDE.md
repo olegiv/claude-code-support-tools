@@ -151,6 +151,9 @@ create nothing: name the proposed labels in the PR body instead. Write `<base re
    labels are repository-wide. Without approval, use existing labels only.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
    author or tool actually produced the change.
+5. After each push that changes what the PR covers, list the labels again (step 1), add any
+   that now apply and remove ones you added that no longer do, with
+   `gh pr edit --repo <base repo> --add-label` and `--remove-label`.
 
 GitLab merge requests follow the same rule in the MR's target project; write
 `<target project>` as its full URL so `GITLAB_HOST` cannot redirect a command. It applies

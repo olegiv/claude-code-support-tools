@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Global rule to label every pull request from the repository's own label
-  set; a missing label is proposed and created only after approval.
+  set; a missing label is proposed and created only after approval, and
+  labels are reconciled after each push that changes what the PR covers.
 
 ### Security
 
