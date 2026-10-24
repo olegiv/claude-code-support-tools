@@ -76,8 +76,12 @@ Scan the project for code quality issues and warnings.
    v1 module path `github.com/golangci/golangci-lint/cmd/golangci-lint@latest` still resolves
    to the last v1 (v1.64.8), never to v2.
    ```bash
-   # Config format: a printed line means a v2 config; no output with a config present means v1.
-   # Judge by the output, not the exit status: missing candidate files make grep exit 2.
+   # A printed line means a v2 config. If a config file exists but nothing prints, its format is
+   # "unknown", not v1 (for example flow-style YAML): then `golangci-lint config verify` with the
+   # binary you would run decides (exit 0 = the config fits its major version); with no binary
+   # installed, install v2 as below and verify before running. With no config file at all there
+   # is nothing to match: run the installed binary, or install v2. Judge the probes by their
+   # output, not their exit status.
    cat .golangci.yml .golangci.yaml 2>/dev/null | awk "FNR == 1 { top = -1 } NF && \$1 !~ /^#/ && \$0 !~ /^---/ { match(\$0, /^[[:space:]]*/); if (top < 0) top = RLENGTH; if (RLENGTH == top && \$0 ~ /^[[:space:]]*[\"']?version[\"']?[[:space:]]*:[[:space:]]*[\"']?2/) print }"
    awk "/^[[:space:]]*\\[/{exit} /^[[:space:]]*[\"']?version[\"']?[[:space:]]*=[[:space:]]*[\"']?2/" .golangci.toml 2>/dev/null
    grep -E "\"version\"[[:space:]]*:[[:space:]]*\"2" .golangci.json 2>/dev/null
