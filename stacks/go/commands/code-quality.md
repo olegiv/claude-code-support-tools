@@ -1,6 +1,6 @@
 ---
 description: "Scan the Go project for code quality issues and warnings"
-allowed-tools: Bash(go version), Bash(go vet ./...), Bash(golangci-lint run ./...), Bash(nilaway ./...), Bash(staticcheck ./...), Bash(errcheck -ignoregenerated ./...), Bash(goimports -l *), Bash(gofmt -l *), Bash(grep *), Bash(make templ)
+allowed-tools: Bash(go version), Bash(go vet ./...), Bash(golangci-lint version), Bash(golangci-lint run ./...), Bash(nilaway ./...), Bash(staticcheck ./...), Bash(errcheck -ignoregenerated ./...), Bash(goimports -l *), Bash(gofmt -l *), Bash(grep *), Bash(make templ)
 ---
 
 Scan the project for code quality issues and warnings.
@@ -33,10 +33,12 @@ Scan the project for code quality issues and warnings.
    - Check that `$schema` relative paths in `messages.json` files resolve to the actual schema file
 
 7. **CSP Template Safety (HIGH/BLOCKING)**
-   - Detect `<script>` tags missing nonce in `.templ`/`.html`
-   - Detect inline HTML event handlers (`onclick`, `onchange`, `onsubmit`, etc.) in `.templ`/`.html`
-   - Verify Go-generated script HTML uses nonce injection (`util.AddNonceToScriptTags(...)` or equivalent)
-   - Treat all CSP findings as must-fix before quality pass
+   - Read the app's own Content-Security-Policy first (Go code and `<meta>` tags; `script-src-elem`/`script-src-attr`, else `script-src`, else `default-src`); every rule below is judged against it
+   - Detect inline `<script>` blocks the policy would block (no matching nonce or hash, and `'unsafe-inline'` not in effect)
+   - Detect external `<script src>` the policy would block (no request nonce, and the origin not matched by `'self'`, a host or scheme source; or missing nonce under `'strict-dynamic'`)
+   - Detect inline HTML event handlers (`onclick`, `onchange`, `onsubmit`, etc.) in `.templ`/`.html` that the policy blocks
+   - Verify Go-generated inline script HTML uses nonce injection (`util.AddNonceToScriptTags(...)` or equivalent) under a nonce policy
+   - Treat blocking CSP findings as must-fix before quality pass (the `CSP-HOST-CONDITIONAL` warning and INFO notes do not block); an external script the policy allows is never a blocking finding, nonce or not
 
 8. **DOM XSS Sink Safety (HIGH/BLOCKING for high-risk findings)**
    - Detect untrusted/dynamic input flowing into `innerHTML` sinks
@@ -68,14 +70,37 @@ Scan the project for code quality issues and warnings.
    If versions don't match, report error and provide fix instructions.
 
 2. **Run golangci-lint (primary tool):**
+
+   **First, match the golangci-lint major version to the config.** v1 and v2 are different
+   modules and cannot read each other's config: v1 fails on a `version: "2"` config, and the
+   v1 module path `github.com/golangci/golangci-lint/cmd/golangci-lint@latest` still resolves
+   to the last v1 (v1.64.8), never to v2.
    ```bash
-   golangci-lint run ./...
+   # Config format: a printed line means a v2 config; no output with a config present means v1.
+   # Judge by the output, not the exit status: missing candidate files make grep exit 2.
+   grep -E "^version[[:space:]]*[:=][[:space:]]*[\"']?2" .golangci.yml .golangci.yaml .golangci.toml 2>/dev/null
+   grep -E "\"version\"[[:space:]]*:[[:space:]]*\"2" .golangci.json 2>/dev/null
+   # Project-pinned tool, if any (a `tool` line or block in go.mod):
+   grep -n "golangci-lint" go.mod
+   # Installed binary, if any: prints "golangci-lint has version 1.x" or "2.x"
+   golangci-lint version
    ```
 
-   If golangci-lint is not installed:
-   ```bash
-   go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-   ```
+   - **Pinned in `go.mod` as a tool:** use `go tool golangci-lint run ./...` and install nothing.
+   - **Installed, major version matches the config:** run `golangci-lint run ./...`.
+   - **Installed, major version does NOT match:** skip golangci-lint for this run, report the
+     mismatch with both versions, and continue with the remaining checks (the CSP and DOM XSS
+     gates still run). Do not reinstall: `go install` writes to the one `$GOBIN/golangci-lint`
+     that every other repository on the machine also uses, so replacing it breaks them. Let the
+     user choose (upgrade the binary, or migrate a v1 config).
+   - **Not installed, v2 config (or no config):** install v2, then run it:
+     ```bash
+     go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+     ```
+   - **Not installed, v1 config:** do not install v1: its last release (v1.64.8) cannot load the
+     export data of current Go releases and fails on every package. Skip golangci-lint for this
+     run and report that the config needs migrating to v2 (`golangci-lint migrate`, which
+     rewrites the config file). Run the migration only when the user explicitly asks for it.
 
    **Linters enabled:**
    - `errcheck` - unchecked errors
@@ -239,36 +264,125 @@ Scan the project for code quality issues and warnings.
 
 ### BLOCKING CHECK: CSP Template Safety (must-fix before pass)
 
-Run these checks exactly:
+A nonce is not required on every script. Judge each script against the app's own
+Content-Security-Policy, in this order.
 
-**Missing nonce on script tags (`.templ` / `.html`):**
+**Step 1: read the policy.** Find every policy the app sets, in Go code and in
+`<meta http-equiv="Content-Security-Policy">` tags, including sources that features or
+modules add per request:
 ```bash
-rg -n --glob '*.templ' --glob '*.html' "<script" | rg -v "nonce="
+rg -n '"(script-src(-elem|-attr)?|default-src)"' --glob '*.go' --glob '!*_test.go' .
+rg -n "(script-src(-elem|-attr)?|default-src) " --glob '*.go' --glob '!*_test.go' .
+rg -n -i 'http-equiv=.?content-security-policy' --glob '*.templ' --glob '*.html' .
 ```
+The quoted form finds map keys (`"script-src": ...`) in base policies and in per-feature
+source maps; the second catches policies written as one string (`"default-src 'self'; script-src ..."`).
+Only policy values count: skip comments and lists of directive names. `rg` honours
+`.gitignore`, so add `--no-ignore` to the file-searching `rg` of each command in this check
+when the build compiles ignored code (for example modules synced in from another checkout),
+and do not treat stale copies outside the build (backups, audit or vendor snapshots) as
+policies.
+- **Governing directive:** `script-src-elem` for `<script>` elements and `script-src-attr`
+  for inline event handlers when present; otherwise `script-src`; otherwise `default-src`.
+  A policy with none of these does not restrict scripts.
+- Evaluate every policy found. When there are several (for example development and
+  production), the **production / strictest** one governs. Say when development differs
+  (such as an added `'unsafe-inline'`), and never use the looser policy to pass a script.
+- Record for the governing directive: a nonce source (`'nonce-…'`)? Hash sources
+  (`'sha256-…'`, `'sha384-…'`, `'sha512-…'`)? `'unsafe-inline'`? `'strict-dynamic'`?
+  `'self'`? Which host and scheme sources (`https:`, `*`)?
+- `'unsafe-inline'` takes effect only when the directive has no nonce source, no hash
+  source and no `'strict-dynamic'`; with any of those present, browsers ignore it.
+- Hosts added per request (maps of directive → sources) extend the allowed hosts. If a
+  script that relies on such a host can be rendered while the feature that adds the host is
+  off, report `CSP-HOST-CONDITIONAL` as a WARNING (not blocking): the browser blocks it
+  during that time. Fix: render the tag only while the feature is active.
+- `'unsafe-eval'` governs `eval()`, not which scripts load: it is outside this check.
+- Responses the CSP middleware skips (excluded paths, non-HTML endpoints) carry no policy:
+  scripts written only there are not checked.
+- No policy restricts scripts: report that, and skip steps 2–5 (the DOM XSS checks still
+  apply).
 
-**Inline HTML event handlers (`.templ` / `.html`):**
+**Step 2: inline scripts (`.templ` / `.html`)** — every `<script>` tag without a `src`
+attribute, nonced or not:
 ```bash
-rg -n --glob '*.templ' --glob '*.html' "\\son(click|change|input|submit|load|error|focus|blur|keydown|keyup|keypress|mouseover|mouseout|mouseenter|mouseleave|dblclick|contextmenu|dragstart|dragend|drop|scroll|resize)="
+rg -n --glob '*.templ' --glob '*.html' "<script" . | rg -v "<script[^>]*\\ssrc="
 ```
+- Skip data blocks, whose `type` browsers never execute (`application/ld+json`,
+  `application/json`, `text/template`, …). `importmap` and `speculationrules` are not data
+  blocks: judge them like any inline script.
+- **Allowed** when it carries the request nonce and the directive has a nonce source; or its
+  exact content between the tags (whitespace and newlines included) matches a hash source; or `'unsafe-inline'` is in effect (see step 1; note the weak
+  policy as INFO). A nonce attribute must hold the per-request value (a template expression
+  such as `{{.CSPNonce}}` or `templ.GetNonce(ctx)`), not a fixed string.
+- **Otherwise blocked:** `CSP-NONCE-MISSING` when the directive has a nonce source;
+  `CSP-INLINE-SCRIPT` when it has none (a nonce attribute cannot help: there is no nonce in
+  the policy).
 
-**Go-generated script HTML nonce verification (non-generated files only):**
+A `<script` tag split across lines can carry `src=` or `nonce=` on a later line: open the
+file before reporting it.
+
+**Step 3: external scripts (`.templ` / `.html`):**
 ```bash
-rg -n --glob '*.go' --glob '!*_templ.go' "<script"
-rg -n "AddNonceToScriptTags\\(" --glob '*.go'
+rg -n --glob '*.templ' --glob '*.html' "<script[^>]*\\ssrc=" .
 ```
+Resolve each URL first (expand helpers such as `scriptURL`/`ScriptURL` and template
+expressions; a relative or same-origin path resolves against the page's own origin), then
+check in this order:
+1. The tag carries the request nonce and the directive has a nonce source: allowed (a nonce
+   permits external scripts too). Stop here.
+2. `'strict-dynamic'` in the directive: browsers ignore `'self'`, host sources and scheme
+   sources such as `https:`, so the tag is blocked: `CSP-NONCE-MISSING`. Stop here.
+3. A source in the directive matches the URL, including per-request additions: allowed.
+   `'self'` matches the page's origin; `https://*.example.com` matches any subdomain of
+   `example.com`; a host without a scheme (`cdn.example.com`) matches that host; a scheme
+   source (`https:`) matches any URL with that scheme; `*` matches any URL except `data:`,
+   `blob:` and `filesystem:`.
+4. Otherwise: `CSP-SRC-NOT-ALLOWED`.
 
-Review every Go `<script` literal and confirm it is passed through
-`util.AddNonceToScriptTags(...)` (or equivalent nonce flow) before rendering.
+An external script the policy allows is **never** a blocking finding without a nonce, even
+when most of the repository's tags carry one (only `CSP-HOST-CONDITIONAL` can warn about it).
+
+**Step 4: inline HTML event handlers (`.templ` / `.html`):**
+```bash
+rg -n -i --glob '*.templ' --glob '*.html' "\\son(click|change|input|submit|load|error|focus|blur|keydown|keyup|keypress|mouseover|mouseout|mouseenter|mouseleave|dblclick|contextmenu|dragstart|dragend|drop|scroll|resize)=" .
+```
+Each is `CSP-INLINE-HANDLER` when the governing directive blocks inline code: unless
+`'unsafe-inline'` is in effect (see step 1), or `'unsafe-hashes'` is present with a matching
+hash.
+
+**Step 5: Go-generated script HTML (non-generated files only):**
+```bash
+rg -n --glob '*.go' --glob '!*_templ.go' --glob '!*_test.go' "<script" .
+rg -n "AddNonceToScriptTags\\(" --glob '*.go' .
+```
+Apply steps 2 and 3 to every Go `<script` literal that is written into a page, meaning it is
+returned or built as HTML (`template.HTML`, an HTML string handed to a template or written to
+a response). Judge a helper with no caller yet the same way: it is written to be rendered.
+- Inline literal that step 2 would block under a nonce policy: it must reach the page through
+  `util.AddNonceToScriptTags(...)` (or carry the request nonce), else `CSP-GO-NONCE-FLOW`.
+- Inline literal under a directive with no nonce source that step 2 would block:
+  `CSP-INLINE-SCRIPT`.
+- External literal: judged as in step 3.
+- Skip lines that only search for, match or strip `<script` in content (sanitizers,
+  detectors, Markdown conversion): they write nothing into a page.
 
 Acceptable exception:
-- JavaScript property assignments such as `element.onclick = ...` **inside already nonced scripts**
+- JavaScript property assignments such as `element.onclick = ...` **inside already allowed scripts**
   are acceptable. This rule targets inline HTML handler attributes in markup, not JS code strings.
 
-Remediation patterns:
-- `.templ`: `<script nonce={ templ.GetNonce(ctx) }>`
-- Go HTML templates: `<script nonce="{{.CSPNonce}}">`
-- Replace inline HTML handlers with `data-*` attributes + JS listeners
-  (delegated listeners in static JS or a nonced inline script).
+Remediation — pick the fix that fits the governing directive, and never recommend adding a
+nonce attribute under a policy that has no nonce source:
+- `CSP-NONCE-MISSING` / `CSP-GO-NONCE-FLOW` (nonce policy): `.templ`:
+  `<script nonce={ templ.GetNonce(ctx) }>`; Go HTML templates: `<script nonce="{{.CSPNonce}}">`;
+  Go literals: pass the HTML through `util.AddNonceToScriptTags(...)`.
+- `CSP-INLINE-SCRIPT` (no nonce source in the policy): move the code into a static `.js`
+  file served from an allowed origin, add a hash source for it, or add a per-request nonce
+  source to the policy and then nonce the tag.
+- `CSP-SRC-NOT-ALLOWED`: self-host the script, or add its host to `script-src` (globally,
+  or only while the feature that needs it is active).
+- `CSP-INLINE-HANDLER`: replace with `data-*` attributes + JS listeners (in static JS or an
+  allowed inline script).
 - If `.templ` files changed: run `make templ`.
 
 ### BLOCKING CHECK: DOM XSS sink safety (high-risk only)
@@ -277,17 +391,17 @@ Run these checks exactly:
 
 **Potential sink patterns (JS/template scripts):**
 ```bash
-rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "innerHTML\\s*=|window\\.location\\.href\\s*=|location\\.assign\\(|location\\.replace\\("
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "innerHTML\\s*=|window\\.location\\.href\\s*=|location\\.assign\\(|location\\.replace\\(" .
 ```
 
 **Potential untrusted source patterns (DOM/network/location):**
 ```bash
-rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "dataset\\.|getAttribute\\(|responseText|location\\.search|location\\.hash|document\\.cookie"
+rg -n --glob '*.js' --glob '*.templ' --glob '*.html' "dataset\\.|getAttribute\\(|responseText|location\\.search|location\\.hash|document\\.cookie" .
 ```
 
 **API-derived fields used in JS render paths (review manually):**
 ```bash
-rg -n --glob '*.go' --glob '*.templ' "filename|filepath|thumbnail|response\\.json\\(|json:\\\"filename\\\"|json:\\\"filepath\\\"|json:\\\"thumbnail\\\""
+rg -n --glob '*.go' --glob '*.templ' "filename|filepath|thumbnail|response\\.json\\(|json:\\\"filename\\\"|json:\\\"filepath\\\"|json:\\\"thumbnail\\\"" .
 ```
 
 Decision rules:
@@ -586,12 +700,13 @@ Remediation guidance:
 
 21. **Report results:**
    - List all issues found with file:line references
-   - Include rule name for each finding (for CSP use `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`; for DOM XSS use `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
-   - Explain why the issue is dangerous (for CSP: breaks nonce-based CSP and can lead to blocked scripts; for DOM XSS: untrusted data is reinterpreted as executable HTML/URL)
+   - State the governing CSP `script-src` the CSP findings were judged against (and any development/production difference)
+   - Include rule name for each finding (for CSP use `CSP-NONCE-MISSING`, `CSP-INLINE-SCRIPT`, `CSP-SRC-NOT-ALLOWED`, `CSP-INLINE-HANDLER`, `CSP-GO-NONCE-FLOW`, and `CSP-HOST-CONDITIONAL` as a warning; for DOM XSS use `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
+   - Explain why the issue is dangerous (for CSP: the app's own policy blocks the script, so the feature breaks; for DOM XSS: untrusted data is reinterpreted as executable HTML/URL)
    - Provide exact fix pattern for each finding
    - Provide fix suggestions for each issue
    - Summary of total issues by category
-   - If any CSP finding or high-risk DOM XSS finding exists, mark the run as **FAILED (blocking)** until fixed
+   - If a blocking CSP finding (any CSP rule except the `CSP-HOST-CONDITIONAL` warning and INFO notes) or a high-risk DOM XSS finding exists, mark the run as **FAILED (blocking)** until fixed
 
 ## Expected Output
 
@@ -627,7 +742,10 @@ JSON Schema:
   Broken $schema paths:       X issues
 
 CSP Template Safety (BLOCKING):
-  Missing script nonce:       X issues
+  Governing script-src:       <policy> (dev differs: yes/no)
+  Inline script blocked:      X issues (CSP-INLINE-SCRIPT, CSP-NONCE-MISSING on inline)
+  External script blocked:    X issues (CSP-SRC-NOT-ALLOWED, CSP-NONCE-MISSING under 'strict-dynamic')
+  Conditional host (warning): X issues (CSP-HOST-CONDITIONAL)
   Inline HTML handlers:       X issues
   Go script nonce wiring:     X issues
 
@@ -650,16 +768,16 @@ Semantic Analysis:
   Resource leaks:               X issues
 
 Total: X issues found
-Blocking: PASS|FAIL (FAIL if CSP findings or high-risk DOM XSS findings exist)
+Blocking: PASS|FAIL (FAIL if blocking CSP findings or high-risk DOM XSS findings exist; warnings and INFO notes do not fail)
 ```
 
 ## If Issues Found
 
 For each issue, provide:
 1. File path and line number
-2. Rule name (e.g., `CSP-NONCE-MISSING`, `CSP-INLINE-HANDLER`, `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
+2. Rule name (e.g., `CSP-NONCE-MISSING`, `CSP-INLINE-SCRIPT`, `CSP-SRC-NOT-ALLOWED`, `CSP-INLINE-HANDLER`, `DOMXSS-INNERHTML-UNTRUSTED`, `DOMXSS-REDIRECT-UNTRUSTED`)
 3. Description of the issue
-4. Why it matters (for CSP: breaks nonce-based CSP and can block script execution; for DOM XSS: untrusted content/URLs can execute attacker-controlled behavior)
+4. Why it matters (for CSP: the app's own policy blocks the script, so the feature breaks; for DOM XSS: untrusted content/URLs can execute attacker-controlled behavior)
 5. How to fix it (exact pattern)
 6. Code example (before/after)
 
@@ -1015,7 +1133,11 @@ Note: `rows.Close()` is idempotent - calling it twice is safe.
 
 ## CSP Template Safety Fix (BLOCKING)
 
+Pick the fix that matches the governing `script-src`. Never add a nonce attribute under a
+policy that has no nonce source: the browser still blocks the script.
+
 ```templ
+// Nonce policy (script-src 'self' 'nonce-…'): CSP-NONCE-MISSING
 // BAD: inline script without nonce
 <script>
   initPage()
@@ -1025,6 +1147,27 @@ Note: `rows.Close()` is idempotent - calling it twice is safe.
 <script nonce={ templ.GetNonce(ctx) }>
   initPage()
 </script>
+```
+
+```templ
+// Policy without a nonce source (script-src 'self'): CSP-INLINE-SCRIPT
+// BAD: any inline script is blocked, nonce or not
+<script>
+  initPage()
+</script>
+
+// GOOD: move the code to a static file served from 'self'
+<script src="/static/js/page.js" defer></script>
+```
+
+```html
+<!-- Any policy: an external script on an allowed origin needs no nonce -->
+<!-- GOOD under script-src 'self': -->
+<script src="/static/js/app.js" defer></script>
+<!-- GOOD when https://js.example.com is a script-src host source: -->
+<script src="https://js.example.com/widget.js" async></script>
+<!-- CSP-SRC-NOT-ALLOWED when the host is not in script-src: self-host it, -->
+<!-- or add the host to script-src (only while the feature that needs it is on). -->
 ```
 
 ```html
@@ -1042,7 +1185,7 @@ document.addEventListener('click', function (e) {
 ```
 
 ```go
-// GOOD: Go string-built scripts must inject nonce before rendering
+// Nonce policy: Go string-built inline scripts must inject the nonce before rendering
 return template.HTML(util.AddNonceToScriptTags(scripts.String(), nonce))
 ```
 

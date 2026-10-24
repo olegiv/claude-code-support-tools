@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   set; a missing label is proposed and created only after approval, and
   labels are reconciled after each push that changes what the PR covers.
 
+### Changed
+
+- The Go `/code-quality` command auto-approves `golangci-lint version`, an
+  exact read-only command, so it can compare the installed major version
+  with the config before running or installing anything. No install or
+  other new command is auto-approved.
+
 ### Security
 
 - Narrow the `/code-quality` and `/fly-deploy` auto-approvals to exact
@@ -41,6 +48,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/fly-deploy` health check no longer builds its URL from an empty app name
   when `fly.toml` quotes the name with `'`.
 - `/finalize` argument hint shows that areas are comma-separated.
+- The Go `/code-quality` command and `code-quality-auditor` agent no longer
+  install golangci-lint v1 for a v2 config. Their fallback used the v1
+  module path, whose `@latest` is v1.64.8 and cannot read a `version: "2"`
+  config. They now detect the config version (YAML, TOML or JSON, either
+  quote style), prefer a version pinned with `go tool`, install v2 only when
+  no binary exists, and on a version mismatch or a v1 config skip
+  golangci-lint, report it and continue with the other checks instead of
+  reinstalling: `go install` would replace the one binary every repository
+  on the machine shares, and v1.64.8 cannot load current Go export data.
+- The same command and agent judge scripts against the app's own
+  Content-Security-Policy instead of demanding a nonce on every `<script>`.
+  They read the governing directive (`script-src-elem`/`script-src-attr`,
+  `script-src` or the `default-src` fallback, from Go code or `<meta>`
+  tags), allow external scripts that carry the request nonce or that
+  `'self'`, a host, scheme or wildcard source matches, allow inline scripts
+  with a matching nonce or hash, treat `'unsafe-inline'` as ignored next to a
+  nonce, hash or `'strict-dynamic'`, skip data blocks such as JSON-LD, and
+  let production govern when it differs from development. A script that
+  relies on a host added only while a feature is active is a warning
+  (`CSP-HOST-CONDITIONAL`); warnings and INFO notes no longer fail the run,
+  and each fix example matches the policy it applies to.
+- Every file-searching `rg` command in the Go `/code-quality` command and
+  `code-quality-auditor` agent now names its search path (`.`). Without one,
+  `rg` searches standard input whenever stdin is not a terminal, so in an
+  agent's non-interactive shell the CSP and DOM XSS checks waited forever
+  instead of scanning the repository.
 
 ## [0.3.0] - 2026-10-04
 
