@@ -52,8 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   install golangci-lint v1 for a v2 config. Their fallback used the v1
   module path, whose `@latest` is v1.64.8 and cannot read a `version: "2"`
   config. They now detect the config version (YAML, TOML or JSON, either
-  quote style), prefer a version pinned with `go tool`, install v2 only when
-  no binary exists, and on a version mismatch or a v1 config skip
+  quote style), never run a golangci-lint the checkout selects (such as
+  `go tool golangci-lint`), install v2 only when no binary exists, and on a
+  version mismatch or a v1 config skip
   golangci-lint, report it and continue with the other checks instead of
   reinstalling: `go install` would replace the one binary every repository
   on the machine shares, and v1.64.8 cannot load current Go export data.

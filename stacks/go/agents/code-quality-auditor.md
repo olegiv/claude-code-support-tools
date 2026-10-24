@@ -78,15 +78,20 @@ to the last v1 (v1.64.8), never to v2.
 ```bash
 # Config format: a printed line means a v2 config; no output with a config present means v1.
 # Judge by the output, not the exit status: missing candidate files make grep exit 2.
-grep -E "^version[[:space:]]*[:=][[:space:]]*[\"']?2" .golangci.yml .golangci.yaml .golangci.toml 2>/dev/null
+cat .golangci.yml .golangci.yaml 2>/dev/null | awk "FNR == 1 { top = -1 } NF && \$1 !~ /^#/ && \$0 !~ /^---/ { match(\$0, /^[[:space:]]*/); if (top < 0) top = RLENGTH; if (RLENGTH == top && \$0 ~ /^[[:space:]]*[\"']?version[\"']?[[:space:]]*:[[:space:]]*[\"']?2/) print }"
+awk "/^[[:space:]]*\\[/{exit} /^[[:space:]]*[\"']?version[\"']?[[:space:]]*=[[:space:]]*[\"']?2/" .golangci.toml 2>/dev/null
 grep -E "\"version\"[[:space:]]*:[[:space:]]*\"2" .golangci.json 2>/dev/null
-# Project-pinned tool, if any (a `tool` line or block in go.mod):
-grep -n "golangci-lint" go.mod
 # Installed binary, if any: prints "golangci-lint has version 1.x" or "2.x"
 golangci-lint version
 ```
 
-- **Pinned in `go.mod` as a tool:** use `go tool golangci-lint run ./...` and install nothing.
+- **Never run a golangci-lint that the checkout selects** (`go tool golangci-lint`, a
+  `tool` or `replace` line for it in `go.mod`, a repository script that builds it): that
+  compiles and executes code the repository controls. Use only an independently
+  installed binary. Even that binary reads the checkout's config, which can load linter
+  plugins, and `make templ` runs the checkout's Makefile: on a checkout you do not trust
+  (an external pull request, a fork), run them only in an isolated environment without
+  credentials, or skip them and say so.
 - **Installed, major version matches the config:** run `golangci-lint run ./...`.
 - **Installed, major version does NOT match:** skip golangci-lint for this run, report the
   mismatch with both versions, and continue with the remaining checks (the CSP and DOM XSS
@@ -150,7 +155,7 @@ modules add per request:
 ```bash
 rg -n '"(script-src(-elem|-attr)?|default-src)"' --glob '*.go' --glob '!*_test.go' .
 rg -n "(script-src(-elem|-attr)?|default-src) " --glob '*.go' --glob '!*_test.go' .
-rg -n -i 'http-equiv=.?content-security-policy' --glob '*.templ' --glob '*.html' .
+rg -n -i -U 'http-equiv\s*=\s*.?content-security-policy' --glob '*.templ' --glob '*.html' .
 ```
 The quoted form finds map keys (`"script-src": ...`) in base policies and in per-feature
 source maps; the second catches policies written as one string (`"default-src 'self'; script-src ..."`).
@@ -162,8 +167,9 @@ policies.
 - **Governing directive:** `script-src-elem` for `<script>` elements and `script-src-attr`
   for inline event handlers when present; otherwise `script-src`; otherwise `default-src`.
   A policy with none of these does not restrict scripts.
-- Evaluate every policy found. When there are several (for example development and
-  production), the **production / strictest** one governs. Say when development differs
+- Evaluate every enforced policy found (a `Content-Security-Policy` header or `<meta>`); a
+  `Content-Security-Policy-Report-Only` policy never makes a script blocking. When there are
+  several (for example development and production), the **production / strictest** one governs. Say when development differs
   (such as an added `'unsafe-inline'`), and never use the looser policy to pass a script.
 - Record for the governing directive: a nonce source (`'nonce-…'`)? Hash sources
   (`'sha256-…'`, `'sha384-…'`, `'sha512-…'`)? `'unsafe-inline'`? `'strict-dynamic'`?
@@ -175,8 +181,9 @@ policies.
   off, report `CSP-HOST-CONDITIONAL` as a WARNING (not blocking): the browser blocks it
   during that time. Fix: render the tag only while the feature is active.
 - `'unsafe-eval'` governs `eval()`, not which scripts load: it is outside this check.
-- Responses the CSP middleware skips (excluded paths, non-HTML endpoints) carry no policy:
-  scripts written only there are not checked.
+- Responses the CSP middleware skips (excluded paths, non-HTML endpoints) carry no policy of
+  their own: scripts written only there are not checked, unless that HTML is inserted into a
+  page that has a policy (for example through htmx or `fetch`), whose policy then governs.
 - No policy restricts scripts: report that, and skip steps 2–5 (the DOM XSS checks still
   apply).
 
@@ -204,14 +211,14 @@ file before reporting it.
 rg -n --glob '*.templ' --glob '*.html' "<script[^>]*\\ssrc=" .
 ```
 Resolve each URL first (expand helpers such as `scriptURL`/`ScriptURL` and template
-expressions; a relative or same-origin path resolves against the page's own origin), then
-check in this order:
+expressions; a relative path resolves against the document's base URL, which is the page's
+own origin unless the page sets `<base href>`), then check in this order:
 1. The tag carries the request nonce and the directive has a nonce source: allowed (a nonce
    permits external scripts too). Stop here.
 2. `'strict-dynamic'` in the directive: browsers ignore `'self'`, host sources and scheme
    sources such as `https:`, so the tag is blocked: `CSP-NONCE-MISSING`. Stop here.
 3. A source in the directive matches the URL, including per-request additions: allowed.
-   `'self'` matches the page's origin; `https://*.example.com` matches any subdomain of
+   `'self'` matches the page's own origin (not a `<base href>` origin); `https://*.example.com` matches any subdomain of
    `example.com`; a host without a scheme (`cdn.example.com`) matches that host; a scheme
    source (`https:`) matches any URL with that scheme; `*` matches any URL except `data:`,
    `blob:` and `filesystem:`.
@@ -256,8 +263,9 @@ nonce attribute under a policy that has no nonce source:
 - `CSP-INLINE-SCRIPT` (no nonce source in the policy): move the code into a static `.js`
   file served from an allowed origin, add a hash source for it, or add a per-request nonce
   source to the policy and then nonce the tag.
-- `CSP-SRC-NOT-ALLOWED`: self-host the script, or add its host to `script-src` (globally,
-  or only while the feature that needs it is active).
+- `CSP-SRC-NOT-ALLOWED`: self-host the script, or add its host to the governing directive
+  from step 1 (`script-src-elem`, `script-src` or `default-src`), globally or only while the
+  feature that needs it is active.
 - `CSP-INLINE-HANDLER`: replace with `data-*` attributes + JS listeners (in static JS or an
   allowed inline script).
 - If `.templ` files changed: run `make templ`.
@@ -977,7 +985,8 @@ policy that has no nonce source: the browser still blocks the script.
 <!-- GOOD when https://js.example.com is a script-src host source: -->
 <script src="https://js.example.com/widget.js" async></script>
 <!-- CSP-SRC-NOT-ALLOWED when the host is not in script-src: self-host it, -->
-<!-- or add the host to script-src (only while the feature that needs it is on). -->
+<!-- or add the host to the governing directive (script-src-elem, script-src or default-src), -->
+<!-- only while the feature that needs it is on if it is feature-specific. -->
 ```
 
 ```html
