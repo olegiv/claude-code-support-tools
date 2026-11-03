@@ -16,6 +16,8 @@ Scan the project for code quality issues and warnings.
    - Catches: unhandled errors, direct error comparisons, unused parameters,
      redundant type conversions, constant comparisons, duplicate code, and more
    - Configuration in `.golangci.yml`
+   - Then a strict pass on touched files reports what common presets hide but IDE
+     inspections such as GoLand show (see step 2)
 
 3. **Nil Safety Analysis**
    - Run `nilaway ./...` for potential nil pointer dereferences
@@ -123,6 +125,19 @@ Scan the project for code quality issues and warnings.
    - `gocyclo` - cyclomatic complexity
    - `misspell` - spelling mistakes
    - `usetesting` - `os.Setenv`/`os.MkdirTemp`/`os.Chdir`/`os.CreateTemp` in tests instead of `t.Setenv`/`t.TempDir`/`t.Chdir`/`os.CreateTemp(t.TempDir(), ...)`
+
+   **Then run the strict pass on touched files.** Exclusion presets such as
+   `std-error-handling` and `comments` hide unchecked `Close`, `os.Remove*` and `fmt.Fprint*`
+   errors and malformed package comments, and few configs enable `predeclared`. GoLand still
+   shows them. Run the stack hook in check mode, from the project or the global install:
+   ```bash
+   h=.claude/hooks/go-strict-lint.sh; [ -x "$h" ] || h=~/.claude/hooks/go-strict-lint.sh
+   "$h" --check
+   ```
+   Exit 1 lists findings anywhere in a touched file:
+   they are in scope for the change, so fix them. Exit 3 means golangci-lint could not run; report
+   it. The first run builds the pinned golangci-lint once per Go toolchain and needs network
+   access. It is not auto-approved.
 
 3. **Run nil safety analysis:**
    ```bash

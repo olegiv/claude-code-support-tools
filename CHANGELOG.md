@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Go stack hook `go-strict-lint.sh` blocks `git commit` while the Go files
+  a change touches have warnings that GoLand shows but common golangci-lint
+  presets hide: unchecked `Close`, `os.Remove*` and `fmt.Fprint*` errors,
+  builtin shadowing and malformed package comments. `--check` runs the same
+  pass on demand. `global/settings.json` registers it for every project,
+  `stacks/go/settings.json` per project, and `/code-quality` runs it. A
+  stub-linter test suite covers it.
+- Global rule to run that pass before presenting Go changes, and to check an
+  error before reading or printing the value returned with it.
+
 - Global rule to label every pull request from the repository's own label
   set; a missing label is proposed and created only after approval, and
   labels are reconciled after each push that changes what the PR covers.

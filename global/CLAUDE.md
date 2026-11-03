@@ -335,6 +335,19 @@ go install github.com/kisielk/errcheck@latest
 go install golang.org/x/vuln/cmd/govulncheck@latest
 ```
 
+## Go: Lint-Clean Touched Files
+
+**Before presenting any Go change, and before every commit**, run the strict pass on the files the change touches and fix every finding:
+
+```bash
+~/.claude/hooks/go-strict-lint.sh --check   # or .claude/hooks/go-strict-lint.sh in projects with the Go stack hooks
+```
+
+It reports what GoLand shows but common golangci-lint presets hide: unchecked errors (including `Close`, `os.Remove*` and `fmt.Fprint*`), variables that shadow builtins, and malformed package comments. Every finding in a touched file counts, not only those on changed lines. A project's own lint gate passing does not replace this pass. New files must be tracked or untracked-but-not-ignored to be seen. It lints the working tree, so check the exact content you will commit. The `go-strict-lint` hook blocks `git commit` on the same check; fix the findings instead of working around it.
+
+- Handle each error, or discard it explicitly with `_ =` and a comment when nothing can act on it.
+- Check `err` and stop before reading, asserting on or printing the value returned with it. Never write `if err != nil || v.Field != …` with `v` in the failure message; no linter catches this, but GoLand does.
+
 ## Code Compilation Rules
 
 **Always fix SASS and TS compilation deprecation warnings.** When compiling SCSS/SASS or TypeScript and deprecation warnings appear, address them immediately rather than ignoring them.
