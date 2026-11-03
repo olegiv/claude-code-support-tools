@@ -118,6 +118,7 @@ Located in `stacks/` directory - copy these to your project's `.claude/` directo
 - Pre-configured hooks, agents, and commands for Go development
 - `validate-go-toolchain.sh` - Blocks builds when Go version mismatches compiler
 - `validate-go-test.sh` - Recommends race detection for test commands
+- `go-strict-lint.sh` - Blocks `git commit` while touched Go files have warnings that GoLand shows but common lint presets hide; `--check` runs the pass on demand
 - `code-quality-auditor` agent - Comprehensive code quality scanning
 - `/code-quality`, `/commit-prepare`, and `/fly-deploy` commands
 
@@ -272,6 +273,28 @@ git config --global core.hooksPath ~/.git-hooks
 ```
 
 `core.hooksPath` makes git skip each repository's `.git/hooks`; the `pre-push` wrapper chains to a repository's own `pre-push` hook so nothing is lost. See `global/hooks/README.md` for detailed installation instructions and additional options.
+
+### Using the Go Strict-Lint Hook in Every Project
+
+`stacks/go/hooks/go-strict-lint.sh` blocks `git commit` while the Go files a change touches have warnings that are hidden by common golangci-lint presets but shown by IDE inspections such as GoLand. These are unchecked `Close`, `os.Remove*` and `fmt.Fprint*` errors, variables that shadow builtins, and malformed package comments. Every finding in a touched file counts. To install it for all projects, symlink it and add the `hooks` block from `global/settings.json` to `~/.claude/settings.json`:
+
+```bash
+mkdir -p ~/.claude/hooks
+ln -s "$PWD/stacks/go/hooks/go-strict-lint.sh" ~/.claude/hooks/go-strict-lint.sh
+```
+
+- **Touched files:** tracked `.go` files that differ from the merge-base with `origin/HEAD` (or `origin/main`, `main`, `master`), plus untracked, non-ignored `.go` files. Each touched module is linted separately.
+- **First run:** builds the pinned golangci-lint v2 once per Go toolchain into `~/.cache/go-strict-lint/`. That build needs network access; later runs reuse it.
+- **When the linter cannot run:** the commit is also blocked, and the error is shown.
+- **On demand:** `~/.claude/hooks/go-strict-lint.sh --check [BASE]` runs the same pass. It exits 0 when clean, 1 for findings, and 3 when the linter could not run.
+- **What it sees:** coverage is best effort.
+  - It catches `git commit`, `git -C DIR commit` and a leading `cd DIR &&`, but not a commit made inside a script.
+  - It lints files as they are in the working tree, so a file staged with different content is checked in its working-tree version.
+  - A Go file renamed without content changes is not re-linted.
+  - errcheck keeps its own defaults, which allow prints to stdout and stderr and writes to in-memory buffers.
+  - It applies only to Claude Code's Bash tool, not to commits you make yourself.
+- **Register it once.** A project that copies `stacks/go/settings.json` also gets it, so drop that entry there if the global hook is installed.
+- **Tests:** `bash stacks/go/tests/go-strict-lint-test.sh` (uses a stub linter; needs `git` and `jq`).
 
 ### Using Stack-Specific Configurations
 
@@ -454,7 +477,10 @@ Claude will respond and complete the task with full repository access.
 │   │   ├── settings.json          # Hook configuration for Go commands
 │   │   ├── hooks/
 │   │   │   ├── validate-go-toolchain.sh  # Toolchain version validation
-│   │   │   └── validate-go-test.sh       # Test command recommendations
+│   │   │   ├── validate-go-test.sh       # Test command recommendations
+│   │   │   └── go-strict-lint.sh         # Strict lint of touched files; blocks git commit
+│   │   ├── tests/
+│   │   │   └── go-strict-lint-test.sh    # Stub-linter tests for the hook
 │   │   ├── agents/
 │   │   │   └── code-quality-auditor.md   # Code quality scanning agent
 │   │   └── commands/

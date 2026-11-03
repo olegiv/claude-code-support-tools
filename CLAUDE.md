@@ -41,6 +41,8 @@ review are reported separately.
     - `settings.json` - Hook configuration for Go command validation
     - `hooks/validate-go-toolchain.sh` - Blocks builds on version mismatch
     - `hooks/validate-go-test.sh` - Recommends race detection for tests
+    - `hooks/go-strict-lint.sh` - Blocks `git commit` while touched Go files have warnings that common lint presets hide; `--check` runs it on demand
+    - `tests/go-strict-lint-test.sh` - Stub-linter tests for `go-strict-lint.sh`
     - `agents/code-quality-auditor.md` - Comprehensive code quality scanning
     - `commands/code-quality.md` - Run quality checks command
     - `commands/commit-prepare.md` - Commit with a mandatory test gate and optional quality checks
