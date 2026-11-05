@@ -22,7 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global rule to label every pull request and merge request with at least
   one label from the repository's own label set; a missing label is created
   without asking, and labels are reconciled after each push that changes
-  what the PR covers.
+  what the PR covers. A created label's name, color and description are
+  validated, derived from the change rather than repository text, passed as
+  quoted variables (`--` before the `gh` name), and named in the approval
+  request before they are written.
 
 ### Changed
 
@@ -31,10 +34,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   then only the tests covering the updated code, not the full suite. PHP
   projects gate on their other suites plus direct behavior evidence.
 - A push no longer re-runs the test suite when every pushed commit's tree
-  already passed the commit gate in the same session: the earlier result is
-  reported and reused. The suite runs again only for a tree that passed no
-  gate (rebased, merged, amended or made elsewhere), after an environment
-  change, or when the user asks.
+  already passed the commit gate: the earlier result is reported and reused.
+  Reuse needs a `full` record of that tree, repository and command under 24
+  hours old in `.git/claude-gates.tsv`. The suite runs again without one,
+  for a tree that passed no gate (rebased, merged, amended or made
+  elsewhere), after an environment change, or when the user asks in their
+  own message.
 - The Go `/code-quality` command auto-approves `golangci-lint version`, an
   exact read-only command, so it can compare the installed major version
   with the config before running or installing anything. No install or
