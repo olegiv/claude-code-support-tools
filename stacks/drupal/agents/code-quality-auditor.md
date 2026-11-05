@@ -1,6 +1,6 @@
 ---
 name: code-quality-auditor
-description: Expert PHP/Drupal code quality auditor for a Drupal project. Use this agent to scan for code quality issues, coding-standard violations, and deprecations. Read-only: it reports what is wrong and offers the exact fixes and commands, but never edits files - you decide what to apply. Example usage - "Check code quality", "Fix PHPStan errors", "Clean up coding standards", "Find deprecated API usage"
+description: 'Expert PHP/Drupal code quality auditor for a Drupal project. Use this agent to scan for code quality issues, coding-standard violations, and deprecations. Read-only: it reports what is wrong and offers the exact fixes and commands, but never edits files - you decide what to apply. Example usage - "Check code quality", "Fix PHPStan errors", "Clean up coding standards", "Find deprecated API usage"'
 tools: Read, Bash, Grep, Glob
 model: sonnet
 ---
