@@ -30,6 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the user asks, never as a fixed step of a skill, agent or command, and
   then only the tests covering the updated code, not the full suite. PHP
   projects gate on their other suites plus direct behavior evidence.
+- A push no longer re-runs the test suite when every pushed commit's tree
+  already passed the commit gate in the same session: the earlier result is
+  reported and reused. The suite runs again only for a tree that passed no
+  gate (rebased, merged, amended or made elsewhere), after an environment
+  change, or when the user asks.
 - The Go `/code-quality` command auto-approves `golangci-lint version`, an
   exact read-only command, so it can compare the installed major version
   with the config before running or installing anything. No install or
