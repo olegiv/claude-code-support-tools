@@ -437,7 +437,8 @@ Enforces strict git workflow rules across all projects:
 - Never commit or push unless explicitly instructed
 - No automatic commits after completing tasks
 - User controls when and what to commit
-- Full test suite passes before any commit or push; any failure stops the flow
+- Full test suite passes before any commit or push; any failure stops the flow.
+  PHPUnit is the exception: it runs only when the user asks
 - Clean commit messages without AI attribution
 - Separate `.claude/settings.json` (team, committed) from `.claude/settings.local.json` (personal, gitignored)
 
