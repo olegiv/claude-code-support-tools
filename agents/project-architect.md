@@ -1,33 +1,34 @@
 ---
 name: project-architect
-description: Use this agent to analyze a project's architecture, tools, frameworks, and dependencies, then automatically generate tailored Claude Code agents, skills, and commands for that specific project. This agent creates a customized development toolkit based on the project's tech stack. Invoke this agent when: (1) Setting up Claude Code for a new project, (2) You need to understand a project's architecture and tooling, (3) You want to create project-specific development workflows, (4) After major tech stack changes to update Claude Code extensions.
+description: |-
+  Use this agent to analyze a project's architecture, tools, frameworks, and dependencies, then automatically generate tailored Claude Code agents, skills, and commands for that specific project. This agent creates a customized development toolkit based on the project's tech stack. Invoke this agent when: (1) Setting up Claude Code for a new project, (2) You need to understand a project's architecture and tooling, (3) You want to create project-specific development workflows, (4) After major tech stack changes to update Claude Code extensions.
 
-<example>
-Context: User wants to set up Claude Code tools for their project
-user: "Can you analyze my project and create helpful Claude Code tools for it?"
-assistant: "I'll use the project-architect agent to analyze your project's architecture and create customized agents, skills, and commands tailored to your tech stack."
-<commentary>
-The user wants project-specific Claude Code extensions. Launch the project-architect agent to analyze the codebase and generate appropriate development tools.
-</commentary>
-</example>
+  <example>
+  Context: User wants to set up Claude Code tools for their project
+  user: "Can you analyze my project and create helpful Claude Code tools for it?"
+  assistant: "I'll use the project-architect agent to analyze your project's architecture and create customized agents, skills, and commands tailored to your tech stack."
+  <commentary>
+  The user wants project-specific Claude Code extensions. Launch the project-architect agent to analyze the codebase and generate appropriate development tools.
+  </commentary>
+  </example>
 
-<example>
-Context: User just started using Claude Code on an existing project
-user: "I just installed Claude Code. Can you help me set up useful commands for this React project?"
-assistant: "I'll use the project-architect agent to analyze your React project and create tailored slash commands and agents for your workflow."
-<commentary>
-New Claude Code setup for a project. Use project-architect to detect React, its tooling, and create relevant extensions like test runners, build commands, etc.
-</commentary>
-</example>
+  <example>
+  Context: User just started using Claude Code on an existing project
+  user: "I just installed Claude Code. Can you help me set up useful commands for this React project?"
+  assistant: "I'll use the project-architect agent to analyze your React project and create tailored slash commands and agents for your workflow."
+  <commentary>
+  New Claude Code setup for a project. Use project-architect to detect React, its tooling, and create relevant extensions like test runners, build commands, etc.
+  </commentary>
+  </example>
 
-<example>
-Context: Project migrated from JavaScript to TypeScript
-user: "We just migrated to TypeScript. Can you update our Claude Code setup?"
-assistant: "Since your tech stack changed, I'll run the project-architect agent to analyze the new TypeScript setup and update your Claude Code tools accordingly."
-<commentary>
-Major tech stack change. Use project-architect to re-analyze and regenerate appropriate tools for the new stack.
-</commentary>
-</example>
+  <example>
+  Context: Project migrated from JavaScript to TypeScript
+  user: "We just migrated to TypeScript. Can you update our Claude Code setup?"
+  assistant: "Since your tech stack changed, I'll run the project-architect agent to analyze the new TypeScript setup and update your Claude Code tools accordingly."
+  <commentary>
+  Major tech stack change. Use project-architect to re-analyze and regenerate appropriate tools for the new stack.
+  </commentary>
+  </example>
 model: sonnet
 ---
 

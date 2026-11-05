@@ -19,12 +19,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global rule to run that pass before presenting Go changes, and to check an
   error before reading or printing the value returned with it.
 
-- Global rule to label every pull request from the repository's own label
-  set; a missing label is proposed and created only after approval, and
-  labels are reconciled after each push that changes what the PR covers.
+- Global rule to label every pull request and merge request with at least
+  one label from the repository's own label set, reconciled after each push
+  that changes what the PR covers. A missing label is created without a
+  separate question: it is named in the approval request with the PR and
+  created right before it. Only the diff and the user's request can justify
+  it; its name, color and description are derived from the change, checked
+  against allowlist patterns, assigned in single quotes and passed quoted,
+  with `--` before the `gh` name. A failed create stops the PR (on GitLab,
+  `--label` would otherwise create a bare label), a failed label listing
+  stops it too, and labels that trigger automation are never applied unless
+  the user asks; that list is documented as best-effort.
 
 ### Changed
 
+- The commit and push test gate no longer runs PHPUnit: it runs only when
+  the user asks in their own message, never as a fixed step of a skill,
+  agent or command, and then only the tests covering the updated code, not
+  the full suite. PHP projects gate on their other suites plus direct
+  behavior evidence, which is the whole gate when PHPUnit is the only suite.
+- A push no longer re-runs the test suite when every pushed commit's tree
+  passed a commit gate earlier in the same conversation: that result is
+  reported and reused. It must be the raw output of a gate command the agent
+  ran itself (not a summary or a report), the latest run for that tree, from
+  a trusted checkout, with the recorded tool versions, submodules and hooks
+  path unchanged. Stopped, timed-out, waived and evidence-only gates are
+  never reused, no gate result is kept in a file, and a moved ref stops the
+  push.
+- The Drupal stack `/test-run` defaults to the modules and themes a change
+  touches and `/deploy-check` tests only on request; both read git output
+  NUL-separated and relative to the Drupal root, stop when git or `mktemp`
+  fails, stream PHPUnit and exit with its status.
+- The Android, iOS and Drupal quality-auditor agents, which run build tools
+  the repository controls, follow the "Inspect before execution" rule in an
+  untrusted checkout.
 - The Go `/code-quality` command auto-approves `golangci-lint version`, an
   exact read-only command, so it can compare the installed major version
   with the config before running or installing anything. No install or
