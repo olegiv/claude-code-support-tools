@@ -19,9 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Global rule to run that pass before presenting Go changes, and to check an
   error before reading or printing the value returned with it.
 
-- Global rule to label every pull request from the repository's own label
-  set; a missing label is proposed and created only after approval, and
-  labels are reconciled after each push that changes what the PR covers.
+- Global rule to label every pull request and merge request with at least
+  one label from the repository's own label set; a missing label is created
+  without asking, and labels are reconciled after each push that changes
+  what the PR covers.
 
 ### Changed
 

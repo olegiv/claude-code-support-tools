@@ -124,7 +124,8 @@ Keep pull request messages clean and professional without AI attribution footers
 
 ### Pull Request Labels
 
-Every PR you create gets labels from the base repository's own label set. This applies
+Every PR or MR you create gets at least one label from the base repository's own label
+set; never create one without a label. This applies
 only when the base repository is on github.com and
 `gh repo view <base repo> --json viewerPermission` shows `WRITE`, `MAINTAIN` or `ADMIN`.
 In any other case (a fork without access, triage-only access, another host), apply and
@@ -144,11 +145,12 @@ create nothing: name the proposed labels in the PR body instead. Write `<base re
 2. Show the chosen labels with the PR title and body in the approval request, and pass
    them with `gh pr create --repo <base repo> --label` (or
    `gh pr edit --repo <base repo> --add-label` afterwards).
-3. If no label fits a clear aspect of the change, propose one (name, color, one-line
-   description in the style of the existing ones, with no quote characters in the name or
-   description, so the single-quoted values below stay intact) and ask before
-   `gh label create --repo <base repo> '<name>' --color <hex> --description '<text>'`:
-   labels are repository-wide. Without approval, use existing labels only.
+3. If no existing label fits a clear aspect of the change, create it without asking: a
+   name, color and one-line description in the style of the existing ones, with no quote
+   characters in the name or description, so the single-quoted values below stay intact,
+   with `gh label create --repo <base repo> '<name>' --color <hex> --description '<text>'`.
+   Then apply it. Labels are repository-wide, so name every label you created in the
+   approval request and the final report.
 4. Apply provenance labels (`codex`, `dependencies`, a scanner's label) only when that
    author or tool actually produced the change.
 5. After each push that changes what the PR covers, list the labels again (step 1), add any
@@ -165,11 +167,12 @@ List labels with
 `glab label list --repo <target project> --output json --per-page 100`
 (read every `--page`: the default is 30; skip labels with `archived: true`), choose at most
 one label per scope (the scope is everything before the last `::`, so `a::b::c` and
-`a::b::d` conflict but `a::x::c` does not: GitLab keeps only one per scope), create approved ones with
+`a::b::d` conflict but `a::x::c` does not: GitLab keeps only one per scope), create missing ones (step 3) with
 `glab label create --repo <target project> --name '<name>' --color '#<hex>' --description '<text>'`,
 and pass them with
 `glab mr create --repo <target project> --label`. Pass only exact names from that list or
-created after approval: GitLab creates any unknown `--label` name.
+created in step 3: GitLab silently creates any unknown `--label` name, without a color or
+description, so a typo becomes a new label.
 
 ## PR Review Findings (Codex / Claude review bots)
 
