@@ -70,7 +70,9 @@ exit "$rc"
 Only when the user asked for the full suite in their own message:
 
 ```bash
-./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite modules/custom themes/custom; rc=$?; echo "PHPUnit exit=$rc"; exit "$rc"
+set --; for d in modules/custom themes/custom; do [ -d "$d" ] && set -- "$@" "$d"; done
+[ $# -gt 0 ] || { echo 'PHPUnit: no modules/custom or themes/custom here; nothing run'; exit 0; }
+./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite "$@"; rc=$?; echo "PHPUnit exit=$rc"; exit "$rc"
 ```
 
 ## 5. Report
