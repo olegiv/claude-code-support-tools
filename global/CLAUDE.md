@@ -178,7 +178,8 @@ redirect a command to another host.
 5. After each push that changes what the PR covers, list the labels again (step 1), add any
    that now apply and remove ones you added that no longer do, with
    `gh pr edit --repo <base repo> --add-label` and `--remove-label`. A label created here
-   follows step 3: propose it to the user and create it only after they approve.
+   follows step 3, with the push approval request in place of the PR's: name it there and
+   create it right before the push.
 
 GitLab merge requests follow the same rule in the MR's target project; write
 `<target project>` as its full URL so `GITLAB_HOST` cannot redirect a command. It applies

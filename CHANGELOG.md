@@ -48,8 +48,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   push.
 - The Drupal stack `/test-run` defaults to the modules and themes a change
   touches and `/deploy-check` tests only on request; both read git output
-  NUL-separated, stop when git or `mktemp` fails, stream PHPUnit and exit
-  with its status.
+  NUL-separated and relative to the Drupal root, stop when git or `mktemp`
+  fails, stream PHPUnit and exit with its status.
+- The Android, iOS and Drupal quality-auditor agents, which run build tools
+  the repository controls, follow the "Inspect before execution" rule in an
+  untrusted checkout.
 - The Go `/code-quality` command auto-approves `golangci-lint version`, an
   exact read-only command, so it can compare the installed major version
   with the config before running or installing anything. No install or

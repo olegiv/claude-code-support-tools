@@ -33,8 +33,8 @@ trap 'rm -rf "$tmpd"' EXIT
 rc=0
 if ! base=$(git symbolic-ref -q --short refs/remotes/origin/HEAD); then
   echo 'PHPUnit: ERROR origin/HEAD is not set (git remote set-head origin --auto); nothing run' >&2; rc=1
-elif ! { git -c core.quotePath=false diff -z --no-renames --name-only "$base...HEAD" &&
-         git -c core.quotePath=false diff -z --no-renames --name-only HEAD &&
+elif ! { git -c core.quotePath=false diff --relative -z --no-renames --name-only "$base...HEAD" &&
+         git -c core.quotePath=false diff --relative -z --no-renames --name-only HEAD &&
          git ls-files -z --others --exclude-standard; } >"$tmpd/paths"; then
   echo 'PHPUnit: ERROR git could not list the changed paths; nothing run' >&2; rc=1
 else
@@ -62,7 +62,7 @@ exit "$rc"
 ## 3. A module name
 
 ```bash
-./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite "modules/custom/<module>/tests/"; echo "PHPUnit exit=$?"
+./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite "modules/custom/<module>/tests/"; rc=$?; echo "PHPUnit exit=$rc"; exit "$rc"
 ```
 
 ## 4. "all"
@@ -70,7 +70,7 @@ exit "$rc"
 Only when the user asked for the full suite in their own message:
 
 ```bash
-./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite modules/custom themes/custom; echo "PHPUnit exit=$?"
+./vendor/bin/phpunit -c core/phpunit.xml.dist --fail-on-empty-test-suite modules/custom themes/custom; rc=$?; echo "PHPUnit exit=$rc"; exit "$rc"
 ```
 
 ## 5. Report

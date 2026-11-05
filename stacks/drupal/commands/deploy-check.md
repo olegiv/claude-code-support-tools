@@ -33,7 +33,7 @@ trap 'rm -rf "$tmpd"' EXIT
 rc=0
 if ! base=$(git symbolic-ref -q --short refs/remotes/origin/HEAD); then
   echo 'PHPUnit: ERROR origin/HEAD is not set (git remote set-head origin --auto); nothing run' >&2; rc=1
-elif ! git -c core.quotePath=false diff -z --no-renames --name-only "$base...HEAD" >"$tmpd/paths"; then
+elif ! git -c core.quotePath=false diff --relative -z --no-renames --name-only "$base...HEAD" >"$tmpd/paths"; then
   echo "PHPUnit: ERROR git diff against $base failed; nothing run" >&2; rc=1
 else
   # Whole NUL-separated records: a path is never quoted, split or merged. Only
