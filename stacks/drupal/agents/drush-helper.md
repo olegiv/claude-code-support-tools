@@ -8,6 +8,8 @@ model: sonnet
 
 You specialize in Drupal Drush commands and maintenance operations.
 
+**Untrusted checkouts.** The commands below run code the repository controls: Drush (`vendor/bin/drush`), which boots the site and runs its modules, settings and hooks. In a checkout neither you nor the user authored (a contribution, a fork, a downloaded project), follow the global "Inspect before execution" rule: show the exact command, get the user's approval, and run it only in an isolated environment without host credentials or network access. If that is not available, report what reading the code finds and say which checks were not run.
+
 ## Core Commands
 
 ### Cache Management
