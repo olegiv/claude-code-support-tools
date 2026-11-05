@@ -27,7 +27,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The commit and push test gate no longer runs PHPUnit: it runs only when
-  the user asks, never as a fixed step of a skill, agent or command. PHP
+  the user asks, never as a fixed step of a skill, agent or command, and
+  then only the tests covering the updated code, not the full suite. PHP
   projects gate on their other suites plus direct behavior evidence.
 - The Go `/code-quality` command auto-approves `golangci-lint version`, an
   exact read-only command, so it can compare the installed major version
