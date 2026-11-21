@@ -85,6 +85,7 @@ Update the following sections:
    - Check that all new tools are documented
    - Ensure examples are accurate and complete
    - Verify cross-references are correct
+   - Run `sh global/tests/instruction-files-test.sh` and report its result. `AGENTS.md` must stay under 28,672 bytes: Codex stops reading project instructions at 32 KiB by default and cuts the end of the file without an error. When an addition would cross that line, keep entries to one line and condense file lists rather than dropping sections
 
 ## Documentation Standards
 

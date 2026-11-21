@@ -35,7 +35,7 @@ record and readiness report. Pure wording/formatting edits need only an
 appropriate structural check. Do not add test infrastructure or broaden a review
 to unrelated code merely to satisfy this gate.
 
-For PR findings, use `$pr-fix` and preserve its scope, P2 rule, approval requirements,
+For PR findings, use `/pr-fix` (Claude Code) or `$pr-fix` (Codex) and preserve its scope, P2 rule, approval requirements,
 and review/push limits. Its runner's `status=ready` verifies recorded bookkeeping;
 the author must also satisfy the behavior-verification gate before publishing.
 
@@ -80,70 +80,23 @@ the author must also satisfy the behavior-verification gate before publishing.
     - `settings.json` - Hook configuration for xcodebuild validation
     - `hooks/validate-xcodebuild.sh` - Ensures correct simulator target (iPhone 17 Pro)
   - `kotlin/` - Kotlin/Android project tools
-    - `agents/android-quality-auditor.md` - Comprehensive Android code quality scanning
-    - `agents/kotlin-refactorer.md` - Kotlin refactoring and best practices
-    - `agents/compose-developer.md` - Jetpack Compose UI development
-    - `commands/code-quality.md` - Run quality checks command
-    - `commands/lint.md` - Run Android Lint command
-    - `commands/detekt.md` - Run Detekt static analysis command
-    - `commands/clean.md` - Clean build artifacts command
-    - `commands/test-instrumented.md` - Run instrumented tests command
+    - `agents/` - `android-quality-auditor`, `kotlin-refactorer`, `compose-developer` (Jetpack Compose)
+    - `commands/` - `code-quality`, `lint` (Android Lint), `detekt`, `clean`, `test-instrumented`
     - `templates/detekt.yml` - Detekt configuration template for Android/Compose projects
   - `php/` - PHP project tools
     - `settings.json` - Hook configuration for PHP command validation
     - `hooks/validate-php-syntax.sh` - Validates PHP syntax before execution
     - `hooks/validate-composer-lock.sh` - Ensures composer.lock stays in sync with composer.json
-    - `agents/composer-manager.md` - Composer dependency management agent
-    - `agents/security-reviewer.md` - PHP security scanning and code review agent
-    - `agents/php-refactorer.md` - PHP refactoring and modern best practices agent
-    - `commands/phpstan.md` - Run PHPStan static analysis command
-    - `commands/update-deps.md` - Update Composer dependencies command
-    - `commands/security-scan.md` - PHP security scanning command
+    - `agents/` - `composer-manager`, `security-reviewer`, `php-refactorer`
+    - `commands/` - `phpstan`, `update-deps`, `security-scan`
     - `skills/security-review/SKILL.md` - PHP security review skill
   - `drupal/` - Drupal project tools
     - `settings.json` - Hook configuration for Drupal command validation
     - `hooks/validate-drush.sh` - Validates drush command execution context
     - `hooks/validate-drupal-root.sh` - Ensures commands run from Drupal root directory
-    - `agents/drupal-debugger.md` - Debug errors, test failures, configuration issues
-    - `agents/drush-helper.md` - Drush commands and system administration
-    - `agents/config-reviewer.md` - Configuration safety and deployment readiness
-    - `agents/performance-tuner.md` - Redis, caching, database optimization
-    - `agents/test-creator.md` - Generate PHPUnit tests for Drupal modules
-    - `agents/api-developer.md` - REST/JSON:API development, external integrations
-    - `agents/migration-expert.md` - Content migrations, CRM sync, data transformations
-    - `agents/code-quality-auditor.md` - Scan PHPStan/PHPCS/deprecation issues, offer fixes (read-only)
-    - `commands/cache-clear.md` - Clear all Drupal caches
-    - `commands/code-quality.md` - Comprehensive code quality checks (PHPStan, PHPCS, deprecations)
-    - `commands/config-diff.md` - Show configuration differences (database vs code)
-    - `commands/config-export.md` - Export Drupal configuration
-    - `commands/config-import.md` - Import Drupal configuration
-    - `commands/backup-db.md` - Create database backup
-    - `commands/db-query.md` - Execute safe SELECT queries
-    - `commands/db-update.md` - Run database updates
-    - `commands/drush.md` - Execute drush commands
-    - `commands/feature-revert.md` - Revert feature configuration
-    - `commands/health-check.md` - Site health: DB, Redis, Solr, cron
-    - `commands/logs.md` - View watchdog logs
-    - `commands/module-status.md` - Module status information
-    - `commands/test-run.md` - Run PHPUnit tests
-    - `commands/content-audit.md` - Find orphaned, unpublished, or stale content
-    - `commands/cron-status.md` - Cron job and scheduled task status
-    - `commands/deploy-check.md` - Pre-deployment readiness checklist
-    - `commands/maintenance.md` - Toggle maintenance mode
-    - `commands/queue-status.md` - Queue items and workers status
-    - `commands/scaffold.md` - Generate Drupal boilerplate code
-    - `commands/test-coverage.md` - Check test coverage for modules
-    - `commands/test-create.md` - Generate PHPUnit tests for classes or modules
-    - `commands/translate-check.md` - Translation status and coverage
-    - `commands/user-info.md` - User details and roles lookup
-    - `skills/api-development/` - REST/JSON:API development skill
-    - `skills/config-management/` - Features workflow, config splits, deployment
-    - `skills/database-operations/` - PostgreSQL backup/restore operations
-    - `skills/drupal-drush/` - Comprehensive Drush command reference
-    - `skills/drupal-hooks/` - Hook and event subscriber patterns
-    - `skills/drupal-migrations/` - Migration YAMLs, source/process plugins
-    - `skills/drupal-testing/` - PHPUnit tests, mocking, assertions
-    - `skills/performance-optimization/` - Redis, caching, PostgreSQL tuning
+    - `agents/` - `drupal-debugger`, `drush-helper`, `config-reviewer`, `performance-tuner`, `test-creator`, `api-developer`, `migration-expert`, `code-quality-auditor` (read-only)
+    - `commands/` - 24 commands: `cache-clear`, `code-quality`, `config-diff`, `config-export`, `config-import`, `backup-db`, `db-query`, `db-update`, `drush`, `feature-revert`, `health-check`, `logs`, `module-status`, `test-run`, `content-audit`, `cron-status`, `deploy-check`, `maintenance`, `queue-status`, `scaffold`, `test-coverage`, `test-create`, `translate-check`, `user-info`
+    - `skills/` - `api-development`, `config-management`, `database-operations`, `drupal-drush`, `drupal-hooks`, `drupal-migrations`, `drupal-testing`, `performance-optimization`
     - `templates/phpunit.xml.dist` - Standard PHPUnit configuration for custom module testing
     - `templates/phpstan.neon` - Base PHPStan configuration for Drupal projects
 - **`global/`** - Global configuration files meant to be copied or symlinked into the user's `~/.claude/` directory (skills also into `~/.codex/skills/`)
@@ -156,13 +109,14 @@ the author must also satisfy the behavior-verification gate before publishing.
     - `pr-fix/SKILL.md` - Repairs automated PR review findings in at most two fix pushes (collect, triage, minimal fix, local Codex review gate, one push, close every thread)
     - `pr-fix/scripts/pr-fix.sh` - Runner: `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
     - `pr-fix/references/` - Triage rules and reply templates, local reviewer instructions, `## Code Review Rules` block for target repos, `~/.codex/AGENTS.md` paragraph
-    - `agents-md/SKILL.md` - Moves a project's shared instructions into `AGENTS.md`, imported by `CLAUDE.md`, after approval; verifies with `claude -p` and `codex exec`
+    - `agents-md/` - `SKILL.md` moves a project's shared instructions into `AGENTS.md`, imported by `CLAUDE.md`, after approval; `references/` holds the `~/.codex/AGENTS.md` paragraph
   - `hooks/` - Git hooks: `pre-commit` approval gate and `pre-push` wrapper for the `pr-fix` push gate
   - `tests/` - Self-contained POSIX shell tests for global configuration
     - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
     - `pr-fix-test.sh` - 206 offline assertions for the `pr-fix` runner and `pre-push` gate (stub `gh`/`codex`, fixtures in `tests/fixtures/pr-fix/`)
+    - `instruction-files-test.sh` - Static checks: `AGENTS.md` size budget, `CLAUDE.md` import, skill frontmatter
 - **`.github/workflows/`** - GitHub Actions workflows for CI/CD automation
-  - `claude.yml` - Responds to @claude mentions in issues/PRs
+  - `claude.yml` - Responds to `@claude` mentions in issues/PRs
   - `claude-code-review.yml` - Automated PR reviews using Claude Code
 - **`.github/`** - Security documentation
   - `THREAT_MODEL.md` - Security threat model with attack scenarios and mitigations
@@ -481,9 +435,11 @@ Enforces strict git workflow rules across all projects:
 
 ### global/settings.json
 
-Global Claude Code settings:
+Global Claude Code settings (the author's own; README lists which are personal defaults):
 - **Custom status line** - Shows project name, directory, git branch, git status, and model
 - **alwaysThinkingEnabled** - Enables continuous thinking mode
+- **Go strict-lint hook** - `PreToolUse` on Bash; runs `~/.claude/hooks/go-strict-lint.sh` when installed
+- **Personal defaults** - plan mode, `opus[1m]`, `tui: fullscreen`, two plugins, `feedbackDrafts` off, `switchModelsOnFlag`, and `skipDangerousModePermissionPrompt: true` (no confirmation before bypass-permissions mode)
 
 The status line command validates `.workspace.current_dir` against terminal escape injection using a `jq` codepoint predicate (`explode | all(. >= 32 and . != 127 and (. < 128 or . > 159))`) that rejects C0 controls, DEL, and the full C1 range (U+0080–U+009F), and falls back to `unknown` on mismatch or non-existent paths. All git operations use `git -C "$safe_cwd"` so a malicious `cwd` cannot leak metadata from the calling process directory.
 
@@ -496,6 +452,7 @@ Self-contained POSIX shell tests for the files in `global/`. Run with plain `sh`
 Run from the repository root:
 ```bash
 sh global/tests/statusline-cwd-test.sh
+sh global/tests/instruction-files-test.sh
 ```
 
 ### global/skills/
@@ -546,3 +503,4 @@ When working with this repository:
 - Markdown agent and command instructions also define behavior; validate their affected workflows
 - The repository itself serves as templates and examples for Claude Code extensions
 - Security auditor agent has comprehensive vulnerability detection capabilities - review its methodology before use
+- Keep `AGENTS.md` under 28 KiB: Codex stops reading project instructions at 32 KiB by default, and `global/tests/instruction-files-test.sh` checks it
