@@ -7,155 +7,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-21
+
+### ⚠️ Breaking Changes
+
+- `global/settings.json` now starts sessions in plan mode, selects
+  `opus[1m]`, enables two plugins and voice mode, and turns off the
+  bypass-permissions confirmation. Anyone who links or copies the template
+  gets these on the next update; merge only the keys you want.
+- The commit and push test gate no longer runs PHPUnit unless asked, the
+  Drupal `/test-run` defaults to the modules and themes a change touches,
+  and `/deploy-check` runs tests only on request. Run the full suite
+  explicitly if you relied on it.
+
 ### Added
 
-- Go stack hook `go-strict-lint.sh` blocks `git commit` while the Go files
-  a change touches have warnings that GoLand shows but common golangci-lint
-  presets hide: unchecked `Close`, `os.Remove*` and `fmt.Fprint*` errors,
-  builtin shadowing and malformed package comments. `--check` runs the same
-  pass on demand. `global/settings.json` registers it for every project,
-  `stacks/go/settings.json` per project, and `/code-quality` runs it. A
-  stub-linter test suite covers it.
-- Global rule to run that pass before presenting Go changes, and to check an
-  error before reading or printing the value returned with it.
+#### Shared instructions
 
-- Global rule to label every pull request and merge request with at least
-  one label from the repository's own label set, reconciled after each push
-  that changes what the PR covers. A missing label is created without a
-  separate question: it is named in the approval request with the PR and
-  created right before it. Only the diff and the user's request can justify
-  it; its name, color and description are derived from the change, checked
-  against allowlist patterns, assigned in single quotes and passed quoted,
-  with `--` before the `gh` name. A failed create stops the PR (on GitLab,
-  `--label` would otherwise create a bare label), a failed label listing
-  stops it too, and labels that trigger automation are never applied unless
-  the user asks; that list is documented as best-effort.
-- `agents-md` skill (Claude Code and Codex) that moves a project's shared
+- `agents-md` skill for Claude Code and Codex: moves a project's shared
   instructions into `AGENTS.md` and leaves a `CLAUDE.md` that imports it
   with `@AGENTS.md`, after the user approves the plan. It snapshots the
-  instruction files first, never writes through a symlink, treats the
-  repository's text as data, and changes files that steer an agent only
-  with approval by name. It checks Codex's default 32 KiB
-  `project_doc_max_bytes` budget and, with the user's consent, verifies
-  the result with headless `claude -p` and `codex exec` runs on a clean
-  copy of the instruction files, so the repository's own hooks never run.
-- Global rule to keep one copy of project instructions: shared content in
-  `AGENTS.md`, Claude Code-only notes in a `CLAUDE.md` that imports it.
-  Projects not yet migrated keep their instructions where they are until
-  the user approves a migration. A paragraph for `~/.codex/AGENTS.md`
-  gives Codex the same rule.
+  files first, never writes through symlinks, treats repository text as
+  data, and can verify the result with headless `claude -p` and
+  `codex exec` runs on a clean copy of the instruction files.
+- Global rule to keep one copy of project instructions (`AGENTS.md`,
+  imported by `CLAUDE.md`), with a matching paragraph for
+  `~/.codex/AGENTS.md`. Existing projects migrate only with approval.
 - `global/tests/instruction-files-test.sh` checks that `AGENTS.md` stays
-  within Codex's budget, that `CLAUDE.md` imports it outside code fences,
-  and that skill frontmatter is valid; each check also runs against broken
-  fixtures.
+  within Codex's 32 KiB default budget, that `CLAUDE.md` imports it outside
+  code fences, and that skill frontmatter is valid.
+
+#### Pull requests
+
+- Global rule to label every pull request and merge request from the
+  repository's own label set, reconciled after pushes that change the PR's
+  scope. Missing labels are created as part of the approved PR request,
+  with validated names and quoted arguments; labels that trigger automation
+  are never applied unless the user asks.
+
+#### Go
+
+- `go-strict-lint.sh` hook blocks `git commit` while touched Go files have
+  warnings that common golangci-lint presets hide: unchecked `Close`,
+  `os.Remove*` and `fmt.Fprint*` errors, builtin shadowing and malformed
+  package comments. `--check` runs it on demand. It is registered globally
+  and per project, `/code-quality` runs it, and a stub-linter suite tests it.
 
 ### Changed
 
-- This repository's instructions now live in `AGENTS.md`; `CLAUDE.md`
-  imports it, so Claude Code and Codex read the same text. The docs
-  maintenance agents and commands update `AGENTS.md` instead, and
-  `doc-sync-manager` keeps it under 28 KiB. The stack file lists in it are
-  condensed to names to stay within that size.
-- `project-architect` and `/setup-project-tools` document generated tools
-  in `AGENTS.md` with an importing `CLAUDE.md`, and say where the
-  instructions live when a project is not migrated. The Go, Kotlin and
-  Swift templates read project rules from both files and ask when they
-  conflict.
-- `global/settings.json` now carries the author's defaults: plan mode,
-  `opus[1m]`, the fullscreen renderer, two enabled plugins, `feedbackDrafts`
-  off, `switchModelsOnFlag`, and `skipDangerousModePermissionPrompt: true`,
-  which removes the confirmation before bypass-permissions mode. README
-  lists them so users can change them, and says to merge the file rather
-  than overwrite existing settings.
-- The untrusted-checkout rule in `global/CLAUDE.md` now names `AGENTS.md`
-  and imported files alongside `CLAUDE.md`.
-- The commit and push test gate no longer runs PHPUnit: it runs only when
-  the user asks in their own message, never as a fixed step of a skill,
-  agent or command, and then only the tests covering the updated code, not
-  the full suite. PHP projects gate on their other suites plus direct
-  behavior evidence, which is the whole gate when PHPUnit is the only suite.
-- A push no longer re-runs the test suite when every pushed commit's tree
-  passed a commit gate earlier in the same conversation: that result is
-  reported and reused. It must be the raw output of a gate command the agent
-  ran itself (not a summary or a report), the latest run for that tree, from
-  a trusted checkout, with the recorded tool versions, submodules and hooks
-  path unchanged. Stopped, timed-out, waived and evidence-only gates are
-  never reused, no gate result is kept in a file, and a moved ref stops the
-  push.
-- The Drupal stack `/test-run` defaults to the modules and themes a change
-  touches and `/deploy-check` tests only on request; both read git output
-  NUL-separated and relative to the Drupal root, stop when git or `mktemp`
-  fails, stream PHPUnit and exit with its status.
-- Every stack agent that runs tools the repository controls follows the
-  "Inspect before execution" rule in an untrusted checkout: the Android,
-  iOS and Drupal quality auditors (#76), and the Drupal Drush, debugging,
-  migration, performance and test agents, the Kotlin refactorer, the PHP
-  Composer, refactoring and security agents and the Go quality auditor
-  (#77).
-- The Go `/code-quality` command auto-approves `golangci-lint version`, an
-  exact read-only command, so it can compare the installed major version
-  with the config before running or installing anything. No install or
-  other new command is auto-approved.
+#### Instructions and templates
+
+- This repository's instructions live in `AGENTS.md`, imported by
+  `CLAUDE.md`; the docs-maintenance agents and commands target it and keep
+  it under 28 KiB.
+- `project-architect`, `/setup-project-tools` and the Go, Kotlin and Swift
+  templates use the new layout and read project rules from both files.
+- `global/settings.json` carries the author's defaults: plan mode,
+  `opus[1m]`, the fullscreen renderer, voice mode, two enabled plugins,
+  `feedbackDrafts` off, `switchModelsOnFlag` and
+  `skipDangerousModePermissionPrompt: true`. README documents them and
+  recommends merging the file rather than overwriting existing settings.
+
+#### Verification
+
+- The commit and push test gate runs PHPUnit only on request, and then only
+  for the code a change touches.
+- A push reuses a passing commit gate from the same conversation when every
+  pushed tree, the recorded tool versions and the hooks path are unchanged.
+- The Drupal `/test-run` defaults to the modules and themes a change
+  touches, and `/deploy-check` runs tests only on request.
+- Every stack agent that runs repository-controlled tools follows the
+  "Inspect before execution" rule in untrusted checkouts, and that rule now
+  names `AGENTS.md` and imported files alongside `CLAUDE.md`.
 
 ### Security
 
 - `global/settings.json` sets `skipDangerousModePermissionPrompt: true` by
-  the repository owner's choice, so Claude Code no longer asks for
-  confirmation before entering bypass-permissions mode. Anyone who copies
-  the template and wants that prompt should set it to `false`.
-- Narrow the `/code-quality` and `/fly-deploy` auto-approvals to exact
-  commands for everything that runs code, deploys or writes. Prefix rules
-  such as `go vet*`, `go env*`, `rg *`, `sed -n*` and `fly *` still allowed
-  flags that run other programs (`-vettool`, `go env -w`, `rg --pre`, GNU
-  `sed` `e`) or destructive Fly commands. The `/fly-deploy` health-check
-  `curl` now asks first: its prefix also allowed `-T <file>` uploads and
-  `-o <path>` writes. Read-only prefixes (`grep`, `git status`,
-  `docker info`) remain.
-
-- Scope `allowed-tools` in the Go `/fly-deploy` and `/code-quality` commands
-  to the commands they run instead of unrestricted `Bash`, so text a command
-  reads (deploy logs, scan output) cannot steer it into another shell command
-  without a permission prompt.
+  the owner's choice, so Claude Code no longer confirms before entering
+  bypass-permissions mode; set it to `false` to keep that prompt.
+- The Go `/code-quality` and `/fly-deploy` commands auto-approve exact
+  commands only and scope `allowed-tools`, closing prefix rules that
+  allowed flags running other programs, destructive Fly commands and
+  `curl` uploads.
 
 ### Fixed
 
-- `validate-go-toolchain.sh` now checks Go builds and tests wherever they
-  appear in the command line (after `VAR=value`, `cd ... &&` or `;`), plus
-  `go vet`, `make` and test-gate scripts; it used to check only commands
-  that start with `go build`, `test`, `run` or `install`. Without `jq` it
-  reports that the check is skipped instead of passing silently.
-- The Go `/code-quality` command allows `errcheck -ignoregenerated ./...`,
-  the form that skips sqlc and templ output, instead of `errcheck ./...`.
-- `/fly-deploy` health check no longer builds its URL from an empty app name
-  when `fly.toml` quotes the name with `'`.
-- `/finalize` argument hint shows that areas are comma-separated.
-- The Go `/code-quality` command and `code-quality-auditor` agent no longer
-  install golangci-lint v1 for a v2 config. Their fallback used the v1
-  module path, whose `@latest` is v1.64.8 and cannot read a `version: "2"`
-  config. They now detect the config version (YAML, TOML or JSON, either
-  quote style), never run a golangci-lint the checkout selects (such as
-  `go tool golangci-lint`), install v2 only when no binary exists, and on a
-  version mismatch or a v1 config skip
-  golangci-lint, report it and continue with the other checks instead of
-  reinstalling: `go install` would replace the one binary every repository
-  on the machine shares, and v1.64.8 cannot load current Go export data.
-- The same command and agent judge scripts against the app's own
-  Content-Security-Policy instead of demanding a nonce on every `<script>`.
-  They read the governing directive (`script-src-elem`/`script-src-attr`,
-  `script-src` or the `default-src` fallback, from Go code or `<meta>`
-  tags), allow external scripts that carry the request nonce or that
-  `'self'`, a host, scheme or wildcard source matches, allow inline scripts
-  with a matching nonce or hash, treat `'unsafe-inline'` as ignored next to a
-  nonce, hash or `'strict-dynamic'`, skip data blocks such as JSON-LD, and
-  let production govern when it differs from development. A script that
-  relies on a host added only while a feature is active is a warning
-  (`CSP-HOST-CONDITIONAL`); warnings and INFO notes no longer fail the run,
-  and each fix example matches the policy it applies to.
-- Every file-searching `rg` command in the Go `/code-quality` command and
-  `code-quality-auditor` agent now names its search path (`.`). Without one,
-  `rg` searches standard input whenever stdin is not a terminal, so in an
-  agent's non-interactive shell the CSP and DOM XSS checks waited forever
-  instead of scanning the repository.
+#### Go
+
+- `validate-go-toolchain.sh` checks Go builds and tests anywhere in a
+  command line and reports when `jq` is missing instead of passing.
+- `/code-quality` and `code-quality-auditor` no longer install golangci-lint
+  v1 for a v2 config or run a checkout-selected binary, judge scripts
+  against the app's own Content-Security-Policy, give every `rg` search a
+  path so it no longer hangs in non-interactive shells, and allow
+  `errcheck -ignoregenerated`.
+- The `/fly-deploy` health check handles app names quoted with `'`.
+- The `/finalize` argument hint shows that areas are comma-separated.
 
 ## [0.3.0] - 2026-10-04
 
@@ -354,7 +301,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened GitHub Actions against prompt injection
 - Pinned GitHub Actions to commit SHAs
 
-[Unreleased]: https://github.com/olegiv/claude-code-support-tools/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/olegiv/claude-code-support-tools/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.0.0...v0.1.0
