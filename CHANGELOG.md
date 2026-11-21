@@ -7,52 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-21
+
 ### Security
+
+#### Drupal and PHP commands
 
 - Drupal and PHP stack commands check their arguments in the prompt before
   running anything: the whole value, on one line, with anything uncertain
-  treated as invalid. Their shell blocks rely on that check: Claude Code
-  inserts the arguments into the prompt text before any shell runs, so a
-  shell check cannot protect a command that contains them.
-- `/db-query` passes the query to drush through a file written with the
-  Write tool, and checks and runs it in one call that keeps drush's exit
-  status and removes the file. It accepts one line of printable ASCII with
-  single-quoted strings only: no double quotes, backticks, dollar signs,
-  backslashes, comments or semicolons, which could hide text from the checks
-  or reach the database client as commands. It blocks more functions and
-  function families (file access, locks, sleeps, `dblink`, large objects,
-  `INTO`). The filter is best-effort: use a database user with SELECT-only
-  grants.
-- `/drush` passes no options or site aliases, checks and runs the command in
-  one call, refuses commands that change the site (including `cr`) until the
-  user has confirmed them, no longer generates login links (`uli`), and no
-  longer auto-approves drush.
+  treated as invalid. Their shell blocks rely on that check, because Claude
+  Code inserts the arguments into the prompt before any shell runs.
+- `/db-query` passes the query to drush through a file, and checks and runs
+  it in one call that keeps drush's exit status and removes the file. It
+  accepts one line of printable ASCII with single-quoted strings only,
+  rejects comments, and blocks more functions and function families. The
+  filter is best-effort: use a database user with SELECT-only grants.
+- `/drush` passes no options or site aliases, refuses commands that change
+  the site (including `cr`) until the user confirms them, no longer
+  generates login links (`uli`) and no longer auto-approves drush.
 - `/feature-revert` without names lists the features and stops; with names
-  it checks them, reverts and clears caches in one call, and clears caches
-  only after a successful revert. `/user-info` rejects usernames starting
-  with `-`, which drush read as an option.
+  it checks them and reverts in one call, clearing caches only after a
+  successful revert. `/user-info` rejects usernames starting with `-`.
 
 ### Fixed
 
-- Commands read the checked argument again in every shell block that needs
-  it: each Bash call is a new shell, and Claude Code substitutes positional
-  tokens such as `$1` but not `${ARGUMENTS:-}` or `${#ARGUMENTS}`.
-  `/test-coverage` (module), `/security-scan` (severity), `/code-quality`
-  (scope; step 6 printed "none" for every check), `/scaffold` (type),
-  `/translate-check` and `/content-audit` (filters) and `/logs` (severity)
-  now use the value they were given.
-- `/security-scan` filters `composer audit --format=json` by severity, keeps
-  advisories without a severity, and reports a failed audit.
-  `/test-coverage` reports a missing source directory as an error, and
-  `/code-quality` searches every custom root for `all` and reports grep
-  errors instead of "none".
+#### Drupal and PHP commands
+
+- Commands read the checked argument in every shell block that needs it, so
+  `/test-coverage`, `/security-scan`, `/code-quality`, `/scaffold`,
+  `/translate-check`, `/content-audit` and `/logs` use the value they were
+  given.
+- `/security-scan` filters `composer audit --format=json` by severity and
+  reports a failed audit; `/test-coverage` reports a missing source
+  directory; `/code-quality` searches every custom root for `all` and
+  reports grep errors instead of "none".
 - `/logs` accepts nothing, a severity, a count, or a severity followed by a
-  count, rejects 0 and line breaks, and caps the count at 1000 even for very
-  long numbers.
-- The global Go strict-lint hook warns on `git commit`, matched with the
-  lint script's own pattern, when its script is installed but is not an
-  executable file or its link is broken. A missing script stays silent:
-  installing it is optional.
+  count, rejects 0 and line breaks, and caps the count at 1000.
+
+#### Go
+
+- The global Go strict-lint hook warns on `git commit` when its script is
+  installed but is not an executable file, or its link is broken; a missing
+  script stays silent.
 
 ## [0.4.0] - 2026-11-21
 
@@ -348,7 +344,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Hardened GitHub Actions against prompt injection
 - Pinned GitHub Actions to commit SHAs
 
-[Unreleased]: https://github.com/olegiv/claude-code-support-tools/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/olegiv/claude-code-support-tools/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/olegiv/claude-code-support-tools/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/olegiv/claude-code-support-tools/compare/v0.1.0...v0.2.0
