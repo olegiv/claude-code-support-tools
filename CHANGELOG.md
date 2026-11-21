@@ -33,6 +33,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- This repository's instructions now live in `AGENTS.md`; `CLAUDE.md`
+  imports it, so Claude Code and Codex read the same text. The docs
+  maintenance agents and commands update `AGENTS.md` instead.
 - The commit and push test gate no longer runs PHPUnit: it runs only when
   the user asks in their own message, never as a fixed step of a skill,
   agent or command, and then only the tests covering the updated code, not

@@ -37,7 +37,7 @@ Use the doc-sync-manager agent to update documentation after my recent changes.
 
 **What it does:**
 - Detects new/modified tools
-- Updates README.md and CLAUDE.md
+- Updates README.md and AGENTS.md
 - Ensures consistency across documentation
 - Validates cross-references
 
@@ -125,7 +125,7 @@ Use the release-manager agent to prepare a new release.
 
 **What it does:**
 - Updates README.md with new tools
-- Updates CLAUDE.md with new tools
+- Updates AGENTS.md with new tools
 - Ensures documentation consistency
 
 ### /test-workflows
@@ -351,7 +351,7 @@ All commands and agents use relative paths from the repository root:
 
 **Documentation files:**
 - `README.md`
-- `CLAUDE.md`
+- `AGENTS.md`
 
 ## Troubleshooting
 
@@ -379,4 +379,4 @@ Run `/test-workflows` to validate workflow syntax locally.
 
 For more detailed information, see:
 - [README.md](README.md) - User-facing documentation
-- [CLAUDE.md](CLAUDE.md) - Repository guidance for Claude Code
+- [AGENTS.md](AGENTS.md) - Repository guidance for coding agents (Claude Code loads it through CLAUDE.md)

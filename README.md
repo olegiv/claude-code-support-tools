@@ -23,7 +23,7 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 
 **Repository Maintenance Agents** (`.claude/agents/`)
 - **markdown-linter** - Validates agent and command files for proper YAML frontmatter and structure
-- **doc-sync-manager** - Synchronizes documentation across README.md and CLAUDE.md
+- **doc-sync-manager** - Synchronizes documentation across README.md and AGENTS.md
 - **template-validator** - Ensures templates follow Claude Code best practices
 - **release-manager** - Manages versioning, changelog generation, and releases
 

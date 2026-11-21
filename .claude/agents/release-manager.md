@@ -70,7 +70,7 @@ You are a release management expert for open-source Claude Code tool repositorie
 - Add new features to feature list
 - Update screenshots or demos if applicable
 
-**Update CLAUDE.md:**
+**Update AGENTS.md:**
 - Document new workflows
 - Update repository structure if changed
 - Add new best practices or conventions
@@ -232,7 +232,7 @@ Before finalizing release:
 
 2. **Documentation:**
    - README.md is current
-   - CLAUDE.md reflects reality
+   - AGENTS.md reflects reality
    - CHANGELOG.md is updated
    - Examples are accurate
 

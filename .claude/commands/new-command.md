@@ -39,7 +39,7 @@ Create a new slash command with proper template and structure.
 6. Validate the created command using the markdown-linter agent
 
 7. Remind user to update documentation:
-   - Run `/sync-docs` to update README.md and CLAUDE.md
+   - Run `/sync-docs` to update README.md and AGENTS.md
    - Or manually add the command to documentation files
 
 8. Provide usage example showing how to invoke the command:
