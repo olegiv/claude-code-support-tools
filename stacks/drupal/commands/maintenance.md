@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # Maintenance Mode
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be empty, `on` or `off`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 Toggle Drupal maintenance mode on or off.
 
 ## Arguments
@@ -16,13 +18,14 @@ Toggle Drupal maintenance mode on or off.
 
 ### 0. Validate Input
 ```bash
-if [ -n "${ARGUMENTS:-}" ]; then
-  if [ ${#ARGUMENTS} -gt 10 ]; then
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+if [ -n "${ARGS}" ]; then
+  if [ ${#ARGS} -gt 10 ]; then
     echo "ERROR: Input too long (max 10 characters)"
     exit 1
   fi
-  if ! printf '%s' "$ARGUMENTS" | grep -qE '^(on|off)$'; then
-    echo "ERROR: Invalid argument '$ARGUMENTS'. Use 'on' or 'off'"
+  if ! printf '%s' "$ARGS" | grep -qE '^(on|off)$'; then
+    echo "ERROR: Invalid argument '$ARGS'. Use 'on' or 'off'"
     exit 1
   fi
 fi

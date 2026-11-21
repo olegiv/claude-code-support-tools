@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security
+
+- Drupal and PHP stack commands check their arguments in the prompt before
+  running anything: the whole value, on one line, with anything uncertain
+  treated as invalid. Their shell blocks rely on that check: Claude Code
+  inserts the arguments into the prompt text before any shell runs, so a
+  shell check cannot protect a command that contains them.
+- `/db-query` passes the query to drush through a file written with the
+  Write tool, and checks and runs it in one call that keeps drush's exit
+  status and removes the file. It accepts one line of printable ASCII with
+  single-quoted strings only: no double quotes, backticks, dollar signs,
+  backslashes, comments or semicolons, which could hide text from the checks
+  or reach the database client as commands. It blocks more functions and
+  function families (file access, locks, sleeps, `dblink`, large objects,
+  `INTO`). The filter is best-effort: use a database user with SELECT-only
+  grants.
+- `/drush` passes no options or site aliases, checks and runs the command in
+  one call, refuses commands that change the site (including `cr`) until the
+  user has confirmed them, no longer generates login links (`uli`), and no
+  longer auto-approves drush.
+- `/feature-revert` without names lists the features and stops; with names
+  it checks them, reverts and clears caches in one call, and clears caches
+  only after a successful revert. `/user-info` rejects usernames starting
+  with `-`, which drush read as an option.
+
+### Fixed
+
+- Commands read the checked argument again in every shell block that needs
+  it: each Bash call is a new shell, and Claude Code substitutes positional
+  tokens such as `$1` but not `${ARGUMENTS:-}` or `${#ARGUMENTS}`.
+  `/test-coverage` (module), `/security-scan` (severity), `/code-quality`
+  (scope; step 6 printed "none" for every check), `/scaffold` (type),
+  `/translate-check` and `/content-audit` (filters) and `/logs` (severity)
+  now use the value they were given.
+- `/security-scan` filters `composer audit --format=json` by severity, keeps
+  advisories without a severity, and reports a failed audit.
+  `/test-coverage` reports a missing source directory as an error, and
+  `/code-quality` searches every custom root for `all` and reports grep
+  errors instead of "none".
+- `/logs` accepts nothing, a severity, a count, or a severity followed by a
+  count, rejects 0 and line breaks, and caps the count at 1000 even for very
+  long numbers.
+- The global Go strict-lint hook warns on `git commit`, matched with the
+  lint script's own pattern, when its script is installed but is not an
+  executable file or its link is broken. A missing script stays silent:
+  installing it is optional.
+
 ## [0.4.0] - 2026-11-21
 
 ### ⚠️ Breaking Changes

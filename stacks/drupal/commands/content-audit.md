@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # Content Audit
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be empty or one content type machine name matching `^[a-zA-Z0-9_]+$`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 Audit content for issues: orphaned references, unpublished items, stale content.
 
 ## Arguments
@@ -16,12 +18,13 @@ Audit content for issues: orphaned references, unpublished items, stale content.
 
 ### 0. Validate Input
 ```bash
-if [ -n "${ARGUMENTS:-}" ]; then
-  if [ ${#ARGUMENTS} -gt 64 ]; then
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+if [ -n "${ARGS}" ]; then
+  if [ ${#ARGS} -gt 64 ]; then
     echo "ERROR: Input too long (max 64 characters)"
     exit 1
   fi
-  if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+  if ! printf '%s' "$ARGS" | grep -qE '^[a-zA-Z0-9_]+$'; then
     echo "ERROR: Invalid content type. Only alphanumeric characters and underscores allowed."
     exit 1
   fi
@@ -45,7 +48,8 @@ ORDER BY type, status;
 
 **PostgreSQL:**
 ```bash
-TYPE_FILTER="${ARGUMENTS:-}"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+TYPE_FILTER="${ARGS}"
 if [ -n "$TYPE_FILTER" ]; then
   # Validation in step 0 guarantees alphanumeric + underscores only
   ./vendor/bin/drush sql:query "
@@ -71,7 +75,8 @@ fi
 
 **MySQL:**
 ```bash
-TYPE_FILTER="${ARGUMENTS:-}"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+TYPE_FILTER="${ARGS}"
 if [ -n "$TYPE_FILTER" ]; then
   # Validation in step 0 guarantees alphanumeric + underscores only
   ./vendor/bin/drush sql:query "

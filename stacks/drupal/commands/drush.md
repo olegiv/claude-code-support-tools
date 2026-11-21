@@ -1,76 +1,79 @@
 ---
 description: Execute a drush command with documentation
 argument-hint: <command> [arguments]
-allowed-tools: Bash
 ---
 
 Execute drush command: $ARGUMENTS
 
-1. Validate the command is safe to run:
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so a shell check cannot protect a command that contains them. Check them yourself first: the first word must be one of the commands in `SAFE_COMMANDS` below, and every other word must match `^[a-zA-Z0-9_.:][a-zA-Z0-9_.:-]*$` (a module, queue or other name). Options of any kind (anything starting with `-`, such as `--yes` or `--destination`) and site aliases such as `@prod` are not allowed; options after the `--` below would reach drush as plain arguments anyway. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command.
+
+**Confirm changing commands first.** `cr`, `updb`, `cim`, `cex`, `fr`, `en`, `pmu`, `queue:run`, `locale:update` and `entity:updates` (and their long names) change the site or its files, and in a non-interactive shell drush does not stop to ask. Ask the user to confirm the exact command and target in the conversation. Only after they approve it, change `CONFIRMED=no` to `CONFIRMED=yes` in the block below; the block refuses these commands otherwise.
+
+1. Check and run the command in one Bash call, so the value that is checked is
+   the value that runs:
    ```bash
-   if [ ${#ARGUMENTS} -gt 500 ]; then
+   ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+   if [ ${#ARGS} -gt 500 ]; then
      echo "ERROR: Input too long (max 500 characters)"
      exit 1
    fi
 
-   # Extract the drush subcommand (first word). Use printf, not echo:
-   # under zsh the builtin echo decodes backslash escapes, so the value
-   # checked here could differ from the raw $ARGUMENTS run below.
-   DRUSH_CMD=$(printf '%s' "$ARGUMENTS" | awk '{print $1}')
+   # Printable characters only: no line breaks, tabs or control characters.
+   # Count the bytes: $(...) would drop a trailing line break.
+   if [ "$(printf '%s' "$ARGS" | LC_ALL=C tr -d '[:print:]' | wc -c)" -ne 0 ]; then
+     echo "ERROR: Arguments must be one line of printable characters"
+     exit 1
+   fi
+
+   # Whole value: a command, then names separated by single spaces. No options,
+   # site aliases or shell characters.
+   if ! printf '%s\n' "$ARGS" | grep -qxE '[a-z][a-z:-]*( [a-zA-Z0-9_.:][a-zA-Z0-9_.:-]*)*'; then
+     echo "ERROR: Use a drush command followed by names only (no options or aliases)"
+     exit 1
+   fi
 
    # Allowlist of safe drush commands. Deliberately excludes sql:query and
    # php:eval: their effect is determined entirely by free-form text this
    # generic wrapper does not validate. Use /db-query for read-only SQL.
-   SAFE_COMMANDS="cr|cache:rebuild|status|st|core:status|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|uli|user:login|ws|watchdog:show|user:information|pm:list|core:requirements|queue:list|queue:run|locale:update|entity:updates"
-
-   if ! printf '%s' "$DRUSH_CMD" | grep -qE "^($SAFE_COMMANDS)$"; then
-     echo "ERROR: Unknown drush command '$DRUSH_CMD'. Verify it is safe before running."
+   # Also excludes uli/user:login: generating a login link is left to the user.
+   SAFE_COMMANDS="cr|cache:rebuild|status|st|core:status|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|ws|watchdog:show|user:information|pm:list|core:requirements|queue:list|queue:run|locale:update|entity:updates"
+   DRUSH_CMD=$(printf '%s' "$ARGS" | awk -v i=1 '{print $i}')
+   if ! printf '%s\n' "$DRUSH_CMD" | grep -qxE "($SAFE_COMMANDS)"; then
+     echo "ERROR: '$DRUSH_CMD' is not allowed by /drush"
      exit 1
    fi
 
-   # Block shell metacharacters (glob, redirect, escape, comment, history)
-   if printf '%s' "$ARGUMENTS" | grep -qE '[][;|&`$(){}!<>\\#*?~]'; then
-     echo "ERROR: Arguments contain forbidden shell characters"
-     exit 1
-   fi
-   # Block quote characters (prevent string escaping attacks)
-   if printf '%s' "$ARGUMENTS" | grep -qF '"' || printf '%s' "$ARGUMENTS" | grep -qF "'"; then
-     echo "ERROR: Arguments contain forbidden quote characters"
-     exit 1
-   fi
-   # Block auto-confirmation flags so drush's native prompts for
-   # destructive operations (updb/cim/fr/en/pmu) always fire — this
-   # command must never suppress them on the user's behalf.
-   if printf '%s' "$ARGUMENTS" | grep -qE '(^|[[:space:]])(-y|--yes|-n|--no)([[:space:]]|$)'; then
-     echo "ERROR: Auto-confirmation flags (-y/--yes/-n/--no) are not allowed"
-     exit 1
-   fi
-   # Block newlines (could introduce new commands)
-   if [ "$(printf '%s' "$ARGUMENTS" | wc -l)" -gt 0 ]; then
-     echo "ERROR: Arguments must be single-line"
-     exit 1
-   fi
-   ```
+   # Changing commands run only after the user approved this command and target.
+   CONFIRMED=no
+   case $DRUSH_CMD in
+     cr|cache:rebuild|updb|updatedb|cex|config:export|cim|config:import|fr|features:revert|en|pm:enable|pmu|pm:uninstall|queue:run|locale:update|entity:updates)
+       if [ "$CONFIRMED" != yes ]; then
+         echo "ERROR: '$DRUSH_CMD' changes the site: ask the user to confirm, then set CONFIRMED=yes"
+         exit 1
+       fi
+       ;;
+   esac
 
-2. Execute the drush command (no destructive operations without confirmation):
-   ```bash
    ./vendor/bin/drush -- $ARGUMENTS
    ```
 
-3. Common drush commands for reference. This command blocks the
-   `-y`/`--yes` auto-confirm flag, so destructive operations prompt
-   interactively; for scripted config/database workflows use the
-   purpose-built `/db-update`, `/config-import`, and `/feature-revert`
-   commands, and `/db-query` for read-only SQL:
-   - `cr` - Clear all caches
+2. Common drush commands for reference. This command passes no options and
+   asks you before running a command that changes the site; for scripted
+   config/database workflows use the purpose-built `/db-update`,
+   `/config-import`, and `/feature-revert` commands, and `/db-query` for
+   read-only SQL:
+   - `cr` - Clear all caches (asks you first)
    - `status` - Show system status
-   - `updb` - Run database updates (prompts for confirmation)
-   - `cex` - Export configuration (prompts for confirmation)
-   - `cim` - Import configuration (prompts for confirmation)
-   - `fr <module>` - Revert feature (prompts for confirmation)
-   - `en <module>` - Enable module (prompts for confirmation)
-   - `pmu <module>` - Uninstall module (prompts for confirmation)
-   - `uli` - Generate login link
-   - `ws --count=50` - Show watchdog logs
+   - `updb` - Run database updates (asks you first)
+   - `cex` - Export configuration (asks you first)
+   - `cim` - Import configuration (asks you first)
+   - `fr <module>` - Revert feature (asks you first)
+   - `en <module>` - Enable module (asks you first)
+   - `pmu <module>` - Uninstall module (asks you first)
+   - `ws` - Show recent watchdog logs; use `/logs 50` or `/logs error 20` for a
+     count or severity
 
-4. Report the command output and any relevant next steps
+   Login links (`drush uli`) are not generated by this command; run that
+   yourself when you need one.
+
+3. Report the command output and any relevant next steps
