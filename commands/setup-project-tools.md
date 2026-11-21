@@ -10,4 +10,5 @@ The agent will:
 3. Generate project-specific agents in .claude/agents/
 4. Generate slash commands in .claude/commands/
 5. Generate skills in .claude/skills/ if needed
-6. Provide documentation on how to use the generated tools
+6. Document the generated tools in `AGENTS.md`, with a `CLAUDE.md` that imports it via `@AGENTS.md` (projects that keep instructions only in `CLAUDE.md` are updated in place, and the `agents-md` skill is suggested)
+7. Provide documentation on how to use the generated tools

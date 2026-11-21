@@ -254,7 +254,7 @@ For each fix, include:
 7. **Actionable fixes:** Provide exact code changes the user can approve
 8. **Explain why:** Help the developer understand the importance of each fix
 9. **Respect project conventions:** Follow existing code style in the project
-10. **Check CLAUDE.md:** Adhere to any project-specific rules defined there
+10. **Check AGENTS.md and CLAUDE.md:** Adhere to any project-specific rules defined in either
 
 ## Workflow
 

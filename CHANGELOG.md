@@ -30,12 +30,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--label` would otherwise create a bare label), a failed label listing
   stops it too, and labels that trigger automation are never applied unless
   the user asks; that list is documented as best-effort.
+- `agents-md` skill (Claude Code and Codex) that moves a project's shared
+  instructions into `AGENTS.md` and leaves a `CLAUDE.md` that imports it
+  with `@AGENTS.md`, after the user approves the plan. It updates tools
+  that write `CLAUDE.md`, checks Codex's 32 KiB limit, and verifies the
+  result with headless `claude -p` and `codex exec` runs.
+- Global rule to keep one copy of project instructions: shared content in
+  `AGENTS.md`, Claude Code-only notes in a `CLAUDE.md` that imports it.
+  Existing projects are migrated only with the user's approval. A
+  paragraph for `~/.codex/AGENTS.md` gives Codex the same rule.
 
 ### Changed
 
 - This repository's instructions now live in `AGENTS.md`; `CLAUDE.md`
   imports it, so Claude Code and Codex read the same text. The docs
   maintenance agents and commands update `AGENTS.md` instead.
+- `project-architect` and `/setup-project-tools` document generated tools
+  in `AGENTS.md` with an importing `CLAUDE.md`, and the Go, Kotlin and
+  Swift templates look for project rules in both files.
 - The commit and push test gate no longer runs PHPUnit: it runs only when
   the user asks in their own message, never as a fixed step of a skill,
   agent or command, and then only the tests covering the updated code, not

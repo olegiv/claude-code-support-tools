@@ -238,6 +238,19 @@ When asked to fix, address, check, or re-check automated pull-request review fin
    - For personal testing → add to `.claude/settings.local.json`
    - For team use → add to `.claude/settings.json` and commit
 
+## Project Instruction Files: AGENTS.md and CLAUDE.md
+
+Keep one copy of a project's agent instructions, so Claude Code and Codex follow the same text:
+
+- **`AGENTS.md`** holds the shared instructions: purpose, structure, build/test/lint commands, conventions and workflows. Codex reads it directly.
+- **`CLAUDE.md`** starts with `@AGENTS.md` on its own line, outside any code block, and adds only instructions for Claude Code alone. Claude Code loads the imported file in full.
+
+### Rules
+1. **Edit `AGENTS.md`** when you add or change a project's shared instructions. Never copy them into `CLAUDE.md`, and never reach shared text only through an `@` import inside `AGENTS.md`: Codex does not follow imports.
+2. **Create both files in this layout** when asked to write project instructions, including with `/init`.
+3. **Don't restructure an existing project unasked.** When shared instructions live only in `CLAUDE.md`, or in both files, follow them where they are and suggest the `agents-md` skill. Migrate only with the user's approval: a committed `CLAUDE.md` belongs to the whole team.
+4. **Read both files** when looking for a project's rules or test commands. If `AGENTS.md` exists and `CLAUDE.md` does not import it, read it before working: its rules apply too.
+
 ## Security Audit Files
 
 **IMPORTANT:** Security audit results and status files are stored in the `.audit` directory in the project root.

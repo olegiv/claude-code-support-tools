@@ -18,7 +18,7 @@ A collection of powerful extensions for [Claude Code](https://claude.ai/code) in
 - Automatically detects languages, frameworks, build tools, testing infrastructure
 - Generates custom Claude Code agents, skills, and commands tailored to the project
 - Creates workflow-specific extensions (test-runner, build-manager, linter-helper, etc.)
-- **Updates existing documentation** (CLAUDE.md, README.md) to document new tools
+- **Updates existing documentation** (AGENTS.md with an importing CLAUDE.md, README.md) to document new tools
 - Use when setting up Claude Code for a new project or after major tech stack changes
 
 **Repository Maintenance Agents** (`.claude/agents/`)
@@ -68,6 +68,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Pull request labels from each repository's label set (new labels only with approval)
 - Platform-specific command compatibility (macOS/Linux)
 - Permission file management guidelines
+- One copy of project instructions: shared content in `AGENTS.md`, with `CLAUDE.md` importing it via `@AGENTS.md`
 
 **`global/settings.json`**
 - Custom status line showing project, git branch, and model
@@ -84,6 +85,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Before approval or publication, the author verifies changed behavior with failure/normal scenarios and affected consumer traces. See [behavior verification](global/skills/pr-fix/references/behavior-verification.md). Baseline test counts, a clean review, and the runner's `status=ready` supplement this evidence; they do not establish its coverage.
 - `scripts/pr-fix.sh` - runner with `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
 - `references/` - triage rules and reply templates, developer instructions for the local reviewer, a `## Code Review Rules` block for a target repository's AGENTS.md, and a paragraph for `~/.codex/AGENTS.md`
+- `agents-md/` - Organize a project's instruction files so Claude Code and Codex follow one copy: shared content in `AGENTS.md`, and a `CLAUDE.md` that imports it with `@AGENTS.md` and adds only Claude Code-specific notes. Moves content word for word after you approve the plan, updates tools that write `CLAUDE.md`, checks Codex's 32 KiB `AGENTS.md` limit, and verifies with headless `claude -p` and `codex exec` runs. `/agents-md` in Claude Code, `$agents-md` in Codex.
 
 **`global/hooks/`** - Git hooks for commit and push protection
 - `pre-commit` - Prevents Claude Code from committing without explicit user approval
@@ -251,9 +253,11 @@ Skills follow the Agent Skills format that both Claude Code and Codex read, so o
 mkdir -p ~/.claude/skills ~/.codex/skills
 ln -s "$PWD/global/skills/pr-fix" ~/.claude/skills/pr-fix
 ln -s "$PWD/global/skills/pr-fix" ~/.codex/skills/pr-fix
+ln -s "$PWD/global/skills/agents-md" ~/.claude/skills/agents-md
+ln -s "$PWD/global/skills/agents-md" ~/.codex/skills/agents-md
 ```
 
-Claude Code then offers `/pr-fix <PR>`; Codex offers `$pr-fix <PR>`. The runner needs `gh` (authenticated), `jq`, `git` and the `codex` CLI on PATH. Add the paragraph from `global/skills/pr-fix/references/codex-agents-md-snippet.md` to `~/.codex/AGENTS.md` so Codex routes findings work to the skill.
+Claude Code then offers `/pr-fix <PR>`; Codex offers `$pr-fix <PR>`. The runner needs `gh` (authenticated), `jq`, `git` and the `codex` CLI on PATH. Add the paragraph from `global/skills/pr-fix/references/codex-agents-md-snippet.md` to `~/.codex/AGENTS.md` so Codex routes findings work to the skill, and the one from `global/skills/agents-md/references/codex-agents-md-snippet.md` so Codex keeps project instructions in the same `AGENTS.md` layout as the global `CLAUDE.md` rule.
 
 ### Using Git Hooks
 
@@ -387,7 +391,7 @@ The agent will:
 2. Generate custom agents in `.claude/agents/` (e.g., test-runner, build-manager)
 3. Generate slash commands in `.claude/commands/` (e.g., /test, /build, /lint)
 4. Create skills in `.claude/skills/` if needed
-5. **Update existing documentation** (CLAUDE.md, README.md, etc.) with new tools
+5. **Update existing documentation** (AGENTS.md, CLAUDE.md, README.md, etc.) with new tools
 6. Provide quick start guide for using the generated extensions
 
 ### Security Audit
@@ -566,10 +570,12 @@ Claude will respond and complete the task with full repository access.
 │   │   ├── finalize.md            # Session finalization command
 │   │   └── release-gh-prepare.md  # Draft GitHub release with CHANGELOG update
 │   ├── skills/                    # Shared Claude Code + Codex skills
-│   │   └── pr-fix/                # Repair PR review findings in ≤ 2 pushes
-│   │       ├── SKILL.md
-│   │       ├── scripts/pr-fix.sh  # collect/triage/check/review/status/close/pre-push
-│   │       └── references/        # triage rules, reviewer instructions, AGENTS.md blocks
+│   │   ├── pr-fix/                # Repair PR review findings in ≤ 2 pushes
+│   │   │   ├── SKILL.md
+│   │   │   ├── scripts/pr-fix.sh  # collect/triage/check/review/status/close/pre-push
+│   │   │   └── references/        # triage rules, reviewer instructions, AGENTS.md blocks
+│   │   └── agents-md/             # One AGENTS.md, imported by CLAUDE.md
+│   │       └── SKILL.md
 │   ├── hooks/                     # Git hooks for commit and push protection
 │   │   ├── README.md              # Installation instructions
 │   │   ├── pre-commit             # Prevents automated commits

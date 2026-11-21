@@ -156,6 +156,7 @@ the author must also satisfy the behavior-verification gate before publishing.
     - `pr-fix/SKILL.md` - Repairs automated PR review findings in at most two fix pushes (collect, triage, minimal fix, local Codex review gate, one push, close every thread)
     - `pr-fix/scripts/pr-fix.sh` - Runner: `collect`, `triage`, `check`, `review`, `status`, `close`, `record-push`, `pre-push`; state in `<repo>/.audit/pr-<N>/`
     - `pr-fix/references/` - Triage rules and reply templates, local reviewer instructions, `## Code Review Rules` block for target repos, `~/.codex/AGENTS.md` paragraph
+    - `agents-md/SKILL.md` - Moves a project's shared instructions into `AGENTS.md`, imported by `CLAUDE.md`, after approval; verifies with `claude -p` and `codex exec`
   - `hooks/` - Git hooks: `pre-commit` approval gate and `pre-push` wrapper for the `pr-fix` push gate
   - `tests/` - Self-contained POSIX shell tests for global configuration
     - `statusline-cwd-test.sh` - Tests status line `cwd` validation (anti-injection + valid path acceptance)
@@ -220,7 +221,7 @@ The project architect is an elite Software Architect agent that analyzes project
 - Custom agents in `.claude/agents/` (test-runner, build-manager, linter-helper, deploy-assistant, etc.)
 - Slash commands in `.claude/commands/` (/test, /build, /lint, /deploy, etc.)
 - Skills in `.claude/skills/` if applicable
-- **Updates existing documentation** (CLAUDE.md, README.md, etc.) to document new tools
+- **Updates existing documentation** (AGENTS.md with an importing CLAUDE.md, README.md, etc.) to document new tools
 - Quick start guide for using the generated extensions
 
 ### Repository Maintenance Agents
@@ -472,6 +473,7 @@ Enforces strict git workflow rules across all projects:
   PHPUnit is the exception: it runs only when the user asks
 - Clean commit messages without AI attribution
 - Separate `.claude/settings.json` (team, committed) from `.claude/settings.local.json` (personal, gitignored)
+- One copy of project instructions: shared in `AGENTS.md`, imported by `CLAUDE.md`; existing projects migrate only with approval
 
 **Platform compatibility:**
 - macOS-specific command syntax when `Platform: darwin`
@@ -498,7 +500,7 @@ sh global/tests/statusline-cwd-test.sh
 
 ### global/skills/
 
-Skills in the shared Agent Skills format (`SKILL.md` with `name`, `description`, `allowed-tools`; supporting `scripts/` and `references/`). Install by symlinking the skill directory into both `~/.claude/skills/<name>` and `~/.codex/skills/<name>`. Keep frontmatter to portable keys; Codex does not expand `${CLAUDE_SKILL_DIR}` or `$ARGUMENTS`, so SKILL.md tells the agent to resolve the skill directory itself. Currently: `pr-fix/` (see "PR Repair Skill" above).
+Skills in the shared Agent Skills format (`SKILL.md` with `name`, `description`, `allowed-tools`; supporting `scripts/` and `references/`). Install by symlinking the skill directory into both `~/.claude/skills/<name>` and `~/.codex/skills/<name>`. Keep frontmatter to portable keys; Codex does not expand `${CLAUDE_SKILL_DIR}` or `$ARGUMENTS`, so SKILL.md tells the agent to resolve the skill directory itself. Currently: `pr-fix/` (see "PR Repair Skill" above) and `agents-md/`.
 
 ### global/hooks/
 
