@@ -74,7 +74,7 @@ Located in `global/` directory - copy these to your `~/.claude/` directory:
 - Custom status line showing project, git branch, and model
 - Always-thinking mode enabled
 - Go strict-lint `PreToolUse` hook, active only when `~/.claude/hooks/go-strict-lint.sh` is installed
-- Personal defaults you may want to change: plan mode as the default permission mode, the `opus[1m]` model, the fullscreen renderer (`tui`), the `chrome-devtools-mcp` and `pr-review-toolkit` plugins, `feedbackDrafts` off and `switchModelsOnFlag`
+- Personal defaults you may want to change: plan mode as the default permission mode, the `opus[1m]` model, the fullscreen renderer (`tui`), voice mode in hold mode, the `chrome-devtools-mcp` and `pr-review-toolkit` plugins, `feedbackDrafts` off and `switchModelsOnFlag`
 - `skipDangerousModePermissionPrompt: true` removes the confirmation before bypass-permissions mode; set it to `false` if you want to keep that prompt
 
 **`global/commands/`** - Global slash command templates

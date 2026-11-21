@@ -439,7 +439,8 @@ Global Claude Code settings (the author's own; README lists which are personal d
 - **Custom status line** - Shows project name, directory, git branch, git status, and model
 - **alwaysThinkingEnabled** - Enables continuous thinking mode
 - **Go strict-lint hook** - `PreToolUse` on Bash; runs `~/.claude/hooks/go-strict-lint.sh` when installed
-- **Personal defaults** - plan mode, `opus[1m]`, `tui: fullscreen`, two plugins, `feedbackDrafts` off, `switchModelsOnFlag`, and `skipDangerousModePermissionPrompt: true` (no confirmation before bypass-permissions mode)
+- **Personal defaults** - plan mode, `opus[1m]`, `tui: fullscreen`, voice (hold), two plugins, `feedbackDrafts` off, `switchModelsOnFlag`, and `skipDangerousModePermissionPrompt: true` (no confirmation before bypass-permissions mode)
+- **Review note** - the owner keeps these defaults on purpose; reviewers should not flag them
 
 The status line command validates `.workspace.current_dir` against terminal escape injection using a `jq` codepoint predicate (`explode | all(. >= 32 and . != 127 and (. < 128 or . > 159))`) that rejects C0 controls, DEL, and the full C1 range (U+0080–U+009F), and falls back to `unknown` on mismatch or non-existent paths. All git operations use `git -C "$safe_cwd"` so a malicious `cwd` cannot leak metadata from the calling process directory.
 
