@@ -99,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- `global/settings.json` sets `skipDangerousModePermissionPrompt: true` by
+  the repository owner's choice, so Claude Code no longer asks for
+  confirmation before entering bypass-permissions mode. Anyone who copies
+  the template and wants that prompt should set it to `false`.
 - Narrow the `/code-quality` and `/fly-deploy` auto-approvals to exact
   commands for everything that runs code, deploys or writes. Prefix rules
   such as `go vet*`, `go env*`, `rg *`, `sed -n*` and `fly *` still allowed

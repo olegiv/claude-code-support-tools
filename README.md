@@ -236,7 +236,7 @@ cp global/CLAUDE.md ~/.claude/
 cp global/settings.json ~/.claude/
 ```
 
-These will apply to all your Claude Code sessions across all projects. If you already have a `~/.claude/settings.json`, merge the keys you want instead of overwriting it, and review the personal defaults listed above. If you symlink these files instead of copying them, every branch switch or pull changes your live settings and hooks, so review changes to them as you would code.
+These will apply to all your Claude Code sessions across all projects. If you already have a `~/.claude/settings.json`, merge the keys you want instead of overwriting it, and review the personal defaults listed above. In particular, the template sets `skipDangerousModePermissionPrompt: true`, which turns off the confirmation before bypass-permissions mode; set it to `false` to keep that prompt. If you symlink these files instead of copying them, every branch switch or pull changes your live settings and hooks, so review changes to them as you would code.
 
 ### Using Global Commands
 
