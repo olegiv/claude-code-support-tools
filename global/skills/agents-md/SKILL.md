@@ -205,14 +205,15 @@ nothing it was supposed to print is inconclusive, never passed.
    LC_ALL=C comm -23 <(tar -xOf SNAP/before.tar | grep -v '^[[:space:]]*$' | LC_ALL=C sort) <(cat AGENTS.md CLAUDE.md | grep -v '^[[:space:]]*$' | LC_ALL=C sort)
    ```
 
-   Passed when every printed line is the old title, the old intro line or a
-   reference change you made, and the report names each one.
+   Passed when every printed line is the old title, the old intro line, a
+   reference change you made, or a duplicate you removed while merging
+   (state E), and the report names each one.
 2. **Import line.** One check per file; the target must exist:
 
    ```bash
    tr -d '\r' < CLAUDE.md | grep -qx '@AGENTS\.md' && test -f AGENTS.md && echo "CLAUDE.md imports AGENTS.md"
    test ! -e .claude/CLAUDE.md || { tr -d '\r' < .claude/CLAUDE.md | grep -qx '@\.\./AGENTS\.md' && test -f AGENTS.md && echo ".claude/CLAUDE.md imports AGENTS.md"; }
-   awk 'BEGIN { t = sprintf("%c%c%c", 96, 96, 96) } { s = $0; sub(/^[ \t]+/, "", s) } index(s, t) == 1 || index(s, "~~~") == 1 { f = !f; next } f && /^@/ { print FILENAME ":" FNR ": import inside a fenced block" }' CLAUDE.md
+   for f in CLAUDE.md .claude/CLAUDE.md; do test ! -f "$f" || awk 'BEGIN { t = sprintf("%c%c%c", 96, 96, 96) } { s = $0; sub(/^[ \t]+/, "", s) } index(s, t) == 1 || index(s, "~~~") == 1 { f = !f; next } f && /^@/ { print FILENAME ":" FNR ": import inside a fenced block" }' "$f"; done
    ```
 
    Passed when each file that exists prints its "imports" line and `awk`

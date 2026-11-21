@@ -466,7 +466,7 @@ Git hooks that protect against unsolicited automated commits and pushes:
 **pre-commit hook:**
 - Blocks automated commits in non-interactive mode (e.g., Claude Code committing on its own)
 - Requires user to type "YES" (all caps) to approve commits in interactive terminal mode
-- When the user explicitly requests a commit (e.g., `/commit-do`), Claude Code uses `--no-verify` — the user's request IS the approval
+- An explicitly approved commit may pass this hook with `--no-verify` (see `global/hooks/README.md`); `/commit-do` itself runs plain `git commit -F`
 
 **Installation options:**
 1. **Single repository**: Copy to `.git/hooks/pre-commit` in specific project
