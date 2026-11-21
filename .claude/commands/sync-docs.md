@@ -16,7 +16,7 @@ Use the doc-sync-manager agent to synchronize documentation after adding or modi
 
 3. Generate updates for:
    - `README.md`
-   - `CLAUDE.md`
+   - `AGENTS.md`
    - Any other relevant documentation files
 
 4. Show proposed changes to user for review

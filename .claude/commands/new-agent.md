@@ -34,7 +34,7 @@ Create a new Claude Code agent with proper template and structure.
 6. Validate the created agent using the markdown-linter agent
 
 7. Remind user to update documentation:
-   - Run `/sync-docs` to update README.md and CLAUDE.md
+   - Run `/sync-docs` to update README.md and AGENTS.md
    - Or manually add the agent to documentation files
 
 8. Provide usage example for the new agent

@@ -70,10 +70,11 @@ You are a release management expert for open-source Claude Code tool repositorie
 - Add new features to feature list
 - Update screenshots or demos if applicable
 
-**Update CLAUDE.md:**
+**Update AGENTS.md:**
 - Document new workflows
 - Update repository structure if changed
 - Add new best practices or conventions
+- Keep it under 28,672 bytes (`sh global/tests/instruction-files-test.sh`): Codex stops reading project instructions at 32 KiB by default
 - Revise agent/command documentation
 
 **Version Documentation:**
@@ -232,7 +233,7 @@ Before finalizing release:
 
 2. **Documentation:**
    - README.md is current
-   - CLAUDE.md reflects reality
+   - AGENTS.md reflects reality
    - CHANGELOG.md is updated
    - Examples are accurate
 

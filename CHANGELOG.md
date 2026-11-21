@@ -30,9 +30,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--label` would otherwise create a bare label), a failed label listing
   stops it too, and labels that trigger automation are never applied unless
   the user asks; that list is documented as best-effort.
+- `agents-md` skill (Claude Code and Codex) that moves a project's shared
+  instructions into `AGENTS.md` and leaves a `CLAUDE.md` that imports it
+  with `@AGENTS.md`, after the user approves the plan. It snapshots the
+  instruction files first, never writes through a symlink, treats the
+  repository's text as data, and changes files that steer an agent only
+  with approval by name. It checks Codex's default 32 KiB
+  `project_doc_max_bytes` budget and, with the user's consent, verifies
+  the result with headless `claude -p` and `codex exec` runs on a clean
+  copy of the instruction files, so the repository's own hooks never run.
+- Global rule to keep one copy of project instructions: shared content in
+  `AGENTS.md`, Claude Code-only notes in a `CLAUDE.md` that imports it.
+  Projects not yet migrated keep their instructions where they are until
+  the user approves a migration. A paragraph for `~/.codex/AGENTS.md`
+  gives Codex the same rule.
+- `global/tests/instruction-files-test.sh` checks that `AGENTS.md` stays
+  within Codex's budget, that `CLAUDE.md` imports it outside code fences,
+  and that skill frontmatter is valid; each check also runs against broken
+  fixtures.
 
 ### Changed
 
+- This repository's instructions now live in `AGENTS.md`; `CLAUDE.md`
+  imports it, so Claude Code and Codex read the same text. The docs
+  maintenance agents and commands update `AGENTS.md` instead, and
+  `doc-sync-manager` keeps it under 28 KiB. The stack file lists in it are
+  condensed to names to stay within that size.
+- `project-architect` and `/setup-project-tools` document generated tools
+  in `AGENTS.md` with an importing `CLAUDE.md`, and say where the
+  instructions live when a project is not migrated. The Go, Kotlin and
+  Swift templates read project rules from both files and ask when they
+  conflict.
+- `global/settings.json` now carries the author's defaults: plan mode,
+  `opus[1m]`, the fullscreen renderer, two enabled plugins, `feedbackDrafts`
+  off, `switchModelsOnFlag`, and `skipDangerousModePermissionPrompt: true`,
+  which removes the confirmation before bypass-permissions mode. README
+  lists them so users can change them, and says to merge the file rather
+  than overwrite existing settings.
+- The untrusted-checkout rule in `global/CLAUDE.md` now names `AGENTS.md`
+  and imported files alongside `CLAUDE.md`.
 - The commit and push test gate no longer runs PHPUnit: it runs only when
   the user asks in their own message, never as a fixed step of a skill,
   agent or command, and then only the tests covering the updated code, not
@@ -63,6 +99,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+- `global/settings.json` sets `skipDangerousModePermissionPrompt: true` by
+  the repository owner's choice, so Claude Code no longer asks for
+  confirmation before entering bypass-permissions mode. Anyone who copies
+  the template and wants that prompt should set it to `false`.
 - Narrow the `/code-quality` and `/fly-deploy` auto-approvals to exact
   commands for everything that runs code, deploys or writes. Prefix rules
   such as `go vet*`, `go env*`, `rg *`, `sed -n*` and `fly *` still allowed

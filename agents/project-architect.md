@@ -267,7 +267,13 @@ description: What this skill provides
    - Ensure consistent formatting
 
 4. **Document**: Update project documentation
-   - Update CLAUDE.md if it exists (add new agents/commands to relevant sections)
+   - The target layout keeps the project's agent instructions in one copy: shared content in `AGENTS.md`, and a `CLAUDE.md` that starts with `@AGENTS.md` on its own line and adds only Claude Code-specific notes. Claude Code follows the import; Codex reads `AGENTS.md` directly. Never move content between the two files without the user's approval.
+   - Document the new agents/commands in the file that holds the shared instructions:
+     - **Neither file exists:** create both in the target layout.
+     - **Layout in place:** add them to `AGENTS.md`.
+     - **`AGENTS.md` exists, but no `CLAUDE.md` imports it** (no `CLAUDE.md`, or one without the import): add them to `AGENTS.md`, and ask the user before creating `CLAUDE.md` or adding the `@AGENTS.md` line.
+     - **Shared instructions only in `CLAUDE.md`, or in both files:** in a project not yet migrated, edit the file that holds the instructions until it is migrated.
+   - Unless the layout was already in place, end your final report with a note naming the files that hold the project's instructions, what Claude Code or Codex does not see as a result, and that the `agents-md` skill can migrate them.
    - Update README.md with new tools and usage examples
    - Update any existing documentation files that reference Claude Code tools
    - Create a quick reference guide for the generated extensions
@@ -344,11 +350,11 @@ All files have been created in .claude/ directory.
 3. All generated commands in `.claude/commands/`
 4. Any skills in `.claude/skills/`
 5. **Updated documentation:**
-   - Update `CLAUDE.md` if it exists (document new agents/commands in appropriate sections)
+   - Document new agents/commands where step 4 of the workflow says: normally `AGENTS.md`, imported by `CLAUDE.md` via `@AGENTS.md`
    - Update `README.md` with usage examples for new tools
    - Update any other existing documentation that references Claude Code extensions
 6. Quick start guide for using the generated extensions
 
-**Important:** Always check for existing documentation files (CLAUDE.md, README.md, docs/, etc.) and update them to reflect the newly generated tools. Users should be able to discover and use the new agents and commands through their project documentation.
+**Important:** Always check for existing documentation files (AGENTS.md, CLAUDE.md, README.md, docs/, etc.) and update them to reflect the newly generated tools. Users should be able to discover and use the new agents and commands through their project documentation.
 
 Remember: The goal is to make the developer's life easier by automating their specific workflows, not to impose a generic solution.
