@@ -6,31 +6,34 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep
 
 Generate PHPUnit tests for: $ARGUMENTS
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be one relative path or module name matching `^[a-zA-Z0-9_./-]+$` that contains no `..` and starts with neither `/` nor `-`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 ## Instructions
 
 ### 0. Validate Input
 ```bash
-if [ ${#ARGUMENTS} -gt 256 ]; then
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+if [ ${#ARGS} -gt 256 ]; then
   echo "ERROR: Input too long (max 256 characters)"
   exit 1
 fi
 
 # Block path traversal (use printf, not echo: under zsh echo decodes
 # backslash escapes before grep sees them)
-if printf '%s' "$ARGUMENTS" | grep -qE '\.\.'; then
+if printf '%s' "$ARGS" | grep -qE '\.\.'; then
   echo "ERROR: Path traversal not allowed"
   exit 1
 fi
 
 # Block absolute paths — inputs are module names or project-relative
 # paths, never absolute filesystem paths like /etc/passwd
-if printf '%s' "$ARGUMENTS" | grep -qE '^/'; then
+if printf '%s' "$ARGS" | grep -qE '^/'; then
   echo "ERROR: Absolute paths not allowed"
   exit 1
 fi
 
 # Validate: module name (alphanumeric/underscore) or file path (safe chars)
-if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
+if ! printf '%s' "$ARGS" | grep -qE '^[a-zA-Z0-9_./-]+$'; then
   echo "ERROR: Invalid input. Only alphanumeric, dots, slashes, hyphens, underscores allowed."
   exit 1
 fi

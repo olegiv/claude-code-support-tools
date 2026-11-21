@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "f=\"$HOME/.claude/hooks/go-strict-lint.sh\"; [ ! -x \"$f\" ] || exec \"$f\"",
+            "command": "f=\"$HOME/.claude/hooks/go-strict-lint.sh\"; if [ -f \"$f\" ] && [ -x \"$f\" ]; then exec \"$f\"; elif [ -e \"$f\" ] || [ -L \"$f\" ]; then input=$(cat); cmd=$(printf '%s' \"$input\" | jq -r '.tool_input.command // \"\"' 2>/dev/null) || cmd=$input; a=\"(\\\"[^\\\"]*\\\"|'[^']*'|[^[:space:];&|\\\"']+)\"; if printf '%s\\n' \"$cmd\" | grep -Eq \"(^|[;&|(]|[[:space:]])git([[:space:]]+-[Cc][[:space:]]+$a)*[[:space:]]+commit([[:space:]]|\\$)\"; then printf '%s\\n' '{\"systemMessage\":\"go-strict-lint.sh is installed but is not an executable file, or its link is broken: this git commit is not being linted\"}'; fi; fi",
             "timeout": 600
           }
         ]

@@ -7,6 +7,8 @@ allowed-tools: Bash, Read
 Scan custom Drupal code for quality issues, coding-standard violations, deprecated API
 usage, and dependency vulnerabilities.
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be empty, `all`, or one module or theme machine name matching `^[a-zA-Z0-9_]+$`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 **Read-only.** Report findings and offer the exact fixes and commands; do not edit files
 and do not run `phpcbf` / `composer lint-fix*`. The user decides what to apply.
 
@@ -61,18 +63,19 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
 1. **Validate and resolve scope:**
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
    TARGET=
-   if [ -n "${ARGUMENTS:-}" ] && [ "$ARGUMENTS" != "all" ]; then
-     if [ ${#ARGUMENTS} -gt 128 ]; then
+   if [ -n "${ARGS}" ] && [ "$ARGS" != "all" ]; then
+     if [ ${#ARGS} -gt 128 ]; then
        echo "ERROR: Input too long (max 128 characters)"; exit 1
      fi
-     if ! printf '%s' "$ARGUMENTS" | grep -qE '^[a-zA-Z0-9_]+$'; then
+     if ! printf '%s' "$ARGS" | grep -qE '^[a-zA-Z0-9_]+$'; then
        echo "ERROR: Invalid name. Only alphanumeric and underscores allowed."; exit 1
      fi
-     for d in "modules/custom/$ARGUMENTS" "themes/custom/$ARGUMENTS"; do
+     for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do
        [ -d "$d" ] && TARGET="$d"
      done
-     [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGUMENTS or themes/custom/$ARGUMENTS"; exit 1; }
+     [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }
    fi
    if [ -n "$TARGET" ]; then
      GREP_PATHS="$TARGET"
@@ -105,6 +108,8 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
 3. **PHPStan (primary):**
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above; each Bash call is a new shell
+   TARGET=; if [ -n "$ARGS" ] && [ "$ARGS" != all ]; then for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do [ -d "$d" ] && TARGET="$d"; done; [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }; fi
    # Scoped run passes the path; whole-project run passes none and uses phpstan.neon `paths`.
    ./vendor/bin/phpstan analyse ${TARGET:+"$TARGET"} --no-progress
    ```
@@ -158,6 +163,8 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
    **4b. The gate - changed files.**
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above; each Bash call is a new shell
+   TARGET=; if [ -n "$ARGS" ] && [ "$ARGS" != all ]; then for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do [ -d "$d" ] && TARGET="$d"; done; [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }; fi
    $PHPCS --filter=GitModified ${TARGET:+"$TARGET"}     # or: composer lint-changed
    ```
    These are the violations you are responsible for. Fix them.
@@ -172,6 +179,8 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
    **4c. The debt figure - informational.**
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above; each Bash call is a new shell
+   TARGET=; if [ -n "$ARGS" ] && [ "$ARGS" != all ]; then for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do [ -d "$d" ] && TARGET="$d"; done; [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }; fi
    $PHPCS --report=summary ${TARGET:+"$TARGET"}         # or: composer lint
    ```
    Report this number as pre-existing drift. Do not put it in the actionable total and
@@ -184,6 +193,8 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
    **4d. Offer the mechanical fixes - this command does not apply them.** Most
    violations are mechanical. Show the patch with `--report=diff`, which writes nothing:
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above; each Bash call is a new shell
+   TARGET=; if [ -n "$ARGS" ] && [ "$ARGS" != all ]; then for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do [ -d "$d" ] && TARGET="$d"; done; [ -n "$TARGET" ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }; fi
    $PHPCS --report=diff ${TARGET:+"$TARGET"}            # read-only preview
    ```
    Then hand the user the command and let them decide:
@@ -208,20 +219,34 @@ Scope: $ARGUMENTS (a custom module machine name, "all", or empty for all custom 
 
 6. **Drupal anti-pattern greps** (scoped to `$TARGET`):
    ```bash
+   ARGS='$ARGUMENTS'  # passed the argument check above; each Bash call is a new shell
+   # Paths to search: the one module or theme, or every custom root for "all".
+   set --
+   if [ -n "$ARGS" ] && [ "$ARGS" != all ]; then
+     for d in "modules/custom/$ARGS" "themes/custom/$ARGS"; do [ -d "$d" ] && set -- "$d"; done
+     [ $# -gt 0 ] || { echo "ERROR: no modules/custom/$ARGS or themes/custom/$ARGS"; exit 1; }
+   else
+     for d in modules/custom themes/custom; do [ -d "$d" ] && set -- "$@" "$d"; done
+     [ $# -gt 0 ] || { echo "ERROR: no modules/custom or themes/custom directory"; exit 1; }
+   fi
+   # grep exits 1 when nothing matches and 2 on an error: report errors, not "none".
+   show() { if [ "$rc" -gt 1 ]; then echo "  ERROR: grep failed (exit $rc)"; elif [ -n "$out" ]; then printf '%s\n' "$out"; else echo "  none"; fi; }
+
    echo "Debug leftovers:"
-   grep -rnE '\b(var_dump|print_r|var_export|dpm|dvm|dsm|kint|ksm|dpq|dd|dump)\s*\(' "$TARGET" \
-     --include='*.php' --include='*.module' --include='*.inc' --include='*.install' --include='*.theme' \
-     | grep -v '/tests/' || echo "  none"
+   out=$(grep -rnE '\b(var_dump|print_r|var_export|dpm|dvm|dsm|kint|ksm|dpq|dd|dump)\s*\(' "$@" \
+     --include='*.php' --include='*.module' --include='*.inc' --include='*.install' --include='*.theme'); rc=$?
+   out=$(printf '%s\n' "$out" | grep -v '/tests/'); show
 
    echo "Raw Twig output (|raw):"
-   grep -rnE '\|\s*raw\b' "$TARGET" --include='*.twig' || echo "  none"
+   out=$(grep -rnE '\|\s*raw\b' "$@" --include='*.twig'); rc=$?; show
 
    echo "Deprecated procedural API:"
-   grep -rnE '\b(db_query|db_select|db_insert|db_update|db_delete|drupal_set_message|format_string|drupal_render|entity_load)\s*\(' "$TARGET" \
-     --include='*.php' --include='*.module' --include='*.inc' --include='*.install' || echo "  none"
+   out=$(grep -rnE '\b(db_query|db_select|db_insert|db_update|db_delete|drupal_set_message|format_string|drupal_render|entity_load)\s*\(' "$@" \
+     --include='*.php' --include='*.module' --include='*.inc' --include='*.install'); rc=$?; show
 
    echo "Static \\Drupal:: calls in src/ (prefer dependency injection):"
-   grep -rn '\\Drupal::' "$TARGET"/src 2>/dev/null | grep -v '/tests/' || echo "  none"
+   out=$(grep -rn '\\Drupal::' "$@" --include='*.php'); rc=$?
+   out=$(printf '%s\n' "$out" | grep '/src/' | grep -v '/tests/'); show
    ```
    Review each hit: `print_r`/`var_export` with a `true` second argument may be legitimate;
    `\Drupal::` in a `*.module` hook or a static `create()` factory is acceptable, but inside

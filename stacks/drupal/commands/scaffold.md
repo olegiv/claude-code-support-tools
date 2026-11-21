@@ -6,6 +6,8 @@ allowed-tools: Bash, Read, Write, Edit, Glob
 
 # Scaffold Drupal Code
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be two or three words: a type (`controller`, `service`, `form`, `block`, `plugin`, `entity`, `event` or `subscriber`), a component name matching `^[a-zA-Z][a-zA-Z0-9_]*$`, and optionally a module name matching `^[a-zA-Z][a-zA-Z0-9_]*$`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 Generate boilerplate code for common Drupal components.
 
 ## Arguments
@@ -19,14 +21,15 @@ Generate boilerplate code for common Drupal components.
 
 ### 0. Parse and Validate Input
 ```bash
-if [ ${#ARGUMENTS} -gt 256 ]; then
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+if [ ${#ARGS} -gt 256 ]; then
   echo "ERROR: Input too long (max 256 characters)"
   exit 1
 fi
 
-SCAFFOLD_TYPE=$(printf '%s' "$ARGUMENTS" | awk '{print $1}')
-COMPONENT_NAME=$(printf '%s' "$ARGUMENTS" | awk '{print $2}')
-MODULE_NAME=$(printf '%s' "$ARGUMENTS" | awk '{print $3}')
+SCAFFOLD_TYPE=$(printf '%s' "$ARGS" | awk -v i=1 '{print $i}')
+COMPONENT_NAME=$(printf '%s' "$ARGS" | awk -v i=2 '{print $i}')
+MODULE_NAME=$(printf '%s' "$ARGS" | awk -v i=3 '{print $i}')
 
 # Explicit path traversal check (defense-in-depth)
 for VAR_CHECK in "$SCAFFOLD_TYPE" "$COMPONENT_NAME" "$MODULE_NAME"; do

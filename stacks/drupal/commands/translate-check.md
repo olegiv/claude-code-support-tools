@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # Translation Check
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be empty or one lowercase language code matching `^[a-z]{2}(-[a-z]{2,3})?$`. The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 Check translation status and coverage for the Drupal site.
 
 ## Arguments
@@ -16,7 +18,8 @@ Check translation status and coverage for the Drupal site.
 
 ### 0. Validate Input
 ```bash
-LANG_CODE="${ARGUMENTS:-}"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+LANG_CODE="${ARGS}"
 if [ -n "$LANG_CODE" ]; then
   if [ ${#LANG_CODE} -gt 10 ]; then
     echo "ERROR: Language code too long (max 10 characters)"
@@ -54,7 +57,8 @@ ORDER BY translated_strings DESC;
 
 ### 4. Untranslated Strings Count
 ```bash
-LANG_CODE="${ARGUMENTS:-}"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+LANG_CODE="${ARGS}"
 if [ -z "$LANG_CODE" ]; then
   echo "No language specified. Showing all languages from step 3."
 else
@@ -83,7 +87,8 @@ ORDER BY n.type, n.langcode;
 
 ### 6. Missing Content Translations
 ```bash
-LANG_CODE="${ARGUMENTS:-}"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+LANG_CODE="${ARGS}"
 if [ -n "$LANG_CODE" ]; then
   SAFE_LANG=$(printf '%s' "$LANG_CODE" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
   ./vendor/bin/drush sql:query "

@@ -6,6 +6,8 @@ allowed-tools: Bash
 
 # User Information
 
+**Check the arguments before running anything.** The command arguments are inserted into this prompt before any shell runs, so the shell checks below cannot protect a command that contains them. Check them yourself first: they must be one value of at most 254 characters: a numeric user ID (`^[0-9]+$`), an email address matching `^[a-zA-Z0-9._+-]+@[a-zA-Z0-9.-]+$`, or a username matching `^[a-zA-Z0-9_.][a-zA-Z0-9._-]*$` (no leading `-`). The whole value must match, on a single line; if you are unsure whether it matches, treat it as invalid. If it does not match, stop and report the invalid argument without running any command. Run the steps below only with arguments that passed this check; their shell blocks read the value from `ARGS`.
+
 Look up detailed information about a Drupal user.
 
 ## Arguments
@@ -16,13 +18,14 @@ Look up detailed information about a Drupal user.
 
 ### 1. Validate Input
 ```bash
-if [ ${#ARGUMENTS} -gt 254 ]; then
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+if [ ${#ARGS} -gt 254 ]; then
   echo "ERROR: Input too long (max 254 characters)"
   exit 1
 fi
 
 # Validate input format: uid (numeric), email (with @), or username (safe chars)
-INPUT="$ARGUMENTS"
+INPUT="$ARGS"
 if [[ "$INPUT" =~ ^[0-9]+$ ]]; then
   : # numeric uid - safe
 elif [[ "$INPUT" =~ @ ]]; then
@@ -32,9 +35,10 @@ elif [[ "$INPUT" =~ @ ]]; then
     exit 1
   fi
 else
-  # username - alphanumeric, underscores, hyphens, dots
-  if ! printf '%s' "$INPUT" | grep -qE '^[a-zA-Z0-9._-]+$'; then
-    echo "ERROR: Invalid username format. Only alphanumeric, dots, hyphens, underscores allowed."
+  # username - alphanumeric, underscores, hyphens, dots; no leading hyphen
+  # (a leading - would reach drush as an option)
+  if ! printf '%s' "$INPUT" | grep -qE '^[a-zA-Z0-9_.][a-zA-Z0-9._-]*$'; then
+    echo "ERROR: Invalid username format. Only alphanumeric, dots, hyphens, underscores; no leading hyphen."
     exit 1
   fi
 fi
@@ -42,7 +46,8 @@ fi
 
 ### 2. Identify User
 ```bash
-INPUT="$ARGUMENTS"
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
+INPUT="$ARGS"
 
 # Check if numeric (uid)
 if [[ "$INPUT" =~ ^[0-9]+$ ]]; then
@@ -52,14 +57,15 @@ elif [[ "$INPUT" =~ @ ]]; then
   ./vendor/bin/drush user:information --mail="$INPUT" --format=yaml 2>&1
 # Assume username
 else
-  ./vendor/bin/drush user:information "$INPUT" --format=yaml 2>&1
+  ./vendor/bin/drush user:information --format=yaml -- "$INPUT" 2>&1
 fi
 ```
 
 ### 3. Get User Roles
 ```bash
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
 # Escape for PHP single-quoted string context: \ -> \\, ' -> \'
-PHP_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
+PHP_SAFE_INPUT=$(printf '%s' "$ARGS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g")
 ./vendor/bin/drush php:eval "
   \$input = '$PHP_SAFE_INPUT';
   \$user = NULL;
@@ -90,8 +96,9 @@ PHP_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/\\\\'/g"
 
 ### 4. Recent Activity
 ```bash
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
 # Escape for SQL string context: \ -> \\, ' -> ''
-SQL_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+SQL_SAFE_INPUT=$(printf '%s' "$ARGS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, message, timestamp
 FROM watchdog
@@ -109,8 +116,9 @@ LIMIT 10;
 
 ### 5. Content Authored
 ```bash
+ARGS='$ARGUMENTS'  # passed the argument check above, so it contains no '
 # Escape for SQL string context: \ -> \\, ' -> ''
-SQL_SAFE_INPUT=$(printf '%s' "$ARGUMENTS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
+SQL_SAFE_INPUT=$(printf '%s' "$ARGS" | sed "s/\\\\/\\\\\\\\/g; s/'/''/g")
 ./vendor/bin/drush sql:query "
 SELECT type, COUNT(*) as count
 FROM node_field_data
